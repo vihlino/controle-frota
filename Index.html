@@ -491,7 +491,7 @@
   ];
 
   var state = {
-    mode: "form",           // form | success | login | admin
+    mode: PRESET_VEHICLE_ID ? "form" : "login",  // form | success | login | admin
     adminTab: "overview",   // overview | checklists | vehicles | drivers | users
     vehicles: [],
     entries: [],
@@ -628,7 +628,7 @@
 
   function logout(){
     state.currentUser = null;
-    state.mode = "form";
+    state.mode = "login";
     render();
   }
 
@@ -1028,7 +1028,7 @@
       '<div class="field"><label>Senha</label><input type="password" id="lg-pass" placeholder="••••••••" value=""></div>'+
       (state.loginError ? '<div class="error-text" style="margin-top:-8px;margin-bottom:12px;">'+escapeHtml(state.loginErrorMsg||"Usuário ou senha incorretos.")+'</div>' : '')+
       '<button class="btn btn-primary" id="lg-submit" '+(state.loginBusy?'disabled':'')+'>'+(state.loginBusy?'Entrando…':'Entrar')+'</button>'+
-      '<div class="footer-link"><a href="#" id="lg-back">Voltar ao checklist</a></div>'+
+      (state.vehicleLocked ? '<div class="footer-link"><a href="#" id="lg-back">Voltar ao checklist</a></div>' : '')+
     '</div></div>';
   }
 
