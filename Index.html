@@ -1214,7 +1214,7 @@
     '</div></div>';
   }
 
-  // Uma linha de "Sim/Não" do checklist (Macaco, Chave de roda, Estepe).
+  // Uma linha de "Sim/Não" do checklist (Macaco, Chave de Roda, Estepe).
   function equipRow(fieldKey, label, value){
     var e = state.errors;
     return '<div class="equip-row">'+
@@ -1480,7 +1480,7 @@
         '<td><div class="stack-cell"><span class="stack-hora">'+(e.horaSaida||"—")+'</span><span class="km-chip">'+e.kmOut+'</span></div></td>'+
         '<td><div class="stack-cell"><span class="stack-hora">'+(e.horaChegada||"—")+'</span><span class="km-chip">'+e.kmIn+'</span></div></td>'+
         '<td><strong>'+(e.kmIn-e.kmOut)+' km</strong></td>'+
-        '<td>'+eqBadge("M", e.macaco, "Macaco")+eqBadge("C", e.chaveRoda, "Chave de roda")+eqBadge("E", e.estepe, "Estepe")+'</td>'+
+        '<td>'+eqBadge("M", e.macaco, "Macaco")+eqBadge("C", e.chaveRoda, "Chave de Roda")+eqBadge("E", e.estepe, "Estepe")+'</td>'+
         '<td style="color:var(--muted);font-size:12px;" class="mono">'+escapeHtml(e.matricula)+'</td>'+
         '<td>'+(e.photo ? '<img class="thumb" src="'+e.photo+'" data-photo="'+e.id+'">' : '<span style="color:var(--muted);font-size:12px;">—</span>')+'</td>'+
       '</tr>';
@@ -1562,7 +1562,7 @@
           '<div class="field"><label>Km chegada</label><input type="number" inputmode="numeric" id="me-kmin" value="'+editForm.kmIn+'"></div>'+
         '</div>'+
         manageEquipRow('macaco', 'Macaco', editForm.macaco)+
-        manageEquipRow('chaveRoda', 'Chave de roda', editForm.chaveRoda)+
+        manageEquipRow('chaveRoda', 'Chave de Roda', editForm.chaveRoda)+
         manageEquipRow('estepe', 'Estepe', editForm.estepe)+
         '<div style="display:flex; gap:8px; margin-top:14px;">'+
           '<button class="btn btn-primary btn-small" id="me-save">Salvar alterações</button>'+
@@ -1664,7 +1664,7 @@
       '<div class="card">'+
         (rows ? (
           '<div style="overflow-x:auto;"><table><thead><tr>'+
-            '<th>Status</th><th>Nome do condutor</th><th>CPF</th><th>Nascimento</th><th>Telefone</th>'+
+            '<th>Status</th><th>Nome do Condutor</th><th>CPF</th><th>Nascimento</th><th>Telefone</th>'+
             '<th>Categoria</th><th>Registro CNH</th><th>Emissão CNH</th><th>Validade CNH</th>'+
             '<th>Documento</th><th>Matrícula</th><th></th>'+
           '</tr></thead><tbody>'+rows+'</tbody></table></div>'
@@ -1672,7 +1672,7 @@
       '</div>'+
       '<div class="card"><h2>'+(editing ? 'Editar motorista' : 'Cadastrar motorista')+'</h2>'+
         '<div class="form-row2">'+
-          '<div class="field"><label>Nome do condutor</label><input type="text" id="d-name" value="'+escapeHtml(nd.name)+'"></div>'+
+          '<div class="field"><label>Nome do Condutor</label><input type="text" id="d-name" value="'+escapeHtml(nd.name)+'"></div>'+
           '<div class="field"><label>Matrícula</label><input type="text" inputmode="numeric" maxlength="15" id="d-matricula" value="'+escapeHtml(nd.matricula)+'"></div>'+
         '</div>'+
         '<div class="form-row2">'+
