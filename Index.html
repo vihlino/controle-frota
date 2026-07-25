@@ -550,10 +550,10 @@
   var TABS = [
     {key:"overview", label:"Visão geral"},
     {key:"checklists", label:"Checklists"},
-    {key:"manage", label:"Gerenciar checklists"},
     {key:"vehicles", label:"Veículos"},
     {key:"drivers", label:"Motoristas"},
-    {key:"users", label:"Usuários"}
+    {key:"users", label:"Usuários"},
+    {key:"manage", label:"Gerenciar"}
   ];
 
   // ---------------- STATE (memória da tela) ----------------
@@ -1543,7 +1543,7 @@
       '</tr>';
     }).join("");
 
-    return adminTopbarRow("Gerenciar checklists")+
+    return adminTopbarRow("Gerenciar")+
       '<div class="card">'+
         '<p class="hint" style="margin-top:0;">Use esta aba pra corrigir ou apagar um checklist enviado por engano (ex: um teste feito no QR Code). Qualquer alteração pede sua senha do painel como confirmação.</p>'+
         '<div class="filter-bar">'+
