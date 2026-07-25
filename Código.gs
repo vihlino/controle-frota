@@ -35,7 +35,7 @@ var ENTRY_HEADERS = [
   "percurso", "condutor", "horaSaida", "horaChegada", "kmOut", "kmIn",
   "macaco", "chaveRoda", "estepe", "photoUrl"
 ];
-var VEHICLE_HEADERS = ["id", "plate", "model"];
+var VEHICLE_HEADERS = ["id", "plate", "model", "renavam", "chassi", "anoModelo", "anoFabricacao", "vinculo"];
 var DRIVER_HEADERS = ["id", "status", "cnh", "phone", "name", "matricula", "docStatus",
   "cpf", "birthDate", "cnhRegistro", "cnhEmissao", "cnhValidade"];
 var USER_HEADERS = ["id", "username", "passwordHash", "name", "createdAt"];
@@ -87,6 +87,12 @@ function getOrCreateSheet_(name, headers) {
     sh.getRange("K:K").setNumberFormat("@"); // cnhEmissao
     sh.getRange("L:L").setNumberFormat("@"); // cnhValidade
   }
+  if (name === VEHICLES_SHEET) {
+    sh.getRange("D:D").setNumberFormat("@"); // renavam
+    sh.getRange("E:E").setNumberFormat("@"); // chassi
+    sh.getRange("F:F").setNumberFormat("@"); // anoModelo
+    sh.getRange("G:G").setNumberFormat("@"); // anoFabricacao
+  }
   return sh;
 }
 
@@ -123,14 +129,63 @@ function getVehicles() {
   var values = sh.getDataRange().getValues();
   var rows = values.slice(1).filter(function (r) { return r[0]; });
   return rows.map(function (r) {
-    return { id: String(r[0]), plate: String(r[1]), model: String(r[2]) };
+    return {
+      id: String(r[0]), plate: String(r[1]), model: String(r[2]),
+      renavam: String(r[3] || ""), chassi: String(r[4] || ""),
+      anoModelo: String(r[5] || ""), anoFabricacao: String(r[6] || ""),
+      vinculo: String(r[7] || "")
+    };
   });
 }
 
+// Aceita tanto o formato antigo addVehicle("PLACA","MODELO") quanto um objeto com todos os
+// campos novos - assim uma implantação antiga do Index.html não quebra durante a atualização.
 function addVehicle(plate, model) {
-  if (!plate || !String(plate).trim()) return getVehicles();
+  var v = (plate && typeof plate === "object") ? plate : {plate: plate, model: model};
+  if (!v.plate || !String(v.plate).trim()) return getVehicles();
   var sh = getOrCreateSheet_(VEHICLES_SHEET, VEHICLE_HEADERS);
-  sh.appendRow([Utilities.getUuid(), String(plate).trim().toUpperCase(), (model && String(model).trim()) || "—"]);
+  sh.appendRow([
+    Utilities.getUuid(),
+    String(v.plate).trim().toUpperCase(),
+    (v.model && String(v.model).trim()) || "—",
+    (v.renavam && String(v.renavam).trim()) || "",
+    (v.chassi && String(v.chassi).trim().toUpperCase()) || "",
+    (v.anoModelo && String(v.anoModelo).trim()) || "",
+    (v.anoFabricacao && String(v.anoFabricacao).trim()) || "",
+    v.vinculo || ""
+  ]);
+  // Renavam e chassi são códigos, não números/datas - trava como texto pra o Sheets não
+  // "arredondar" nem virar notação científica.
+  var lastRow = sh.getLastRow();
+  sh.getRange(lastRow, 4, 1, 5).setNumberFormat("@");
+  return getVehicles();
+}
+
+// Atualiza um veículo já cadastrado (botão "Editar" na aba Veículos).
+function updateVehicle(id, v) {
+  if (!v || !String(v.plate || "").trim()) {
+    throw new Error("Informe ao menos a placa do veículo.");
+  }
+  var sh = getOrCreateSheet_(VEHICLES_SHEET, VEHICLE_HEADERS);
+  var values = sh.getDataRange().getValues();
+  var found = false;
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === String(id)) {
+      sh.getRange(i + 1, 2, 1, 7).setValues([[
+        String(v.plate).trim().toUpperCase(),
+        (v.model && String(v.model).trim()) || "—",
+        (v.renavam && String(v.renavam).trim()) || "",
+        (v.chassi && String(v.chassi).trim().toUpperCase()) || "",
+        (v.anoModelo && String(v.anoModelo).trim()) || "",
+        (v.anoFabricacao && String(v.anoFabricacao).trim()) || "",
+        v.vinculo || ""
+      ]]);
+      sh.getRange(i + 1, 4, 1, 5).setNumberFormat("@");
+      found = true;
+      break;
+    }
+  }
+  if (!found) throw new Error("Veículo não encontrado (pode já ter sido removido).");
   return getVehicles();
 }
 

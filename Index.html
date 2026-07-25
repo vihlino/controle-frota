@@ -657,8 +657,8 @@
     webAppUrl: "",           // URL pública do site, usada para montar o link/QR de cada veículo
     qrOpenFor: null,         // id do veículo com o QR Code aberto na aba Veículos
     showVehicleManager: false,
-    newPlate: "",
-    newModel: "",
+    newVehicle: emptyVehicleForm(),
+    editingVehicleId: null,  // != null quando o form de veículo está em modo "Editar"
     newDriver: emptyDriverForm(),
     newUser: {username:"", name:"", password:""},
     editingDriverId: null,   // != null quando o form de motorista está em modo "Editar"
@@ -849,6 +849,11 @@
   function emptyDriverForm(){
     return {status:"disponivel", cnh:"", phone:"", name:"", matricula:"", cpf:"",
       birthDate:"", cnhRegistro:"", cnhEmissao:"", cnhValidade:""};
+  }
+
+  // Formulário de veículo em branco (aba Veículos).
+  function emptyVehicleForm(){
+    return {plate:"", model:"", renavam:"", chassi:"", anoModelo:"", anoFabricacao:"", vinculo:"patrimonio"};
   }
 
   // Cadastra um motorista novo, ou salva as alterações se state.editingDriverId estiver
@@ -1259,22 +1264,54 @@
     doc.save("checklist_frota_" + (PERIOD_FILE_LABELS[state.adminFilter]||state.adminFilter) + "_" + new Date().toISOString().slice(0,10) + ".pdf");
   }
 
-  async function addVehicle(){ // (continua o padrão de CRUD descrito acima)
-    if(!state.newPlate.trim()) return;
-    var plate = state.newPlate.trim();
-    var model = state.newModel.trim();
-    state.newPlate = ""; state.newModel = "";
+  // Cadastra um veículo novo, ou salva as alterações se state.editingVehicleId estiver
+  // preenchido (mesmo padrão do formulário de motorista).
+  async function addVehicle(){
+    var v = state.newVehicle;
+    if(!v.plate.trim()) return;
+    var payload = {
+      plate: v.plate.trim(), model: v.model.trim(), renavam: v.renavam.trim(),
+      chassi: v.chassi.trim(), anoModelo: v.anoModelo.trim(),
+      anoFabricacao: v.anoFabricacao.trim(), vinculo: v.vinculo
+    };
     try{
-      state.vehicles = await gsRun("addVehicle", plate, model);
+      if(state.editingVehicleId){
+        state.vehicles = await gsRun("updateVehicle", state.editingVehicleId, payload);
+      }else{
+        state.vehicles = await gsRun("addVehicle", payload);
+      }
+      state.newVehicle = emptyVehicleForm();
+      state.editingVehicleId = null;
     }catch(e){
-      alert("Não foi possível adicionar o veículo agora.");
+      alert((e && e.message) || "Não foi possível salvar o veículo agora.");
     }
+    render();
+  }
+
+  function startEditVehicle(id){
+    var v = state.vehicles.find(function(x){ return x.id === id; });
+    if(!v) return;
+    state.newVehicle = {
+      plate:v.plate||"", model:v.model||"", renavam:v.renavam||"", chassi:v.chassi||"",
+      anoModelo:v.anoModelo||"", anoFabricacao:v.anoFabricacao||"", vinculo:v.vinculo||""
+    };
+    state.editingVehicleId = id;
+    state.qrOpenFor = null;
+    render();
+    var el = document.getElementById("v-plate");
+    if(el) el.scrollIntoView({behavior:"smooth", block:"center"});
+  }
+
+  function cancelEditVehicle(){
+    state.newVehicle = emptyVehicleForm();
+    state.editingVehicleId = null;
     render();
   }
 
   async function removeVehicle(id){
     try{
       state.vehicles = await gsRun("removeVehicle", id);
+      if(state.editingVehicleId === id) cancelEditVehicle();
     }catch(e){
       alert("Não foi possível remover o veículo agora.");
     }
@@ -1511,6 +1548,11 @@
     vencendo: ["Vencendo","pill-warn"],
     vencido: ["Vencido","pill-bad"]
   };
+  // Vínculo do veículo com a CMTT (aba Veículos).
+  var VINCULO_STATUS = {
+    patrimonio: ["Patrimônio","pill-ok"],
+    locado: ["Locado","pill-warn"]
+  };
 
   // Formata uma data "YYYY-MM-DD" como "DD/MM/YYYY" pra exibição; "—" se vazia.
   function brDate(iso){
@@ -1740,31 +1782,70 @@
       var link = state.webAppUrl ? (state.webAppUrl + (state.webAppUrl.indexOf("?")>-1?"&":"?") + "v=" + encodeURIComponent(v.id)) : "";
       var qrImg = link ? ("https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=" + encodeURIComponent(link)) : "";
       var open = state.qrOpenFor === v.id;
-      return '<div class="veh-row-block">'+
-        '<div class="fleet-row"><span class="veh-plate">'+escapeHtml(v.plate)+'</span><span class="veh-model" title="'+escapeHtml(v.model)+'">'+escapeHtml(v.model)+'</span>'+
-          '<button class="btn btn-outline btn-small" data-qr="'+v.id+'">'+(open?'Ocultar QR Code':'Ver QR Code')+'</button>'+
-          '<button class="veh-del" data-del="'+v.id+'">Remover</button>'+
-        '</div>'+
+      var vin = VINCULO_STATUS[v.vinculo] || ["—","pill-muted"];
+      return '<tr>'+
+          '<td><span class="veh-plate">'+escapeHtml(v.plate)+'</span></td>'+
+          '<td>'+escapeHtml(v.model||"—")+'</td>'+
+          '<td class="mono">'+escapeHtml(v.renavam||"—")+'</td>'+
+          '<td class="mono">'+escapeHtml(v.chassi||"—")+'</td>'+
+          '<td>'+escapeHtml(v.anoModelo||"—")+'</td>'+
+          '<td>'+escapeHtml(v.anoFabricacao||"—")+'</td>'+
+          '<td><span class="pill '+vin[1]+'">'+vin[0]+'</span></td>'+
+          '<td style="white-space:nowrap;">'+
+            '<button class="btn btn-outline btn-small" data-qr="'+v.id+'">'+(open?'Ocultar QR':'Ver QR Code')+'</button> '+
+            '<button class="btn btn-outline btn-small" data-edit-vehicle="'+v.id+'">Editar</button> '+
+            '<button class="veh-del" data-del="'+v.id+'">Remover</button>'+
+          '</td>'+
+        '</tr>'+
         (open ? (
-          '<div class="qr-box">'+
-            (qrImg ? '<img src="'+qrImg+'" alt="QR Code '+escapeHtml(v.plate)+'">' : '<div class="hint">Carregando link…</div>')+
-            '<div class="qr-info">'+
-              '<div class="qr-link">'+escapeHtml(link)+'</div>'+
-              '<div class="hint">Imprima e cole este QR Code no veículo '+escapeHtml(v.plate)+'. Ele abre o checklist já travado nesse veículo, evitando registro no carro errado.</div>'+
-              (qrImg ? '<a class="btn btn-outline btn-small" style="margin-top:8px; display:inline-flex; width:auto;" href="'+qrImg+'" target="_blank" rel="noopener">Baixar imagem</a>' : '')+
+          '<tr><td colspan="8">'+
+            '<div class="qr-box">'+
+              (qrImg ? '<img src="'+qrImg+'" alt="QR Code '+escapeHtml(v.plate)+'">' : '<div class="hint">Carregando link…</div>')+
+              '<div class="qr-info">'+
+                '<div class="qr-link">'+escapeHtml(link)+'</div>'+
+                '<div class="hint">Imprima e cole este QR Code no veículo '+escapeHtml(v.plate)+'. Ele abre o checklist já travado nesse veículo, evitando registro no carro errado.</div>'+
+                (qrImg ? '<a class="btn btn-outline btn-small" style="margin-top:8px; display:inline-flex; width:auto;" href="'+qrImg+'" target="_blank" rel="noopener">Baixar imagem</a>' : '')+
+              '</div>'+
             '</div>'+
-          '</div>'
-        ) : '')+
-      '</div>';
+          '</td></tr>'
+        ) : '');
+    }).join("");
+
+    var nv = state.newVehicle;
+    var editing = !!state.editingVehicleId;
+    var vinculoOptions = Object.keys(VINCULO_STATUS).map(function(k){
+      return '<option value="'+k+'"'+(nv.vinculo===k?' selected':'')+'>'+VINCULO_STATUS[k][0]+'</option>';
     }).join("");
 
     return adminTopbarRow("Veículos")+
       '<div class="card"><h2>Veículos da frota</h2>'+
-        (rows || '<div class="empty-state">Nenhum veículo cadastrado ainda.</div>')+
-        '<div class="veh-add-row">'+
-          '<input type="text" id="v-plate" placeholder="Placa" value="'+escapeHtml(state.newPlate)+'">'+
-          '<input type="text" id="v-model" placeholder="Modelo" value="'+escapeHtml(state.newModel)+'">'+
-          '<button class="btn btn-primary btn-small" id="v-add">Adicionar</button>'+
+        (rows ? (
+          '<div style="overflow-x:auto;"><table><thead><tr>'+
+            '<th>Placa</th><th>Modelo</th><th>Renavam</th><th>Chassi</th>'+
+            '<th>Ano modelo</th><th>Ano fabricação</th><th>Vínculo</th><th></th>'+
+          '</tr></thead><tbody>'+rows+'</tbody></table></div>'
+        ) : '<div class="empty-state">Nenhum veículo cadastrado ainda.</div>')+
+      '</div>'+
+      '<div class="card"><h2>'+(editing ? 'Editar veículo' : 'Cadastrar veículo')+'</h2>'+
+        '<div class="form-row2">'+
+          '<div class="field"><label>Placa</label><input type="text" id="v-plate" placeholder="Ex: ABC-1234" value="'+escapeHtml(nv.plate)+'"></div>'+
+          '<div class="field"><label>Modelo</label><input type="text" id="v-model" placeholder="Ex: ONIX" value="'+escapeHtml(nv.model)+'"></div>'+
+        '</div>'+
+        '<div class="form-row2">'+
+          '<div class="field"><label>Renavam</label><input type="text" inputmode="numeric" maxlength="11" id="v-renavam" value="'+escapeHtml(nv.renavam)+'"></div>'+
+          '<div class="field"><label>Chassi</label><input type="text" maxlength="17" id="v-chassi" value="'+escapeHtml(nv.chassi)+'"></div>'+
+        '</div>'+
+        '<div class="form-row2">'+
+          '<div class="field"><label>Ano modelo</label><input type="text" inputmode="numeric" maxlength="4" id="v-anomodelo" placeholder="Ex: 2024" value="'+escapeHtml(nv.anoModelo)+'"></div>'+
+          '<div class="field"><label>Ano de fabricação</label><input type="text" inputmode="numeric" maxlength="4" id="v-anofab" placeholder="Ex: 2023" value="'+escapeHtml(nv.anoFabricacao)+'"></div>'+
+        '</div>'+
+        '<div class="form-row2">'+
+          '<div class="field"><label>Vínculo</label><select id="v-vinculo">'+vinculoOptions+'</select></div>'+
+          '<div class="field"></div>'+
+        '</div>'+
+        '<div style="display:flex; gap:8px;">'+
+          '<button class="btn btn-primary btn-small" id="v-add">'+(editing ? 'Salvar alterações' : 'Cadastrar veículo')+'</button>'+
+          (editing ? '<button class="btn btn-outline btn-small" id="v-cancel">Cancelar</button>' : '')+
         '</div>'+
       '</div>';
   }
@@ -2039,11 +2120,39 @@
     if($("photo-modal-bg")) $("photo-modal-bg").onclick = function(){ state.modalPhoto = null; render(); };
 
     // aba Veículos
-    if($("v-plate")) $("v-plate").oninput = function(ev){ state.newPlate = ev.target.value; };
-    if($("v-model")) $("v-model").oninput = function(ev){ state.newModel = ev.target.value; };
+    if($("v-plate")) $("v-plate").oninput = function(ev){
+      state.newVehicle.plate = ev.target.value.toUpperCase();
+      ev.target.value = state.newVehicle.plate;
+    };
+    if($("v-model")) $("v-model").oninput = function(ev){
+      state.newVehicle.model = ev.target.value.toUpperCase();
+      ev.target.value = state.newVehicle.model;
+    };
+    if($("v-renavam")) $("v-renavam").oninput = function(ev){
+      state.newVehicle.renavam = ev.target.value.replace(/\D/g,"").slice(0,11);
+      ev.target.value = state.newVehicle.renavam;
+    };
+    if($("v-chassi")) $("v-chassi").oninput = function(ev){
+      // Chassi (VIN) é sempre em maiúsculo, 17 caracteres entre letras e números.
+      state.newVehicle.chassi = ev.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,17);
+      ev.target.value = state.newVehicle.chassi;
+    };
+    if($("v-anomodelo")) $("v-anomodelo").oninput = function(ev){
+      state.newVehicle.anoModelo = ev.target.value.replace(/\D/g,"").slice(0,4);
+      ev.target.value = state.newVehicle.anoModelo;
+    };
+    if($("v-anofab")) $("v-anofab").oninput = function(ev){
+      state.newVehicle.anoFabricacao = ev.target.value.replace(/\D/g,"").slice(0,4);
+      ev.target.value = state.newVehicle.anoFabricacao;
+    };
+    if($("v-vinculo")) $("v-vinculo").onchange = function(ev){ state.newVehicle.vinculo = ev.target.value; };
     if($("v-add")) $("v-add").onclick = addVehicle;
+    if($("v-cancel")) $("v-cancel").onclick = cancelEditVehicle;
     document.querySelectorAll("[data-del]").forEach(function(btn){
       btn.onclick = function(){ removeVehicle(btn.getAttribute("data-del")); };
+    });
+    document.querySelectorAll("[data-edit-vehicle]").forEach(function(btn){
+      btn.onclick = function(){ startEditVehicle(btn.getAttribute("data-edit-vehicle")); };
     });
     document.querySelectorAll("[data-qr]").forEach(function(btn){
       btn.onclick = function(){
