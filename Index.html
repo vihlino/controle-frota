@@ -135,6 +135,8 @@
     letter-spacing:0.08em;
     text-transform:uppercase;
   }
+  .card-header-row{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;}
+  .card-header-row h2{margin:0;}
   label{
     display:block;
     font-size:13px;
@@ -412,11 +414,31 @@
   .veh-add-row button{flex-shrink:0;}
 
 
-  /* ---------- Admin shell (sidebar layout, estilo Fleety) ---------- */
+  /* ---------- Admin shell (sidebar em gaveta - hambúrguer abre/fecha, igual em qualquer tela) ----------
+     No desktop a gaveta aberta reserva espaço e o conteúdo fica ao lado (como era antes);
+     no mobile ela desliza por cima, com um fundo escurecido pra fechar tocando fora. */
   .admin-shell{display:flex; min-height:100vh; background:var(--paper); align-items:stretch;}
+  .sidebar-backdrop{
+    position:fixed; inset:0; background:rgba(10,10,11,0.5); z-index:55;
+    opacity:0; visibility:hidden; transition:opacity .2s ease;
+  }
   .admin-sidebar{
     width:236px; flex-shrink:0; background:var(--asphalt); color:#fff;
     display:flex; flex-direction:column; padding:20px 14px;
+    position:fixed; top:0; left:0; bottom:0; z-index:60; overflow-y:auto;
+    transform:translateX(-100%); transition:transform .25s ease;
+  }
+  .admin-sidebar.open{transform:translateX(0);}
+  .admin-main{transition:margin-left .25s ease;}
+
+  @media (min-width:901px){
+    /* Desktop: gaveta aberta empurra o conteúdo, sem escurecer a tela. */
+    .admin-shell.sidebar-open .admin-main{margin-left:236px;}
+    .sidebar-backdrop{display:none;}
+  }
+  @media (max-width:900px){
+    /* Mobile: gaveta por cima do conteúdo + fundo escurecido pra fechar tocando fora. */
+    .sidebar-backdrop.open{opacity:1; visibility:visible;}
   }
   .admin-brand{display:flex; align-items:center; gap:10px; padding:0 6px 18px; border-bottom:1px solid #26272C; margin-bottom:14px;}
   .admin-brand img{height:28px; width:auto; object-fit:contain;}
@@ -436,9 +458,13 @@
   .admin-logout:hover{border-color:var(--safety); color:#fff;}
 
   .admin-main{flex:1; min-width:0; padding:24px 26px 60px;}
-  .admin-topbar-row{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px;}
-  .admin-crumb{font-size:11.5px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.05em;}
-  .admin-page-title{font-family:'Oswald',sans-serif; font-size:23px; margin:2px 0 0; text-transform:uppercase; letter-spacing:0.01em;}
+  .admin-topbar-row{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px;}
+  .hamburger-btn{
+    display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+    width:38px; height:38px; border-radius:10px; background:var(--asphalt); color:#fff; border:none; cursor:pointer;
+  }
+  .hamburger-btn:hover{background:var(--asphalt-2);}
+  .admin-page-title{font-family:'Oswald',sans-serif; font-size:23px; margin:0; text-transform:uppercase; letter-spacing:0.01em;}
 
   .kpi-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:18px;}
   .kpi-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px;}
@@ -476,14 +502,6 @@
   .loading-screen{padding:60px 20px; text-align:center; color:var(--muted); font-family:'Inter',sans-serif;}
 
   @media (max-width:900px){
-    .admin-shell{flex-direction:column;}
-    .admin-sidebar{width:100%; flex-direction:row; align-items:center; padding:12px 14px; overflow-x:auto;}
-    .admin-brand{border-bottom:none; margin-bottom:0; padding:0 12px 0 0; border-right:1px solid #26272C; flex-shrink:0;}
-    .admin-nav{flex-direction:row; flex:none; padding-left:8px;}
-    .admin-nav button{white-space:nowrap;}
-    .admin-sidebar-footer{border-top:none; margin-top:0; padding-top:0; margin-left:auto; padding-left:8px; display:flex; align-items:center; gap:8px; flex-shrink:0;}
-    .admin-user-chip{padding:0;}
-    .admin-logout{width:auto; margin-top:0; white-space:nowrap;}
     .admin-main{padding:16px;}
   }
 
@@ -585,6 +603,7 @@
     drivers: [],             // lista de motoristas cadastrados
     users: [],                // lista de usuários com acesso ao painel do gestor
     currentUser: null,       // { username, name } do gestor logado, ou null
+    sidebarOpen: false,      // gaveta do menu lateral do painel (ajustada em init(), pelo tamanho da tela)
     vehicleLocked: false,    // true quando o veículo veio travado por QR Code
     loading: true,           // controla a tela "Carregando…"
     submitting: false,       // true enquanto o checklist está sendo enviado
@@ -592,7 +611,8 @@
     errors: {},              // erros de validação do formulário, por campo
     adminFilter: "week",     // filtro de período na aba Checklists do gestor
     adminVehicle: "all",     // filtro de veículo na aba Checklists do gestor
-    adminSearch: "",         // texto de busca na aba Checklists do gestor
+    adminSearch: "",         // texto de busca na aba Checklists do gestor (só filtra ao clicar "Buscar"/Enter)
+    adminSort: "asc",        // ordem da lista de checklists: asc (crescente) | desc (decrescente)
     modalPhoto: null,        // foto ampliada no modal (aba Checklists)
     loginUser: "",
     loginPass: "",
@@ -685,6 +705,9 @@
   // o parâmetro do QR Code, já trava o formulário nesse veículo. Só então desenha
   // a tela pela primeira vez (render()).
   async function init(){
+    // No computador o menu lateral já começa aberto (como era antes); no celular começa
+    // fechado, pra não cobrir a tela. Depois disso quem manda é o botão de hambúrguer.
+    state.sidebarOpen = window.innerWidth > 900;
     // Carrega motoristas já aqui (não só depois do login) porque o formulário de checklist
     // (acesso via QR Code, sem login) agora escolhe o condutor numa lista em vez de digitar.
     await Promise.all([loadVehicles(), loadDrivers()]);
@@ -766,13 +789,20 @@
   // dar F5 na página - um F5 de verdade perde a sessão e volta pra tela de login, já que o
   // login aqui é só um estado do JavaScript, não uma sessão real do navegador.
   async function refreshAdminData(){
-    var btn = document.getElementById("a-refresh");
+    // Chamado tanto pelo botão da aba Checklists (id="a-refresh") quanto pelo do
+    // Dashboard, ao lado de "Últimos checklists" (id="ov-refresh").
+    var btn = document.getElementById("a-refresh") || document.getElementById("ov-refresh");
     if(btn) btn.classList.add("spinning");
     try{
       await Promise.all([loadEntries(), loadVehicles(), loadDrivers(), loadUsers(), loadWebAppUrl()]);
     }catch(e){
       console.error("Erro ao atualizar dados do painel", e);
     }
+    render();
+  }
+
+  function toggleSidebar(){
+    state.sidebarOpen = !state.sidebarOpen;
     render();
   }
 
@@ -1132,8 +1162,9 @@
     return true;
   }
 
-  // Aplica período + veículo + busca de texto sobre a lista de checklists.
-  // Usado tanto pela tabela da aba Checklists quanto pelo PDF exportado.
+  // Aplica período + veículo + busca de texto sobre a lista de checklists, e ordena pela
+  // data/hora de registro (createdAt) conforme state.adminSort. Usado tanto pela tabela
+  // da aba Checklists quanto pelo PDF exportado - por isso o PDF respeita a mesma ordem.
   function filteredEntries(){
     return state.entries.filter(function(e){
       if(!withinRange(e.date, state.adminFilter)) return false;
@@ -1145,10 +1176,14 @@
         }
       }
       return true;
+    }).sort(function(a,b){
+      return state.adminSort === "desc" ? (b.createdAt - a.createdAt) : (a.createdAt - b.createdAt);
     });
   }
 
   var PERIOD_LABELS = {today:"Hoje", week:"Últimos 7 dias", month:"Este mês", all:"Todos os períodos"};
+  // Versão "sem acento/espaço" dos períodos, só pra compor o nome do arquivo do PDF.
+  var PERIOD_FILE_LABELS = {today:"hoje", week:"semana", month:"mes", all:"todos"};
 
   // Gera o PDF do relatório (biblioteca jsPDF, carregada no <head>) com os
   // checklists filtrados no momento, e dispara o download no navegador.
@@ -1157,7 +1192,7 @@
     if(!rows.length){ alert("Não há checklists para gerar o PDF nesse filtro."); return; }
     var doc = new jspdf.jsPDF({orientation:"landscape"});
     doc.setFontSize(14);
-    doc.text("Controle de Entrada e Saída de Veículos", 14, 15);
+    doc.text("Controle de Entrada e Saída de Veículos", doc.internal.pageSize.getWidth()/2, 15, {align:"center"});
     var periodText = "Período: " + (PERIOD_LABELS[state.adminFilter]||"—") + "   •   Gerado em " + new Date().toLocaleString("pt-BR");
     var body = rows.map(function(e){
       var veh = state.vehicles.find(function(v){ return v.id === e.vehicleId; });
@@ -1186,7 +1221,7 @@
         doc.setTextColor(0);
       }
     });
-    doc.save("checklist_frota_" + state.adminFilter + "_" + new Date().toISOString().slice(0,10) + ".pdf");
+    doc.save("checklist_frota_" + (PERIOD_FILE_LABELS[state.adminFilter]||state.adminFilter) + "_" + new Date().toISOString().slice(0,10) + ".pdf");
   }
 
   async function addVehicle(){ // (continua o padrão de CRUD descrito acima)
@@ -1447,6 +1482,17 @@
     return iso ? iso.split("-").reverse().join("/") : "—";
   }
 
+  // Formata o instante exato em que o checklist foi registrado (createdAt, timestamp),
+  // sempre em horário de Brasília - independente do fuso do navegador de quem estiver
+  // olhando o painel. Ex: "25/07/2026 14:32:10".
+  function fmtDateTimeBR(ms){
+    if(!ms) return "—";
+    var d = new Date(ms);
+    var date = new Intl.DateTimeFormat("pt-BR", {timeZone:"America/Sao_Paulo", day:"2-digit", month:"2-digit", year:"numeric"}).format(d);
+    var time = new Intl.DateTimeFormat("pt-BR", {timeZone:"America/Sao_Paulo", hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false}).format(d);
+    return date + " " + time;
+  }
+
   // Calcula Válido/Vencendo/Vencido a partir da validade da CNH, em vez de exigir que o
   // gestor escolha isso manualmente (evita ficar desatualizado). "Vencendo" = dentro de 30
   // dias. Motoristas cadastrados antes desse campo existir (sem validade informada) mostram "—".
@@ -1465,7 +1511,12 @@
   }
 
   function adminTopbarRow(title){
-    return '<div class="admin-topbar-row"><div><div class="admin-crumb">Painel · CMTT</div><h1 class="admin-page-title">'+title+'</h1></div></div>';
+    return '<div class="admin-topbar-row">'+
+      '<button class="hamburger-btn" id="a-hamburger" aria-label="Abrir/fechar menu">'+
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>'+
+      '</button>'+
+      '<h1 class="admin-page-title">'+title+'</h1>'+
+    '</div>';
   }
 
   // Aba "Visão geral": números resumidos (KPIs) + últimos checklists registrados.
@@ -1491,8 +1542,13 @@
         '<div class="kpi-card"><div class="kpi-label">Veículos na frota</div><div class="kpi-value">'+state.vehicles.length+'</div></div>'+
         '<div class="kpi-card"><div class="kpi-label">Motoristas cadastrados</div><div class="kpi-value">'+state.drivers.length+'</div></div>'+
       '</div>'+
-      '<div class="card"><h2>Últimos checklists</h2>'+
-      (recentRows ? '<table><thead><tr><th>Data</th><th>Condutor</th><th>Veículo</th><th>Percurso</th><th>Rodado</th></tr></thead><tbody>'+recentRows+'</tbody></table>' : '<div class="empty-state">Nenhum checklist registrado ainda.</div>')+
+      '<div class="card">'+
+        '<div class="card-header-row"><h2>Últimos checklists</h2>'+
+          '<button class="btn-refresh" id="ov-refresh" title="Atualizar dados sem perder o login" aria-label="Atualizar">'+
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>'+
+          '</button>'+
+        '</div>'+
+        (recentRows ? '<table><thead><tr><th>Data</th><th>Condutor</th><th>Veículo</th><th>Percurso</th><th>Rodado</th></tr></thead><tbody>'+recentRows+'</tbody></table>' : '<div class="empty-state">Nenhum checklist registrado ainda.</div>')+
       '</div>';
   }
 
@@ -1507,11 +1563,13 @@
     var rows = list.map(function(e){
       var veh = state.vehicles.find(function(v){return v.id===e.vehicleId;});
       var plate = veh ? veh.plate : e.plate;
+      var model = veh ? veh.model : e.model;
       return '<tr>'+
-        '<td>'+e.date.split("-").reverse().join("/")+'</td>'+
+        '<td class="mono" style="white-space:nowrap;">'+fmtDateTimeBR(e.createdAt)+'</td>'+
         '<td>'+escapeHtml(e.percurso||"—")+'</td>'+
         '<td>'+escapeHtml(e.condutor||"")+'</td>'+
         '<td><span class="veh-plate">'+escapeHtml(plate)+'</span></td>'+
+        '<td>'+escapeHtml(model||"—")+'</td>'+
         '<td><div class="stack-cell"><span class="stack-hora">'+(e.horaSaida||"—")+'</span><span class="km-chip">'+e.kmOut+'</span></div></td>'+
         '<td><div class="stack-cell"><span class="stack-hora">'+(e.horaChegada||"—")+'</span><span class="km-chip">'+e.kmIn+'</span></div></td>'+
         '<td><strong>'+(e.kmIn-e.kmOut)+' km</strong></td>'+
@@ -1537,13 +1595,18 @@
           '</div>'+
           '<select id="a-vehicle">'+vehOptions+'</select>'+
           '<input type="text" id="a-search" placeholder="Buscar condutor, matrícula, placa ou percurso" value="'+escapeHtml(state.adminSearch)+'">'+
+          '<button class="btn btn-outline btn-small" id="a-search-btn">Buscar</button>'+
+          '<select id="a-sort" title="Classificar por">'+
+            '<option value="asc"'+(state.adminSort==="asc"?' selected':'')+'>Classificar por: ordem crescente</option>'+
+            '<option value="desc"'+(state.adminSort==="desc"?' selected':'')+'>Classificar por: ordem decrescente</option>'+
+          '</select>'+
           '<button class="btn btn-primary btn-small" id="a-export">Gerar PDF</button>'+
           '<button class="btn-refresh" id="a-refresh" title="Atualizar dados sem perder o login" aria-label="Atualizar">'+
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>'+
           '</button>'+
         '</div>'+
         (rows ? (
-          '<table><thead><tr><th>Data</th><th>Percurso</th><th>Condutor</th><th>Veículo</th><th>Saída</th><th>Chegada</th><th>Rodado</th><th>Equip.</th><th>Matrícula</th><th>Foto</th></tr></thead><tbody>'+rows+'</tbody></table>'
+          '<table><thead><tr><th>Data/Hora</th><th>Percurso</th><th>Condutor</th><th>Veículo</th><th>Modelo</th><th>Saída</th><th>Chegada</th><th>Rodado</th><th>Equip.</th><th>Matrícula</th><th>Foto</th></tr></thead><tbody>'+rows+'</tbody></table>'
         ) : '<div class="empty-state">Nenhum checklist encontrado para esse filtro.</div>')+
       '</div>';
   }
@@ -1796,9 +1859,10 @@
 
     var uName = state.currentUser ? (state.currentUser.name || state.currentUser.username) : "";
 
-    return '<div class="admin-shell">'+
-      '<div class="admin-sidebar">'+
-        '<div class="admin-brand">'+(LOGO_LEFT?'<img src="'+LOGO_LEFT+'" alt="Logo CMTT">':'')+'<span class="name">Frota CMTT</span></div>'+
+    return '<div class="admin-shell'+(state.sidebarOpen?' sidebar-open':'')+'">'+
+      '<div class="sidebar-backdrop'+(state.sidebarOpen?' open':'')+'" id="a-sidebar-backdrop"></div>'+
+      '<div class="admin-sidebar'+(state.sidebarOpen?' open':'')+'" id="a-sidebar">'+
+        '<div class="admin-brand">'+(LOGO_LEFT?'<img src="'+LOGO_LEFT+'" alt="Logo CMTT">':'')+'<span class="name">Painel de Controle</span></div>'+
         '<div class="admin-nav">'+navHtml+'</div>'+
         '<div class="admin-sidebar-footer">'+
           '<div class="admin-user-chip"><div class="admin-user-avatar">'+initials(uName)+'</div><div>'+escapeHtml(uName)+'</div></div>'+
@@ -1901,18 +1965,32 @@
     var $ = function(id){ return document.getElementById(id); };
 
     document.querySelectorAll("[data-tab]").forEach(function(btn){
-      btn.onclick = function(){ state.adminTab = btn.getAttribute("data-tab"); state.qrOpenFor = null; render(); };
+      btn.onclick = function(){
+        state.adminTab = btn.getAttribute("data-tab");
+        state.qrOpenFor = null;
+        // No celular a gaveta cobre a tela, então fecha sozinha ao escolher uma aba.
+        if(window.innerWidth <= 900) state.sidebarOpen = false;
+        render();
+      };
     });
     if($("a-logout")) $("a-logout").onclick = logout;
+    if($("a-hamburger")) $("a-hamburger").onclick = toggleSidebar;
+    if($("a-sidebar-backdrop")) $("a-sidebar-backdrop").onclick = toggleSidebar;
 
     // aba Checklists
     document.querySelectorAll("[data-filter]").forEach(function(btn){
       btn.onclick = function(){ state.adminFilter = btn.getAttribute("data-filter"); render(); };
     });
     if($("a-vehicle")) $("a-vehicle").onchange = function(ev){ state.adminVehicle = ev.target.value; render(); };
-    if($("a-search")) $("a-search").oninput = function(ev){ state.adminSearch = ev.target.value; render(); };
+    // A busca só filtra de verdade ao clicar em "Buscar" ou apertar Enter - só guarda o que
+    // foi digitado enquanto isso, sem re-renderizar a cada letra.
+    if($("a-search")) $("a-search").oninput = function(ev){ state.adminSearch = ev.target.value; };
+    if($("a-search")) $("a-search").onkeydown = function(ev){ if(ev.key === "Enter"){ ev.preventDefault(); render(); } };
+    if($("a-search-btn")) $("a-search-btn").onclick = function(){ render(); };
+    if($("a-sort")) $("a-sort").onchange = function(ev){ state.adminSort = ev.target.value; render(); };
     if($("a-export")) $("a-export").onclick = generatePDF;
     if($("a-refresh")) $("a-refresh").onclick = refreshAdminData;
+    if($("ov-refresh")) $("ov-refresh").onclick = refreshAdminData;
     document.querySelectorAll("[data-photo]").forEach(function(img){
       img.onclick = function(){ state.modalPhoto = img.getAttribute("src"); render(); };
     });
