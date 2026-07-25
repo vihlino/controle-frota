@@ -97,9 +97,10 @@
   .topbar p{
     margin:0;
     font-family:'Inter',sans-serif;
-    font-size:13px;
+    font-size:12px;
     color:#C8CCD3;
     letter-spacing:0.01em;
+    text-align:center;
   }
   .topbar .tag{
     display:inline-block;
@@ -1262,7 +1263,7 @@
       '<div class="card">'+
         '<h2>Identificação</h2>'+
         '<div class="field">'+
-          '<label>Nome do condutor</label>'+
+          '<label>Nome do Condutor</label>'+
           '<select id="f-condutor">'+condutorOptions+'</select>'+
           (e.condutor ? '<div class="error-text">'+e.condutor+'</div>' : '')+
         '</div>'+
@@ -1317,7 +1318,7 @@
       '<div class="card">'+
         '<h2>Equipamentos obrigatórios</h2>'+
         equipRow('macaco', 'Macaco', form.macaco)+
-        equipRow('chaveRoda', 'Chave de roda', form.chaveRoda)+
+        equipRow('chaveRoda', 'Chave de Roda', form.chaveRoda)+
         equipRow('estepe', 'Estepe', form.estepe)+
       '</div>'+
 
