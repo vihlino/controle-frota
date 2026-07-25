@@ -1213,7 +1213,7 @@
     '</div></div>';
   }
 
-  // Uma linha de "Sim/Não" do checklist (Macaco, Chave de roda, Pneu de estepe).
+  // Uma linha de "Sim/Não" do checklist (Macaco, Chave de roda, Estepe).
   function equipRow(fieldKey, label, value){
     var e = state.errors;
     return '<div class="equip-row">'+
@@ -1479,7 +1479,7 @@
         '<td><div class="stack-cell"><span class="stack-hora">'+(e.horaSaida||"—")+'</span><span class="km-chip">'+e.kmOut+'</span></div></td>'+
         '<td><div class="stack-cell"><span class="stack-hora">'+(e.horaChegada||"—")+'</span><span class="km-chip">'+e.kmIn+'</span></div></td>'+
         '<td><strong>'+(e.kmIn-e.kmOut)+' km</strong></td>'+
-        '<td>'+eqBadge("M", e.macaco, "Macaco")+eqBadge("C", e.chaveRoda, "Chave de roda")+eqBadge("E", e.estepe, "Pneu de estepe")+'</td>'+
+        '<td>'+eqBadge("M", e.macaco, "Macaco")+eqBadge("C", e.chaveRoda, "Chave de roda")+eqBadge("E", e.estepe, "Estepe")+'</td>'+
         '<td style="color:var(--muted);font-size:12px;" class="mono">'+escapeHtml(e.matricula)+'</td>'+
         '<td>'+(e.photo ? '<img class="thumb" src="'+e.photo+'" data-photo="'+e.id+'">' : '<span style="color:var(--muted);font-size:12px;">—</span>')+'</td>'+
       '</tr>';
@@ -1562,7 +1562,7 @@
         '</div>'+
         manageEquipRow('macaco', 'Macaco', editForm.macaco)+
         manageEquipRow('chaveRoda', 'Chave de roda', editForm.chaveRoda)+
-        manageEquipRow('estepe', 'Pneu de estepe', editForm.estepe)+
+        manageEquipRow('estepe', 'Estepe', editForm.estepe)+
         '<div style="display:flex; gap:8px; margin-top:14px;">'+
           '<button class="btn btn-primary btn-small" id="me-save">Salvar alterações</button>'+
           '<button class="btn btn-outline btn-small" id="me-cancel">Cancelar</button>'+
