@@ -36,7 +36,8 @@ var ENTRY_HEADERS = [
   "macaco", "chaveRoda", "estepe", "photoUrl"
 ];
 var VEHICLE_HEADERS = ["id", "plate", "model"];
-var DRIVER_HEADERS = ["id", "status", "cnh", "phone", "name", "matricula", "docStatus"];
+var DRIVER_HEADERS = ["id", "status", "cnh", "phone", "name", "matricula", "docStatus",
+  "cpf", "birthDate", "cnhRegistro", "cnhEmissao", "cnhValidade"];
 var USER_HEADERS = ["id", "username", "passwordHash", "name", "createdAt"];
 
 // ---------------- Web app entry point ----------------
@@ -80,6 +81,11 @@ function getOrCreateSheet_(name, headers) {
   }
   if (name === DRIVERS_SHEET) {
     sh.getRange("F:F").setNumberFormat("@"); // matricula
+    sh.getRange("H:H").setNumberFormat("@"); // cpf
+    sh.getRange("I:I").setNumberFormat("@"); // birthDate
+    sh.getRange("J:J").setNumberFormat("@"); // cnhRegistro
+    sh.getRange("K:K").setNumberFormat("@"); // cnhEmissao
+    sh.getRange("L:L").setNumberFormat("@"); // cnhValidade
   }
   return sh;
 }
@@ -148,7 +154,9 @@ function getDrivers() {
   var list = rows.map(function (r) {
     return {
       id: String(r[0]), status: String(r[1]), cnh: String(r[2]), phone: String(r[3]),
-      name: String(r[4]), matricula: String(r[5]), docStatus: String(r[6])
+      name: String(r[4]), matricula: String(r[5]), docStatus: String(r[6]),
+      cpf: String(r[7] || ""), birthDate: normalizeDate_(r[8]),
+      cnhRegistro: String(r[9] || ""), cnhEmissao: normalizeDate_(r[10]), cnhValidade: normalizeDate_(r[11])
     };
   });
   list.sort(function (a, b) { return a.name.localeCompare(b.name, "pt-BR"); });
@@ -158,6 +166,9 @@ function getDrivers() {
 function addDriver(driver) {
   if (!driver || !String(driver.name || "").trim()) return getDrivers();
   var sh = getOrCreateSheet_(DRIVERS_SHEET, DRIVER_HEADERS);
+  var birthDate = normalizeDate_(driver.birthDate);
+  var cnhEmissao = normalizeDate_(driver.cnhEmissao);
+  var cnhValidade = normalizeDate_(driver.cnhValidade);
   sh.appendRow([
     Utilities.getUuid(),
     driver.status || "disponivel",
@@ -165,8 +176,18 @@ function addDriver(driver) {
     (driver.phone && String(driver.phone).trim()) || "",
     String(driver.name).trim(),
     (driver.matricula && String(driver.matricula).trim()) || "",
-    driver.docStatus || "valido"
+    driver.docStatus || "valido",
+    (driver.cpf && String(driver.cpf).trim()) || "",
+    birthDate,
+    (driver.cnhRegistro && String(driver.cnhRegistro).trim()) || "",
+    cnhEmissao,
+    cnhValidade
   ]);
+  // Reforça as três colunas de data como texto puro, mesmo se o Sheets tentar converter.
+  var lastRow = sh.getLastRow();
+  sh.getRange(lastRow, 9).setNumberFormat("@").setValue(birthDate);
+  sh.getRange(lastRow, 11).setNumberFormat("@").setValue(cnhEmissao);
+  sh.getRange(lastRow, 12).setNumberFormat("@").setValue(cnhValidade);
   return getDrivers();
 }
 
@@ -177,17 +198,28 @@ function updateDriver(id, driver) {
   }
   var sh = getOrCreateSheet_(DRIVERS_SHEET, DRIVER_HEADERS);
   var values = sh.getDataRange().getValues();
+  var birthDate = normalizeDate_(driver.birthDate);
+  var cnhEmissao = normalizeDate_(driver.cnhEmissao);
+  var cnhValidade = normalizeDate_(driver.cnhValidade);
   var found = false;
   for (var i = 1; i < values.length; i++) {
     if (String(values[i][0]) === String(id)) {
-      sh.getRange(i + 1, 2, 1, 6).setValues([[
+      sh.getRange(i + 1, 2, 1, 11).setValues([[
         driver.status || "disponivel",
         (driver.cnh && String(driver.cnh).trim()) || "",
         (driver.phone && String(driver.phone).trim()) || "",
         String(driver.name).trim(),
         (driver.matricula && String(driver.matricula).trim()) || "",
-        driver.docStatus || "valido"
+        values[i][6], // docStatus não é mais editável pelo painel (status agora vem da validade da CNH) - mantém o valor antigo
+        (driver.cpf && String(driver.cpf).trim()) || "",
+        birthDate,
+        (driver.cnhRegistro && String(driver.cnhRegistro).trim()) || "",
+        cnhEmissao,
+        cnhValidade
       ]]);
+      sh.getRange(i + 1, 9).setNumberFormat("@").setValue(birthDate);
+      sh.getRange(i + 1, 11).setNumberFormat("@").setValue(cnhEmissao);
+      sh.getRange(i + 1, 12).setNumberFormat("@").setValue(cnhValidade);
       found = true;
       break;
     }

@@ -548,7 +548,7 @@
 
   // Abas do painel do gestor (menu lateral em renderAdmin / attachAdminEvents).
   var TABS = [
-    {key:"overview", label:"Visão geral"},
+    {key:"overview", label:"Dashboard"},
     {key:"checklists", label:"Checklists"},
     {key:"vehicles", label:"Veículos"},
     {key:"drivers", label:"Motoristas"},
@@ -586,7 +586,7 @@
     showVehicleManager: false,
     newPlate: "",
     newModel: "",
-    newDriver: {status:"disponivel", cnh:"", phone:"", name:"", matricula:"", docStatus:"valido"},
+    newDriver: emptyDriverForm(),
     newUser: {username:"", name:"", password:""},
     editingDriverId: null,   // != null quando o form de motorista está em modo "Editar"
     editingUserId: null,     // != null quando o form de usuário está em modo "Editar"
@@ -745,6 +745,13 @@
   // ---------------- CRUD DO PAINEL DO GESTOR (motoristas, usuários, veículos) ----------------
   // Cada função abaixo segue o mesmo padrão: chama o servidor via gsRun, atualiza a
   // lista correspondente em `state` com o que o servidor devolveu, e redesenha a tela.
+  // Formulário de motorista em branco. "cnh" guarda a categoria (B, AB, D...) - o número de
+  // registro da CNH tem campo próprio (cnhRegistro), pra não misturar os dois.
+  function emptyDriverForm(){
+    return {status:"disponivel", cnh:"", phone:"", name:"", matricula:"", cpf:"",
+      birthDate:"", cnhRegistro:"", cnhEmissao:"", cnhValidade:""};
+  }
+
   // Cadastra um motorista novo, ou salva as alterações se state.editingDriverId estiver
   // preenchido (botão "Editar" da lista chama startEditDriver() pra ligar esse modo).
   async function addDriver(){
@@ -752,7 +759,9 @@
     if(!d.name.trim() || !d.matricula.trim()) return;
     var payload = {
       status: d.status, cnh: d.cnh.trim(), phone: d.phone.trim(),
-      name: d.name.trim(), matricula: d.matricula.trim(), docStatus: d.docStatus
+      name: d.name.trim(), matricula: d.matricula.trim(),
+      cpf: d.cpf.trim(), birthDate: d.birthDate, cnhRegistro: d.cnhRegistro.trim(),
+      cnhEmissao: d.cnhEmissao, cnhValidade: d.cnhValidade
     };
     try{
       if(state.editingDriverId){
@@ -760,7 +769,7 @@
       }else{
         state.drivers = await gsRun("addDriver", payload);
       }
-      state.newDriver = {status:"disponivel", cnh:"", phone:"", name:"", matricula:"", docStatus:"valido"};
+      state.newDriver = emptyDriverForm();
       state.editingDriverId = null;
     }catch(e){
       alert((e && e.message) || "Não foi possível salvar o motorista agora.");
@@ -771,7 +780,11 @@
   function startEditDriver(id){
     var d = state.drivers.find(function(x){ return x.id === id; });
     if(!d) return;
-    state.newDriver = {status:d.status, cnh:d.cnh, phone:d.phone, name:d.name, matricula:d.matricula, docStatus:d.docStatus};
+    state.newDriver = {
+      status:d.status, cnh:d.cnh, phone:d.phone, name:d.name, matricula:d.matricula,
+      cpf:d.cpf||"", birthDate:d.birthDate||"", cnhRegistro:d.cnhRegistro||"",
+      cnhEmissao:d.cnhEmissao||"", cnhValidade:d.cnhValidade||""
+    };
     state.editingDriverId = id;
     render();
     var el = document.getElementById("d-name");
@@ -779,7 +792,7 @@
   }
 
   function cancelEditDriver(){
-    state.newDriver = {status:"disponivel", cnh:"", phone:"", name:"", matricula:"", docStatus:"valido"};
+    state.newDriver = emptyDriverForm();
     state.editingDriverId = null;
     render();
   }
@@ -1110,9 +1123,8 @@
     if(!rows.length){ alert("Não há checklists para gerar o PDF nesse filtro."); return; }
     var doc = new jspdf.jsPDF({orientation:"landscape"});
     doc.setFontSize(14);
-    doc.text("Checklist de Frota — CMTT", 14, 15);
-    doc.setFontSize(10);
-    doc.text("Período: " + (PERIOD_LABELS[state.adminFilter]||"—") + "   •   Gerado em " + new Date().toLocaleString("pt-BR"), 14, 21);
+    doc.text("Controle de Entrada e Saída de Veículos", 14, 15);
+    var periodText = "Período: " + (PERIOD_LABELS[state.adminFilter]||"—") + "   •   Gerado em " + new Date().toLocaleString("pt-BR");
     var body = rows.map(function(e){
       var veh = state.vehicles.find(function(v){ return v.id === e.vehicleId; });
       var plate = veh ? veh.plate : e.plate;
@@ -1127,10 +1139,18 @@
     doc.autoTable({
       head: [["Data","Percurso","Condutor","Veículo","Matrícula","Saída","Km Saída","Chegada","Km Chegada","Km Rodado","Macaco","Chave","Estepe"]],
       body: body,
-      startY: 26,
+      startY: 22,
       styles: {fontSize:8, cellPadding:2.5},
       headStyles: {fillColor:[10,10,11], textColor:[255,196,0]},
-      alternateRowStyles: {fillColor:[247,247,244]}
+      alternateRowStyles: {fillColor:[247,247,244]},
+      didDrawPage: function(){
+        // Período/data de geração vira rodapé (fonte menor), em vez de ficar embaixo do título.
+        var pageHeight = doc.internal.pageSize.getHeight();
+        doc.setFontSize(7);
+        doc.setTextColor(120);
+        doc.text(periodText, 14, pageHeight - 8);
+        doc.setTextColor(0);
+      }
     });
     doc.save("checklist_frota_" + state.adminFilter + "_" + new Date().toISOString().slice(0,10) + ".pdf");
   }
@@ -1380,6 +1400,23 @@
     vencido: ["Vencido","pill-bad"]
   };
 
+  // Formata uma data "YYYY-MM-DD" como "DD/MM/YYYY" pra exibição; "—" se vazia.
+  function brDate(iso){
+    return iso ? iso.split("-").reverse().join("/") : "—";
+  }
+
+  // Calcula Válido/Vencendo/Vencido a partir da validade da CNH, em vez de exigir que o
+  // gestor escolha isso manualmente (evita ficar desatualizado). "Vencendo" = dentro de 30
+  // dias. Motoristas cadastrados antes desse campo existir (sem validade informada) mostram "—".
+  function driverDocStatus(d){
+    if(!d.cnhValidade) return null;
+    var today = new Date(); today.setHours(0,0,0,0);
+    var validade = new Date(d.cnhValidade + "T00:00:00");
+    var days = Math.round((validade - today) / 86400000);
+    var key = days < 0 ? "vencido" : (days <= 30 ? "vencendo" : "valido");
+    return DOC_STATUS[key];
+  }
+
   // Pega as iniciais de um nome pra usar nos avatares circulares (ex: "Rafael Andrade" -> "RA").
   function initials(name){
     return (name||"?").trim().split(/\s+/).map(function(p){ return p[0]; }).slice(0,2).join("").toUpperCase();
@@ -1405,7 +1442,7 @@
         '<td><strong>'+(e.kmIn-e.kmOut)+' km</strong></td>'+
       '</tr>';
     }).join("");
-    return adminTopbarRow("Visão geral")+
+    return adminTopbarRow("Dashboard")+
       '<div class="kpi-grid">'+
         '<div class="kpi-card"><div class="kpi-label">Checklists hoje</div><div class="kpi-value">'+todayList.length+'</div></div>'+
         '<div class="kpi-card"><div class="kpi-label">Km rodados (7 dias)</div><div class="kpi-value">'+weekKm+'</div></div>'+
@@ -1594,14 +1631,19 @@
   function renderAdminDrivers(){
     var rows = state.drivers.map(function(d){
       var st = DRIVER_STATUS[d.status] || ["—","pill-muted"];
-      var doc = DOC_STATUS[d.docStatus] || ["—","pill-muted"];
+      var doc = driverDocStatus(d) || ["—","pill-muted"];
       return '<tr>'+
         '<td><span class="pill '+st[1]+'">'+st[0]+'</span></td>'+
-        '<td>'+escapeHtml(d.cnh||"—")+'</td>'+
-        '<td>'+escapeHtml(d.phone||"—")+'</td>'+
         '<td><div style="display:flex;align-items:center;gap:8px;"><div class="avatar-circle">'+initials(d.name)+'</div>'+escapeHtml(d.name)+'</div></td>'+
-        '<td class="mono">'+escapeHtml(d.matricula)+'</td>'+
+        '<td class="mono">'+escapeHtml(d.cpf||"—")+'</td>'+
+        '<td>'+brDate(d.birthDate)+'</td>'+
+        '<td>'+escapeHtml(d.phone||"—")+'</td>'+
+        '<td>'+escapeHtml(d.cnh||"—")+'</td>'+
+        '<td class="mono">'+escapeHtml(d.cnhRegistro||"—")+'</td>'+
+        '<td>'+brDate(d.cnhEmissao)+'</td>'+
+        '<td>'+brDate(d.cnhValidade)+'</td>'+
         '<td><span class="pill '+doc[1]+'">'+doc[0]+'</span></td>'+
+        '<td class="mono">'+escapeHtml(d.matricula)+'</td>'+
         '<td style="white-space:nowrap;"><button class="btn btn-outline btn-small" data-edit-driver="'+d.id+'">Editar</button> <button class="veh-del" data-del-driver="'+d.id+'">Remover</button></td>'+
       '</tr>';
     }).join("");
@@ -1610,13 +1652,16 @@
     var statusOptions = Object.keys(DRIVER_STATUS).map(function(k){
       return '<option value="'+k+'"'+(nd.status===k?' selected':'')+'>'+DRIVER_STATUS[k][0]+'</option>';
     }).join("");
-    var docOptions = Object.keys(DOC_STATUS).map(function(k){
-      return '<option value="'+k+'"'+(nd.docStatus===k?' selected':'')+'>'+DOC_STATUS[k][0]+'</option>';
-    }).join("");
 
     return adminTopbarRow("Motoristas")+
       '<div class="card">'+
-        (rows ? '<table><thead><tr><th>Status</th><th>CNH</th><th>Telefone</th><th>Nome do condutor</th><th>Matrícula</th><th>Documento</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>' : '<div class="empty-state">Nenhum motorista cadastrado ainda.</div>')+
+        (rows ? (
+          '<div style="overflow-x:auto;"><table><thead><tr>'+
+            '<th>Status</th><th>Nome do condutor</th><th>CPF</th><th>Nascimento</th><th>Telefone</th>'+
+            '<th>Categoria</th><th>Registro CNH</th><th>Emissão CNH</th><th>Validade CNH</th>'+
+            '<th>Documento</th><th>Matrícula</th><th></th>'+
+          '</tr></thead><tbody>'+rows+'</tbody></table></div>'
+        ) : '<div class="empty-state">Nenhum motorista cadastrado ainda.</div>')+
       '</div>'+
       '<div class="card"><h2>'+(editing ? 'Editar motorista' : 'Cadastrar motorista')+'</h2>'+
         '<div class="form-row2">'+
@@ -1624,12 +1669,20 @@
           '<div class="field"><label>Matrícula</label><input type="text" inputmode="numeric" maxlength="15" id="d-matricula" value="'+escapeHtml(nd.matricula)+'"></div>'+
         '</div>'+
         '<div class="form-row2">'+
-          '<div class="field"><label>CNH (categoria)</label><input type="text" id="d-cnh" placeholder="Ex: B, AB, D" value="'+escapeHtml(nd.cnh)+'"></div>'+
-          '<div class="field"><label>Telefone</label><input type="text" id="d-phone" placeholder="(00) 00000-0000" value="'+escapeHtml(nd.phone)+'"></div>'+
+          '<div class="field"><label>CPF</label><input type="text" inputmode="numeric" maxlength="14" id="d-cpf" placeholder="000.000.000-00" value="'+escapeHtml(nd.cpf)+'"></div>'+
+          '<div class="field"><label>Data de nascimento</label><input type="date" id="d-birthdate" value="'+nd.birthDate+'"></div>'+
         '</div>'+
         '<div class="form-row2">'+
+          '<div class="field"><label>Telefone</label><input type="text" id="d-phone" placeholder="(00) 00000-0000" value="'+escapeHtml(nd.phone)+'"></div>'+
           '<div class="field"><label>Status</label><select id="d-status">'+statusOptions+'</select></div>'+
-          '<div class="field"><label>Documento</label><select id="d-docstatus">'+docOptions+'</select></div>'+
+        '</div>'+
+        '<div class="form-row2">'+
+          '<div class="field"><label>Categoria da CNH</label><input type="text" id="d-cnh" placeholder="Ex: B, AB, D" value="'+escapeHtml(nd.cnh)+'"></div>'+
+          '<div class="field"><label>Registro da CNH</label><input type="text" inputmode="numeric" maxlength="11" id="d-cnhregistro" value="'+escapeHtml(nd.cnhRegistro)+'"></div>'+
+        '</div>'+
+        '<div class="form-row2">'+
+          '<div class="field"><label>Data de emissão da CNH</label><input type="date" id="d-cnhemissao" value="'+nd.cnhEmissao+'"></div>'+
+          '<div class="field"><label>Validade da CNH</label><input type="date" id="d-cnhvalidade" value="'+nd.cnhValidade+'"></div>'+
         '</div>'+
         '<div style="display:flex; gap:8px;">'+
           '<button class="btn btn-primary btn-small" id="d-add">'+(editing ? 'Salvar alterações' : 'Cadastrar motorista')+'</button>'+
@@ -1832,7 +1885,17 @@
     if($("d-cnh")) $("d-cnh").oninput = function(ev){ state.newDriver.cnh = ev.target.value; };
     if($("d-phone")) $("d-phone").oninput = function(ev){ state.newDriver.phone = ev.target.value; };
     if($("d-status")) $("d-status").onchange = function(ev){ state.newDriver.status = ev.target.value; };
-    if($("d-docstatus")) $("d-docstatus").onchange = function(ev){ state.newDriver.docStatus = ev.target.value; };
+    if($("d-cpf")) $("d-cpf").oninput = function(ev){
+      state.newDriver.cpf = ev.target.value.replace(/\D/g,"").slice(0,11);
+      ev.target.value = state.newDriver.cpf;
+    };
+    if($("d-birthdate")) $("d-birthdate").onchange = function(ev){ state.newDriver.birthDate = ev.target.value; };
+    if($("d-cnhregistro")) $("d-cnhregistro").oninput = function(ev){
+      state.newDriver.cnhRegistro = ev.target.value.replace(/\D/g,"").slice(0,11);
+      ev.target.value = state.newDriver.cnhRegistro;
+    };
+    if($("d-cnhemissao")) $("d-cnhemissao").onchange = function(ev){ state.newDriver.cnhEmissao = ev.target.value; };
+    if($("d-cnhvalidade")) $("d-cnhvalidade").onchange = function(ev){ state.newDriver.cnhValidade = ev.target.value; };
     if($("d-add")) $("d-add").onclick = addDriver;
     if($("d-cancel")) $("d-cancel").onclick = cancelEditDriver;
     document.querySelectorAll("[data-del-driver]").forEach(function(btn){
