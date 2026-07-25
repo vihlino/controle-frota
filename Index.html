@@ -92,6 +92,7 @@
     font-size:22px;
     margin:0 0 2px;
     font-weight:700;
+    text-align:center;
   }
   .topbar p{
     margin:0;
@@ -667,7 +668,9 @@
   // o parâmetro do QR Code, já trava o formulário nesse veículo. Só então desenha
   // a tela pela primeira vez (render()).
   async function init(){
-    await loadVehicles();
+    // Carrega motoristas já aqui (não só depois do login) porque o formulário de checklist
+    // (acesso via QR Code, sem login) agora escolhe o condutor numa lista em vez de digitar.
+    await Promise.all([loadVehicles(), loadDrivers()]);
     if(PRESET_VEHICLE_ID){
       var match = state.vehicles.find(function(v){ return v.id === PRESET_VEHICLE_ID; });
       if(match){ form.vehicleId = match.id; state.vehicleLocked = true; }
@@ -1205,7 +1208,7 @@
     return '<div class="topbar"><div class="wrap'+(extraClass?(' '+extraClass):'')+'">'+
       '<div class="topbar-inner">'+leftLogo+rightLogo+'</div>'+
       '<span class="tag">Vistoria de veículo</span>'+
-      '<h1 class="display">Checklist de Frota</h1>'+
+      '<h1 class="display">Controle de Entrada e Saída de Veículos</h1>'+
       '<p>Preencha ao devolver o veículo. Leva menos de 1 minuto.</p>'+
     '</div></div>';
   }
@@ -1231,7 +1234,12 @@
     var vehOptions = state.vehicles.map(function(v){
       return '<option value="'+v.id+'"'+(form.vehicleId===v.id?' selected':'')+'>'+escapeHtml(v.plate)+' — '+escapeHtml(v.model)+'</option>';
     }).join("");
-    var kmDiff = (form.kmOut !== "" && form.kmIn !== "" && !isNaN(form.kmOut) && !isNaN(form.kmIn)) ? (Number(form.kmIn)-Number(form.kmOut)) : null;
+    // Lista de motoristas cadastrados (aba Motoristas do painel) pra escolher em vez de
+    // digitar o nome - ao selecionar, a matrícula é preenchida junto (ver attachFormEvents).
+    var condutorOptions = '<option value="">Selecione o condutor</option>' + state.drivers.map(function(dr){
+      return '<option value="'+dr.id+'"'+(dr.name===form.condutor?' selected':'')+'>'+escapeHtml(dr.name)+'</option>';
+    }).join("");
+    var kmDiff =(form.kmOut !== "" && form.kmIn !== "" && !isNaN(form.kmOut) && !isNaN(form.kmIn)) ? (Number(form.kmIn)-Number(form.kmOut)) : null;
 
     return renderTopbar()+
     '<div class="wrap">'+
@@ -1255,7 +1263,7 @@
         '<h2>Identificação</h2>'+
         '<div class="field">'+
           '<label>Nome do condutor</label>'+
-          '<input type="text" id="f-condutor" placeholder="Ex: Rafael Andrade" value="'+escapeHtml(form.condutor)+'">'+
+          '<select id="f-condutor">'+condutorOptions+'</select>'+
           (e.condutor ? '<div class="error-text">'+e.condutor+'</div>' : '')+
         '</div>'+
         '<div class="field">'+
@@ -1263,16 +1271,14 @@
           '<input type="text" inputmode="numeric" maxlength="15" id="f-matricula" placeholder="Ex: 123456" value="'+escapeHtml(form.matricula)+'">'+
           (e.matricula ? '<div class="error-text">'+e.matricula+'</div>' : '')+
         '</div>'+
-        '<div class="two-col">'+
-          '<div class="field">'+
-            '<label>Data</label>'+
-            '<input type="date" id="f-date" value="'+form.date+'">'+
-            (e.date ? '<div class="error-text">'+e.date+'</div>' : '')+
-          '</div>'+
+        '<div class="field">'+
+          '<label>Data</label>'+
+          '<input type="date" id="f-date" value="'+form.date+'">'+
+          (e.date ? '<div class="error-text">'+e.date+'</div>' : '')+
         '</div>'+
         '<div class="field">'+
           '<label>Percurso</label>'+
-          '<input type="text" id="f-percurso" placeholder="Ex: Sede → Fórum → Sede" value="'+escapeHtml(form.percurso)+'">'+
+          '<input type="text" id="f-percurso" placeholder="Ex: PREFEITURA" value="'+escapeHtml(form.percurso)+'">'+
           (e.percurso ? '<div class="error-text">'+e.percurso+'</div>' : '')+
         '</div>'+
       '</div>'+
@@ -1281,12 +1287,12 @@
         '<h2>Horários</h2>'+
         '<div class="two-col">'+
           '<div class="field">'+
-            '<label>Hr. da saída</label>'+
+            '<label>Hora de Saída</label>'+
             '<input type="time" id="f-horasaida" value="'+form.horaSaida+'">'+
             (e.horaSaida ? '<div class="error-text">'+e.horaSaida+'</div>' : '')+
           '</div>'+
           '<div class="field">'+
-            '<label>Hr. da chegada</label>'+
+            '<label>Hora de Chegada</label>'+
             '<input type="time" id="f-horachegada" value="'+form.horaChegada+'">'+
             (e.horaChegada ? '<div class="error-text">'+e.horaChegada+'</div>' : '')+
           '</div>'+
@@ -1312,7 +1318,7 @@
         '<h2>Equipamentos obrigatórios</h2>'+
         equipRow('macaco', 'Macaco', form.macaco)+
         equipRow('chaveRoda', 'Chave de roda', form.chaveRoda)+
-        equipRow('estepe', 'Pneu de estepe', form.estepe)+
+        equipRow('estepe', 'Estepe', form.estepe)+
       '</div>'+
 
       '<div class="card">'+
@@ -1330,7 +1336,7 @@
       '</div>'+
 
       '<div class="submit-bar">'+
-        '<button class="btn btn-primary" id="f-submit" '+(state.submitting?'disabled':'')+'>'+(state.submitting ? 'Salvando…' : 'Registrar checklist')+'</button>'+
+        '<button class="btn btn-primary" id="f-submit" '+(state.submitting?'disabled':'')+'>'+(state.submitting ? 'Salvando…' : 'Registrar Checklist')+'</button>'+
       '</div>'+
 
       '<div class="footer-link"><a href="#" id="f-admin-link">Área do gestor</a></div>'+
@@ -1794,13 +1800,21 @@
   function attachFormEvents(){
     var $ = function(id){ return document.getElementById(id); };
     if($("f-vehicle")) $("f-vehicle").onchange = function(ev){ form.vehicleId = ev.target.value; };
-    if($("f-condutor")) $("f-condutor").oninput = function(ev){ form.condutor = ev.target.value; };
+    if($("f-condutor")) $("f-condutor").onchange = function(ev){
+      var dr = state.drivers.find(function(x){ return x.id === ev.target.value; });
+      form.condutor = dr ? dr.name : "";
+      if(dr && dr.matricula) form.matricula = dr.matricula;
+      render();
+    };
     if($("f-matricula")) $("f-matricula").oninput = function(ev){
       form.matricula = ev.target.value.replace(/\D/g,"").slice(0,15);
       ev.target.value = form.matricula;
     };
     if($("f-date")) $("f-date").onchange = function(ev){ form.date = ev.target.value; };
-    if($("f-percurso")) $("f-percurso").oninput = function(ev){ form.percurso = ev.target.value; };
+    if($("f-percurso")) $("f-percurso").oninput = function(ev){
+      form.percurso = ev.target.value.toUpperCase();
+      ev.target.value = form.percurso;
+    };
     if($("f-horasaida")) $("f-horasaida").onchange = function(ev){ form.horaSaida = ev.target.value; render(); };
     if($("f-horachegada")) $("f-horachegada").onchange = function(ev){ form.horaChegada = ev.target.value; render(); };
     if($("f-kmout")) $("f-kmout").oninput = function(ev){ form.kmOut = ev.target.value; render(); focusAfter("f-kmout"); };
