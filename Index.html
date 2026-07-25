@@ -161,6 +161,13 @@
     border-color:var(--safety);
     box-shadow:0 0 0 3px rgba(255,196,0,0.22);
   }
+  input[readonly]{
+    background:#EDEBE4;
+    color:var(--muted);
+  }
+  input[readonly]:focus{
+    box-shadow:none;
+  }
   select{
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9'><path d='M1 1l6 6 6-6' stroke='%236B7078' stroke-width='2' fill='none' fill-rule='evenodd'/></svg>");
     background-repeat:no-repeat;
@@ -1240,6 +1247,10 @@
     var condutorOptions = '<option value="">Selecione o condutor</option>' + state.drivers.map(function(dr){
       return '<option value="'+dr.id+'"'+(dr.name===form.condutor?' selected':'')+'>'+escapeHtml(dr.name)+'</option>';
     }).join("");
+    // Enquanto o condutor selecionado tiver matrícula cadastrada, o campo Matrícula fica
+    // travado (somente leitura) com o número do cadastro - evita digitar um número errado.
+    var selectedDriver = state.drivers.find(function(dr){ return dr.name === form.condutor; });
+    var matriculaLocked = !!(selectedDriver && selectedDriver.matricula);
     var kmDiff =(form.kmOut !== "" && form.kmIn !== "" && !isNaN(form.kmOut) && !isNaN(form.kmIn)) ? (Number(form.kmIn)-Number(form.kmOut)) : null;
 
     return renderTopbar()+
@@ -1269,7 +1280,8 @@
         '</div>'+
         '<div class="field">'+
           '<label>Matrícula</label>'+
-          '<input type="text" inputmode="numeric" maxlength="15" id="f-matricula" placeholder="Ex: 123456" value="'+escapeHtml(form.matricula)+'">'+
+          '<input type="text" inputmode="numeric" maxlength="15" id="f-matricula" placeholder="Ex: 123456" value="'+escapeHtml(form.matricula)+'"'+(matriculaLocked?' readonly':'')+'>'+
+          (matriculaLocked ? '<div class="hint">Preenchida automaticamente pelo cadastro do condutor.</div>' : '')+
           (e.matricula ? '<div class="error-text">'+e.matricula+'</div>' : '')+
         '</div>'+
         '<div class="field">'+
@@ -1804,7 +1816,10 @@
     if($("f-condutor")) $("f-condutor").onchange = function(ev){
       var dr = state.drivers.find(function(x){ return x.id === ev.target.value; });
       form.condutor = dr ? dr.name : "";
-      if(dr && dr.matricula) form.matricula = dr.matricula;
+      // Sempre sincroniza com o motorista escolhido (mesmo limpando, se ele não tiver
+      // matrícula cadastrada) - senão a matrícula do condutor anterior poderia ficar
+      // "esquecida" no campo depois de trocar a seleção.
+      form.matricula = (dr && dr.matricula) ? dr.matricula : "";
       render();
     };
     if($("f-matricula")) $("f-matricula").oninput = function(ev){
