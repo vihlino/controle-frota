@@ -824,10 +824,9 @@
   // dar F5 na página - um F5 de verdade perde a sessão e volta pra tela de login, já que o
   // login aqui é só um estado do JavaScript, não uma sessão real do navegador.
   async function refreshAdminData(){
-    // Chamado tanto pelo botão da aba Checklists (id="a-refresh") quanto pelo do
-    // Dashboard, ao lado de "Últimos checklists" (id="ov-refresh").
-    var btn = document.getElementById("a-refresh") || document.getElementById("ov-refresh");
-    if(btn) btn.classList.add("spinning");
+    // Cada aba tem o seu botão de atualizar; só um fica na tela por vez, então basta
+    // girar todos os que existirem no momento.
+    document.querySelectorAll(".btn-refresh").forEach(function(b){ b.classList.add("spinning"); });
     try{
       await Promise.all([loadEntries(), loadVehicles(), loadDrivers(), loadUsers(), loadWebAppUrl()]);
     }catch(e){
@@ -1595,6 +1594,16 @@
     '</div>';
   }
 
+  // Cabeçalho de card com o botão de atualizar do lado do título. Todas as abas do painel
+  // usam isso, pra recarregar os dados sem dar F5 (que faria perder o login).
+  function cardHeaderWithRefresh(title){
+    return '<div class="card-header-row"><h2>'+title+'</h2>'+
+      '<button class="btn-refresh" title="Atualizar dados sem perder o login" aria-label="Atualizar">'+
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>'+
+      '</button>'+
+    '</div>';
+  }
+
   // Aba "Visão geral": números resumidos (KPIs) + últimos checklists registrados.
   function renderAdminOverview(){
     var todayList = state.entries.filter(function(e){ return withinRange(e.date, "today"); });
@@ -1604,7 +1613,8 @@
     var recentRows = recent.map(function(e){
       var veh = state.vehicles.find(function(v){ return v.id === e.vehicleId; });
       return '<tr>'+
-        '<td>'+e.date.split("-").reverse().join("/")+'</td>'+
+        '<td class="mono" style="white-space:nowrap;">'+fmtDateTimeBR(e.createdAt)+'</td>'+
+        '<td style="white-space:nowrap;">'+brDate(e.date)+'</td>'+
         '<td>'+escapeHtml(e.condutor||"")+'</td>'+
         '<td><span class="veh-plate">'+escapeHtml(veh?veh.plate:e.plate)+'</span></td>'+
         '<td>'+escapeHtml(e.percurso||"—")+'</td>'+
@@ -1619,12 +1629,12 @@
         '<div class="kpi-card"><div class="kpi-label">Motoristas cadastrados</div><div class="kpi-value">'+state.drivers.length+'</div></div>'+
       '</div>'+
       '<div class="card">'+
-        '<div class="card-header-row"><h2>Últimos checklists</h2>'+
-          '<button class="btn-refresh" id="ov-refresh" title="Atualizar dados sem perder o login" aria-label="Atualizar">'+
-            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>'+
-          '</button>'+
-        '</div>'+
-        (recentRows ? '<table><thead><tr><th>Data</th><th>Condutor</th><th>Veículo</th><th>Percurso</th><th>Rodado</th></tr></thead><tbody>'+recentRows+'</tbody></table>' : '<div class="empty-state">Nenhum checklist registrado ainda.</div>')+
+        cardHeaderWithRefresh("Últimos checklists")+
+        (recentRows ? (
+          '<div style="overflow-x:auto;"><table><thead><tr>'+
+            '<th>Enviado em</th><th>Data do registro</th><th>Condutor</th><th>Veículo</th><th>Percurso</th><th>Rodado</th>'+
+          '</tr></thead><tbody>'+recentRows+'</tbody></table></div>'
+        ) : '<div class="empty-state">Nenhum checklist registrado ainda.</div>')+
       '</div>';
   }
 
@@ -1642,6 +1652,7 @@
       var model = veh ? veh.model : e.model;
       return '<tr>'+
         '<td class="mono" style="white-space:nowrap;">'+fmtDateTimeBR(e.createdAt)+'</td>'+
+        '<td style="white-space:nowrap;">'+brDate(e.date)+'</td>'+
         '<td>'+escapeHtml(e.percurso||"—")+'</td>'+
         '<td>'+escapeHtml(e.condutor||"")+'</td>'+
         '<td><span class="veh-plate">'+escapeHtml(plate)+'</span></td>'+
@@ -1677,12 +1688,15 @@
             '<option value="desc"'+(state.adminSort==="desc"?' selected':'')+'>Classificar por: ordem decrescente</option>'+
           '</select>'+
           '<button class="btn btn-primary btn-small" id="a-export">Gerar PDF</button>'+
-          '<button class="btn-refresh" id="a-refresh" title="Atualizar dados sem perder o login" aria-label="Atualizar">'+
+          '<button class="btn-refresh" title="Atualizar dados sem perder o login" aria-label="Atualizar">'+
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>'+
           '</button>'+
         '</div>'+
         (rows ? (
-          '<table><thead><tr><th>Data/Hora</th><th>Percurso</th><th>Condutor</th><th>Veículo</th><th>Modelo</th><th>Saída</th><th>Chegada</th><th>Rodado</th><th>Equip.</th><th>Matrícula</th><th>Foto</th></tr></thead><tbody>'+rows+'</tbody></table>'
+          '<div style="overflow-x:auto;"><table><thead><tr>'+
+            '<th>Enviado em</th><th>Data do registro</th><th>Percurso</th><th>Condutor</th><th>Veículo</th><th>Modelo</th>'+
+            '<th>Saída</th><th>Chegada</th><th>Rodado</th><th>Equip.</th><th>Matrícula</th><th>Foto</th>'+
+          '</tr></thead><tbody>'+rows+'</tbody></table></div>'
         ) : '<div class="empty-state">Nenhum checklist encontrado para esse filtro.</div>')+
       '</div>';
   }
@@ -1752,7 +1766,8 @@
       var veh = state.vehicles.find(function(v){ return v.id === entry.vehicleId; });
       var plate = veh ? veh.plate : entry.plate;
       return '<tr>'+
-        '<td>'+entry.date.split("-").reverse().join("/")+'</td>'+
+        '<td class="mono" style="white-space:nowrap;">'+fmtDateTimeBR(entry.createdAt)+'</td>'+
+        '<td style="white-space:nowrap;">'+brDate(entry.date)+'</td>'+
         '<td>'+escapeHtml(entry.percurso||"—")+'</td>'+
         '<td>'+escapeHtml(entry.condutor||"")+'</td>'+
         '<td><span class="veh-plate">'+escapeHtml(plate)+'</span></td>'+
@@ -1766,11 +1781,16 @@
 
     return adminTopbarRow("Gerenciar")+
       '<div class="card">'+
+        cardHeaderWithRefresh("Checklists registrados")+
         '<p class="hint" style="margin-top:0;">Use esta aba pra corrigir ou apagar um checklist enviado por engano (ex: um teste feito no QR Code). Qualquer alteração pede sua senha do painel como confirmação.</p>'+
         '<div class="filter-bar">'+
           '<input type="text" id="mg-search" placeholder="Buscar condutor, matrícula, placa ou percurso" value="'+escapeHtml(state.manageSearch)+'">'+
         '</div>'+
-        (rows ? '<table><thead><tr><th>Data</th><th>Percurso</th><th>Condutor</th><th>Veículo</th><th>Rodado</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>' : '<div class="empty-state">Nenhum checklist encontrado.</div>')+
+        (rows ? (
+          '<div style="overflow-x:auto;"><table><thead><tr>'+
+            '<th>Enviado em</th><th>Data do registro</th><th>Percurso</th><th>Condutor</th><th>Veículo</th><th>Rodado</th><th></th>'+
+          '</tr></thead><tbody>'+rows+'</tbody></table></div>'
+        ) : '<div class="empty-state">Nenhum checklist encontrado.</div>')+
       '</div>'+
       editCard;
   }
@@ -1818,7 +1838,7 @@
     }).join("");
 
     return adminTopbarRow("Veículos")+
-      '<div class="card"><h2>Veículos da frota</h2>'+
+      '<div class="card">'+cardHeaderWithRefresh("Veículos da frota")+
         (rows ? (
           '<div style="overflow-x:auto;"><table><thead><tr>'+
             '<th>Placa</th><th>Modelo</th><th>Renavam</th><th>Chassi</th>'+
@@ -1878,6 +1898,7 @@
 
     return adminTopbarRow("Motoristas")+
       '<div class="card">'+
+        cardHeaderWithRefresh("Motoristas cadastrados")+
         (rows ? (
           '<div style="overflow-x:auto;"><table><thead><tr>'+
             '<th>Status</th><th>Nome do Condutor</th><th>CPF</th><th>Nascimento</th><th>Telefone</th>'+
@@ -1931,7 +1952,7 @@
     var pwUser = state.pwUserId ? state.users.find(function(x){ return x.id === state.pwUserId; }) : null;
 
     return adminTopbarRow("Usuários")+
-      '<div class="card"><h2>Contas com acesso ao painel</h2>'+(rows || '<div class="empty-state">Nenhum usuário cadastrado.</div>')+'</div>'+
+      '<div class="card">'+cardHeaderWithRefresh("Contas com acesso ao painel")+(rows || '<div class="empty-state">Nenhum usuário cadastrado.</div>')+'</div>'+
       '<div class="card"><h2>'+(editing ? 'Editar acesso' : 'Criar novo acesso')+'</h2>'+
         '<div class="form-row2">'+
           '<div class="field"><label>Nome</label><input type="text" id="u-name" value="'+escapeHtml(nu.name)+'"></div>'+
@@ -2112,8 +2133,10 @@
     if($("a-search-btn")) $("a-search-btn").onclick = function(){ render(); };
     if($("a-sort")) $("a-sort").onchange = function(ev){ state.adminSort = ev.target.value; render(); };
     if($("a-export")) $("a-export").onclick = generatePDF;
-    if($("a-refresh")) $("a-refresh").onclick = refreshAdminData;
-    if($("ov-refresh")) $("ov-refresh").onclick = refreshAdminData;
+    // Botão de atualizar: existe em todas as abas do painel.
+    document.querySelectorAll(".btn-refresh").forEach(function(btn){
+      btn.onclick = refreshAdminData;
+    });
     document.querySelectorAll("[data-photo]").forEach(function(img){
       img.onclick = function(){ state.modalPhoto = img.getAttribute("src"); render(); };
     });
