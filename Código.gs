@@ -35,7 +35,7 @@ var ENTRY_HEADERS = [
   "percurso", "condutor", "horaSaida", "horaChegada", "kmOut", "kmIn",
   "macaco", "chaveRoda", "estepe", "photoUrl"
 ];
-var VEHICLE_HEADERS = ["id", "plate", "model", "renavam", "chassi", "anoModelo", "anoFabricacao", "vinculo"];
+var VEHICLE_HEADERS = ["id", "plate", "model", "renavam", "chassi", "anoModelo", "anoFabricacao", "vinculo", "marca"];
 var DRIVER_HEADERS = ["id", "status", "cnh", "phone", "name", "matricula", "docStatus",
   "cpf", "birthDate", "cnhRegistro", "cnhEmissao", "cnhValidade"];
 var USER_HEADERS = ["id", "username", "passwordHash", "name", "createdAt"];
@@ -133,7 +133,7 @@ function getVehicles() {
       id: String(r[0]), plate: String(r[1]), model: String(r[2]),
       renavam: String(r[3] || ""), chassi: String(r[4] || ""),
       anoModelo: String(r[5] || ""), anoFabricacao: String(r[6] || ""),
-      vinculo: String(r[7] || "")
+      vinculo: String(r[7] || ""), marca: String(r[8] || "")
     };
   });
 }
@@ -152,7 +152,8 @@ function addVehicle(plate, model) {
     (v.chassi && String(v.chassi).trim().toUpperCase()) || "",
     (v.anoModelo && String(v.anoModelo).trim()) || "",
     (v.anoFabricacao && String(v.anoFabricacao).trim()) || "",
-    v.vinculo || ""
+    v.vinculo || "",
+    (v.marca && String(v.marca).trim().toUpperCase()) || ""
   ]);
   // Renavam e chassi são códigos, não números/datas - trava como texto pra o Sheets não
   // "arredondar" nem virar notação científica.
@@ -171,14 +172,15 @@ function updateVehicle(id, v) {
   var found = false;
   for (var i = 1; i < values.length; i++) {
     if (String(values[i][0]) === String(id)) {
-      sh.getRange(i + 1, 2, 1, 7).setValues([[
+      sh.getRange(i + 1, 2, 1, 8).setValues([[
         String(v.plate).trim().toUpperCase(),
         (v.model && String(v.model).trim()) || "—",
         (v.renavam && String(v.renavam).trim()) || "",
         (v.chassi && String(v.chassi).trim().toUpperCase()) || "",
         (v.anoModelo && String(v.anoModelo).trim()) || "",
         (v.anoFabricacao && String(v.anoFabricacao).trim()) || "",
-        v.vinculo || ""
+        v.vinculo || "",
+        (v.marca && String(v.marca).trim().toUpperCase()) || ""
       ]]);
       sh.getRange(i + 1, 4, 1, 5).setNumberFormat("@");
       found = true;
