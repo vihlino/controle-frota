@@ -353,15 +353,19 @@
   }
   .filter-bar .search-input{min-width:260px; flex:1 1 260px; max-width:420px;}
   .filter-bar .search-input-wide{min-width:340px; flex:1 1 340px; max-width:560px;}
-  /* Seletor de ordenação com um ícone de funil à esquerda, além da seta padrão à direita. */
+  /* Seletor de ordenação: mostra só o ícone de funil + a setinha, sem texto.
+     O texto continua existindo (e legível na lista que abre ao clicar), só fica
+     escondido no botão - por isso color:transparent aqui e cor normal no option. */
   .filter-bar select.select-filter{
     background-image:
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9'><path d='M1 1l6 6 6-6' stroke='%236B7078' stroke-width='2' fill='none' fill-rule='evenodd'/></svg>"),
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 512 512'><path d='M8 12h496L320 268v152l-128 64V268z' fill='none' stroke='%23181A1E' stroke-width='34' stroke-linejoin='round'/></svg>");
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' stroke='%236B7078' stroke-width='2' fill='none' fill-rule='evenodd'/></svg>"),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 512 512'><path d='M8 12h496L320 268v152l-128 64V268z' fill='none' stroke='%23181A1E' stroke-width='34' stroke-linejoin='round'/></svg>");
     background-repeat:no-repeat, no-repeat;
-    background-position:right 14px center, left 12px center;
-    padding-left:34px;
+    background-position:right 10px center, left 11px center;
+    width:62px; min-width:62px; padding-left:11px; padding-right:10px;
+    color:transparent;
   }
+  .filter-bar select.select-filter option{color:var(--ink);}
   .btn-refresh{
     display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
     width:38px; height:38px; border-radius:10px;
@@ -371,6 +375,29 @@
   .btn-refresh svg{display:block;}
   .btn-refresh.spinning svg{animation:spin-refresh 0.7s linear;}
   @keyframes spin-refresh{ from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+
+  /* ---------- Rodapé de páginas (1 2 3 …) ---------- */
+  .pager{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    margin-top:14px; padding-top:12px; border-top:1px solid var(--line);
+  }
+  .pager-pages{display:flex; align-items:center; gap:5px; flex-wrap:wrap;}
+  .pager-btn{
+    min-width:32px; height:32px; padding:0 9px; border-radius:8px;
+    border:1px solid var(--line); background:#fff; color:var(--ink);
+    font-family:'Inter',sans-serif; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .pager-btn:hover:not(:disabled){border-color:var(--safety);}
+  .pager-btn.active{background:var(--safety); border-color:var(--safety); color:#141414;}
+  .pager-btn:disabled{opacity:0.45; cursor:not-allowed;}
+  .pager-gap{color:var(--muted); padding:0 2px;}
+  .pager-info{font-size:12px; color:var(--muted);}
+  .pager-top{
+    margin-left:auto; display:inline-flex; align-items:center; justify-content:center;
+    width:34px; height:34px; border-radius:9px; background:var(--asphalt);
+    border:none; color:#fff; cursor:pointer; flex-shrink:0;
+  }
+  .pager-top:hover{background:var(--asphalt-2);}
 
   table{width:100%; border-collapse:collapse; margin-top:16px; font-size:13px;}
   thead th{
@@ -429,10 +456,11 @@
   .veh-add-row button{flex-shrink:0;}
 
 
-  /* ---------- Admin shell (menu lateral em trilho) ----------
-     O menu nunca some: fechado vira um trilho estreito só com os ícones, aberto mostra
-     ícone + nome. Quem abre/fecha é a própria logo da CMTT, no topo da barra. No celular,
-     o menu aberto desliza por cima do conteúdo, com fundo escurecido pra fechar tocando fora. */
+  /* ---------- Admin shell (menu lateral) ----------
+     No computador o menu fica sempre aberto e fixo, com ícone + nome.
+     No celular ele vira um trilho estreito só com os ícones, e a logo da CMTT
+     funciona como botão pra abrir/fechar - aberto, desliza por cima do conteúdo
+     com o fundo escurecido pra fechar tocando fora. */
   .admin-shell{display:flex; min-height:100vh; background:var(--paper); align-items:stretch;}
   .sidebar-backdrop{
     position:fixed; inset:0; background:rgba(10,10,11,0.5); z-index:55;
@@ -490,12 +518,20 @@
   .admin-logout:hover{border-color:var(--safety); color:#fff;}
 
   @media (min-width:901px){
-    .sidebar-backdrop{display:none;}
+    /* Computador: menu sempre aberto e fixo, com os nomes à mostra.
+       A logo volta a ser só a marca (não retrai nada aqui). */
+    .sidebar-backdrop{display:none !important;}
+    .admin-sidebar{width:236px; padding:20px 14px;}
+    .admin-main{margin-left:236px;}
+    .admin-brand{cursor:default;}
+    .nav-label{display:inline;}
   }
   @media (max-width:900px){
-    /* No celular o menu aberto passa por cima em vez de empurrar o conteúdo. */
+    /* No celular o menu aberto passa por cima em vez de empurrar o conteúdo, e no
+       trilho os nomes somem (ficam só os ícones). */
     .admin-shell.sidebar-open .admin-main{margin-left:64px;}
     .sidebar-backdrop.open{opacity:1; visibility:visible;}
+    .admin-sidebar:not(.open) .nav-label{display:none;}
   }
 
   .admin-main{flex:1; min-width:0; padding:24px 26px 60px;}
@@ -663,8 +699,8 @@
     adminVehicle: "all",     // filtro de veículo na aba Checklists do gestor
     adminSearch: "",         // texto de busca na aba Checklists do gestor (só filtra ao clicar "Buscar"/Enter)
     adminSort: "asc",        // ordem da lista de checklists: asc (crescente) | desc (decrescente)
-    adminPageSize: 25,       // quantos checklists mostrar na aba Checklists (0 = todos)
-    overviewPageSize: 10,    // quantos checklists mostrar no Dashboard
+    adminPage: 1,            // página atual da lista de checklists
+    overviewPage: 1,         // página atual da lista do Dashboard
     modalPhoto: null,        // foto ampliada no modal (aba Checklists)
     loginUser: "",
     loginPass: "",
@@ -757,9 +793,9 @@
   // o parâmetro do QR Code, já trava o formulário nesse veículo. Só então desenha
   // a tela pela primeira vez (render()).
   async function init(){
-    // No computador o menu lateral já começa aberto (como era antes); no celular começa
-    // fechado, pra não cobrir a tela. Depois disso quem manda é o botão de hambúrguer.
-    state.sidebarOpen = window.innerWidth > 900;
+    // No celular o menu começa em trilho (só ícones), pra não cobrir a tela. No computador
+    // esse valor nem é usado: lá o CSS deixa o menu sempre expandido.
+    state.sidebarOpen = false;
     // Carrega motoristas já aqui (não só depois do login) porque o formulário de checklist
     // (acesso via QR Code, sem login) agora escolhe o condutor numa lista em vez de digitar.
     await Promise.all([loadVehicles(), loadDrivers()]);
@@ -852,9 +888,74 @@
     render();
   }
 
+  // No computador o menu é sempre expandido (não retrai) - isso é feito só pelo CSS.
+  // No celular, quem abre/fecha é o clique na logo da CMTT.
+  function isMobileLayout(){ return window.innerWidth <= 900; }
+
   function toggleSidebar(){
+    if(!isMobileLayout()) return; // no computador não há o que retrair
     state.sidebarOpen = !state.sidebarOpen;
     render();
+  }
+
+  // Quantos registros aparecem por página nas listas de checklists.
+  var PAGE_SIZE = 10;
+
+  // Monta o rodapé de páginas (1 2 3 … ) + botão de voltar ao topo. `attr` é o atributo
+  // usado nos botões (ex: "data-page-checklists"), pra cada lista ter o seu.
+  function renderPager(paginaAtual, totalItens, attr){
+    var totalPaginas = Math.max(1, Math.ceil(totalItens / PAGE_SIZE));
+    if(totalPaginas <= 1 && totalItens <= PAGE_SIZE){
+      // Uma página só: não precisa de números, mas o "voltar ao topo" ainda ajuda.
+      return '<div class="pager">'+
+        '<span class="pager-info">'+totalItens+(totalItens === 1 ? ' registro' : ' registros')+'</span>'+
+        botaoTopo()+
+      '</div>';
+    }
+
+    // Mostra sempre a primeira e a última página, mais as vizinhas da atual, com "…" no meio.
+    var paginas = [];
+    for(var i = 1; i <= totalPaginas; i++){
+      if(i === 1 || i === totalPaginas || Math.abs(i - paginaAtual) <= 1) paginas.push(i);
+      else if(paginas[paginas.length-1] !== "gap") paginas.push("gap");
+    }
+
+    var botoes = paginas.map(function(p){
+      if(p === "gap") return '<span class="pager-gap">…</span>';
+      return '<button class="pager-btn'+(p === paginaAtual ? ' active' : '')+'" '+attr+'="'+p+'">'+p+'</button>';
+    }).join("");
+
+    var primeiro = (paginaAtual-1)*PAGE_SIZE + 1;
+    var ultimo = Math.min(paginaAtual*PAGE_SIZE, totalItens);
+
+    return '<div class="pager">'+
+      '<div class="pager-pages">'+
+        '<button class="pager-btn" '+attr+'="'+(paginaAtual-1)+'"'+(paginaAtual === 1 ? ' disabled' : '')+' title="Página anterior">‹</button>'+
+        botoes+
+        '<button class="pager-btn" '+attr+'="'+(paginaAtual+1)+'"'+(paginaAtual === totalPaginas ? ' disabled' : '')+' title="Próxima página">›</button>'+
+      '</div>'+
+      '<span class="pager-info">'+primeiro+'–'+ultimo+' de '+totalItens+'</span>'+
+      botaoTopo()+
+    '</div>';
+  }
+
+  // Sobe a tela até o começo do painel. Usado ao trocar de página e pelo botão de seta.
+  function scrollAdminToTop(){
+    var alvo = document.querySelector(".admin-main");
+    if(alvo && alvo.scrollIntoView) alvo.scrollIntoView({behavior:"smooth", block:"start"});
+    else window.scrollTo({top:0, behavior:"smooth"});
+  }
+
+  function botaoTopo(){
+    return '<button class="pager-top" data-scroll-top="1" title="Voltar ao topo" aria-label="Voltar ao topo">'+
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>'+
+    '</button>';
+  }
+
+  // Mantém a página dentro do total disponível (ex: depois de filtrar e sobrar menos itens).
+  function paginaValida(pagina, totalItens){
+    var totalPaginas = Math.max(1, Math.ceil(totalItens / PAGE_SIZE));
+    return Math.min(Math.max(1, pagina), totalPaginas);
   }
 
   // ---------------- CRUD DO PAINEL DO GESTOR (motoristas, usuários, veículos) ----------------
@@ -1625,23 +1726,14 @@
     '</button>';
   }
 
-  // Seletor de "quantos registros mostrar por vez". 0 = mostrar todos.
-  function pageSizeSelect(id, valorAtual){
-    var opcoes = [10, 25, 50, 100, 0];
-    return '<select id="'+id+'" title="Quantos registros mostrar">'+
-      opcoes.map(function(n){
-        var rotulo = n === 0 ? "Mostrar: todos" : ("Mostrar: " + n);
-        return '<option value="'+n+'"'+(Number(valorAtual)===n?' selected':'')+'>'+rotulo+'</option>';
-      }).join("")+
-    '</select>';
-  }
-
   // Aba "Visão geral": números resumidos (KPIs) + últimos checklists registrados.
   function renderAdminOverview(){
     var todayList = state.entries.filter(function(e){ return withinRange(e.date, "today"); });
     var weekList = state.entries.filter(function(e){ return withinRange(e.date, "week"); });
     var weekKm = weekList.reduce(function(s,e){ return s + Math.max(0, e.kmIn-e.kmOut); }, 0);
-    var recent = state.overviewPageSize ? state.entries.slice(0, state.overviewPageSize) : state.entries;
+    state.overviewPage = paginaValida(state.overviewPage, state.entries.length);
+    var inicio = (state.overviewPage-1) * PAGE_SIZE;
+    var recent = state.entries.slice(inicio, inicio + PAGE_SIZE);
     var recentRows = recent.map(function(e){
       var veh = state.vehicles.find(function(v){ return v.id === e.vehicleId; });
       return '<tr>'+
@@ -1661,17 +1753,12 @@
         '<div class="kpi-card"><div class="kpi-label">Motoristas cadastrados</div><div class="kpi-value">'+state.drivers.length+'</div></div>'+
       '</div>'+
       '<div class="card">'+
-        '<div class="card-header-row"><h2>Últimos checklists</h2>'+
-          '<div class="filter-right">'+
-            pageSizeSelect("ov-pagesize", state.overviewPageSize)+
-            refreshButton()+
-          '</div>'+
-        '</div>'+
+        cardHeaderWithRefresh("Últimos checklists")+
         (recentRows ? (
           '<div style="overflow-x:auto;"><table><thead><tr>'+
             '<th>Enviado em</th><th>Data do registro</th><th>Condutor</th><th>Veículo</th><th>Percurso</th><th>Rodado</th>'+
           '</tr></thead><tbody>'+recentRows+'</tbody></table></div>'+
-          (recent.length < state.entries.length ? '<div class="hint">Mostrando '+recent.length+' de '+state.entries.length+' registros.</div>' : '')
+          renderPager(state.overviewPage, state.entries.length, "data-page-ov")
         ) : '<div class="empty-state">Nenhum checklist registrado ainda.</div>')+
       '</div>';
   }
@@ -1683,9 +1770,11 @@
     var vehOptions = '<option value="all">Todos os veículos</option>' + state.vehicles.map(function(v){
       return '<option value="'+v.id+'"'+(state.adminVehicle===v.id?' selected':'')+'>'+escapeHtml(v.plate)+'</option>';
     }).join("");
-    // O "Mostrar" limita só o que aparece na tela; os totais acima e o PDF continuam
-    // considerando todos os registros do filtro.
-    var visibleList = state.adminPageSize ? list.slice(0, state.adminPageSize) : list;
+    // A paginação corta só o que aparece na tela. Os totais acima e o PDF continuam
+    // usando `list` inteira, ou seja, todos os registros do filtro atual.
+    state.adminPage = paginaValida(state.adminPage, list.length);
+    var inicio = (state.adminPage-1) * PAGE_SIZE;
+    var visibleList = list.slice(inicio, inicio + PAGE_SIZE);
 
     var rows = visibleList.map(function(e){
       var veh = state.vehicles.find(function(v){return v.id===e.vehicleId;});
@@ -1724,7 +1813,6 @@
           '<select id="a-vehicle">'+vehOptions+'</select>'+
           '<input type="text" class="search-input" id="a-search" placeholder="Buscar condutor, matrícula, placa ou percurso" value="'+escapeHtml(state.adminSearch)+'">'+
           '<button class="btn btn-primary btn-small" id="a-search-btn">Buscar</button>'+
-          pageSizeSelect("a-pagesize", state.adminPageSize)+
           '<div class="filter-right">'+
             '<select id="a-sort" class="select-filter" title="Classificar por">'+
               '<option value="asc"'+(state.adminSort==="asc"?' selected':'')+'>Ordem crescente</option>'+
@@ -1739,7 +1827,8 @@
             '<th>Enviado em</th><th>Data do registro</th><th>Percurso</th><th>Condutor</th><th>Veículo</th><th>Modelo</th>'+
             '<th>Saída</th><th>Chegada</th><th>Rodado</th><th>Equip.</th><th>Matrícula</th><th>Foto</th>'+
           '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
-          (visibleList.length < list.length ? '<div class="hint">Mostrando '+visibleList.length+' de '+list.length+' registros. O PDF inclui todos.</div>' : '')
+          renderPager(state.adminPage, list.length, "data-page-cl")+
+          (list.length > PAGE_SIZE ? '<div class="hint">O PDF inclui todos os '+list.length+' registros do filtro, não só os desta página.</div>' : '')
         ) : '<div class="empty-state">Nenhum checklist encontrado para esse filtro.</div>')+
       '</div>';
   }
@@ -2034,28 +2123,33 @@
     else if(state.adminTab === "users") content = renderAdminUsers();
     else content = renderAdminOverview();
 
-    // Quando o menu está fechado (só ícones), o title= faz aparecer o nome da aba ao passar
-    // o mouse - senão não dá pra saber o que cada ícone significa.
+    // Os nomes das abas são SEMPRE gerados aqui; quem esconde/mostra é o CSS, conforme a
+    // barra esteja em trilho ou expandida. Assim nunca ficam dessincronizados se a tela
+    // mudar de tamanho (girar o celular, por exemplo). O title= mostra o nome no trilho.
     var navHtml = TABS.map(function(t){
       return '<button data-tab="'+t.key+'" class="'+(state.adminTab===t.key?'active':'')+'" title="'+t.label+'">'+
-        navIcon(t.key)+(state.sidebarOpen?'<span>'+t.label+'</span>':'')+
+        navIcon(t.key)+'<span class="nav-label">'+t.label+'</span>'+
       '</button>';
     }).join("");
 
+    // A classe "open" reflete só a gaveta do celular. No computador quem manda é a media
+    // query do CSS (menu sempre expandido) - assim, se a tela mudar de tamanho, o layout
+    // se ajusta sozinho, sem depender de um redesenho do JavaScript.
+    var aberto = state.sidebarOpen;
     var uName = state.currentUser ? (state.currentUser.name || state.currentUser.username) : "";
     var logoutIcon = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
 
-    return '<div class="admin-shell'+(state.sidebarOpen?' sidebar-open':'')+'">'+
-      '<div class="sidebar-backdrop'+(state.sidebarOpen?' open':'')+'" id="a-sidebar-backdrop"></div>'+
-      '<div class="admin-sidebar'+(state.sidebarOpen?' open':'')+'" id="a-sidebar">'+
-        '<button class="admin-brand" id="a-brand-toggle" title="Abrir/fechar menu" aria-label="Abrir ou fechar menu">'+
+    return '<div class="admin-shell'+(aberto?' sidebar-open':'')+'">'+
+      '<div class="sidebar-backdrop'+(aberto?' open':'')+'" id="a-sidebar-backdrop"></div>'+
+      '<div class="admin-sidebar'+(aberto?' open':'')+'" id="a-sidebar">'+
+        '<button class="admin-brand" id="a-brand-toggle" title="Painel de Controle" aria-label="Abrir ou fechar menu">'+
           (LOGO_LEFT?'<img src="'+LOGO_LEFT+'" alt="Logo CMTT">':'<span class="brand-fallback">CMTT</span>')+
-          (state.sidebarOpen?'<span class="name">Painel de Controle</span>':'')+
+          '<span class="name nav-label">Painel de Controle</span>'+
         '</button>'+
         '<div class="admin-nav">'+navHtml+'</div>'+
         '<div class="admin-sidebar-footer">'+
-          '<div class="admin-user-chip" title="'+escapeHtml(uName)+'"><div class="admin-user-avatar">'+initials(uName)+'</div>'+(state.sidebarOpen?'<div>'+escapeHtml(uName)+'</div>':'')+'</div>'+
-          '<button class="admin-logout" id="a-logout" title="Sair">'+logoutIcon+(state.sidebarOpen?'<span>Sair</span>':'')+'</button>'+
+          '<div class="admin-user-chip" title="'+escapeHtml(uName)+'"><div class="admin-user-avatar">'+initials(uName)+'</div><div class="nav-label">'+escapeHtml(uName)+'</div></div>'+
+          '<button class="admin-logout" id="a-logout" title="Sair">'+logoutIcon+'<span class="nav-label">Sair</span></button>'+
         '</div>'+
       '</div>'+
       '<div class="admin-main">'+content+'</div>'+
@@ -2157,8 +2251,10 @@
       btn.onclick = function(){
         state.adminTab = btn.getAttribute("data-tab");
         state.qrOpenFor = null;
-        // No celular a gaveta cobre a tela, então fecha sozinha ao escolher uma aba.
-        if(window.innerWidth <= 900) state.sidebarOpen = false;
+        // Cada aba começa na primeira página da sua lista.
+        state.adminPage = 1; state.overviewPage = 1;
+        // No celular a gaveta cobre a tela, então volta pro trilho ao escolher uma aba.
+        if(isMobileLayout()) state.sidebarOpen = false;
         render();
       };
     });
@@ -2166,20 +2262,30 @@
     if($("a-brand-toggle")) $("a-brand-toggle").onclick = toggleSidebar;
     if($("a-sidebar-backdrop")) $("a-sidebar-backdrop").onclick = toggleSidebar;
 
-    // aba Checklists
+    // aba Checklists - qualquer mudança de filtro volta pra primeira página, senão a pessoa
+    // poderia ficar numa página que não existe mais na lista nova.
     document.querySelectorAll("[data-filter]").forEach(function(btn){
-      btn.onclick = function(){ state.adminFilter = btn.getAttribute("data-filter"); render(); };
+      btn.onclick = function(){ state.adminFilter = btn.getAttribute("data-filter"); state.adminPage = 1; render(); };
     });
-    if($("a-vehicle")) $("a-vehicle").onchange = function(ev){ state.adminVehicle = ev.target.value; render(); };
+    if($("a-vehicle")) $("a-vehicle").onchange = function(ev){ state.adminVehicle = ev.target.value; state.adminPage = 1; render(); };
     // A busca só filtra de verdade ao clicar em "Buscar" ou apertar Enter - só guarda o que
     // foi digitado enquanto isso, sem re-renderizar a cada letra.
     if($("a-search")) $("a-search").oninput = function(ev){ state.adminSearch = ev.target.value; };
-    if($("a-search")) $("a-search").onkeydown = function(ev){ if(ev.key === "Enter"){ ev.preventDefault(); render(); } };
-    if($("a-search-btn")) $("a-search-btn").onclick = function(){ render(); };
-    if($("a-sort")) $("a-sort").onchange = function(ev){ state.adminSort = ev.target.value; render(); };
-    if($("a-pagesize")) $("a-pagesize").onchange = function(ev){ state.adminPageSize = Number(ev.target.value); render(); };
-    if($("ov-pagesize")) $("ov-pagesize").onchange = function(ev){ state.overviewPageSize = Number(ev.target.value); render(); };
+    if($("a-search")) $("a-search").onkeydown = function(ev){ if(ev.key === "Enter"){ ev.preventDefault(); state.adminPage = 1; render(); } };
+    if($("a-search-btn")) $("a-search-btn").onclick = function(){ state.adminPage = 1; render(); };
+    if($("a-sort")) $("a-sort").onchange = function(ev){ state.adminSort = ev.target.value; state.adminPage = 1; render(); };
     if($("a-export")) $("a-export").onclick = generatePDF;
+
+    // Rodapé de páginas (Checklists e Dashboard) + botão de voltar ao topo.
+    document.querySelectorAll("[data-page-cl]").forEach(function(btn){
+      btn.onclick = function(){ state.adminPage = Number(btn.getAttribute("data-page-cl")); render(); scrollAdminToTop(); };
+    });
+    document.querySelectorAll("[data-page-ov]").forEach(function(btn){
+      btn.onclick = function(){ state.overviewPage = Number(btn.getAttribute("data-page-ov")); render(); scrollAdminToTop(); };
+    });
+    document.querySelectorAll("[data-scroll-top]").forEach(function(btn){
+      btn.onclick = scrollAdminToTop;
+    });
     // Botão de atualizar: existe em todas as abas do painel.
     document.querySelectorAll(".btn-refresh").forEach(function(btn){
       btn.onclick = refreshAdminData;
