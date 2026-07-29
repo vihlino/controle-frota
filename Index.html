@@ -146,6 +146,24 @@
   }
   .field{margin-bottom:14px;}
   .field:last-child{margin-bottom:0;}
+  /* Campo de senha com o ícone de olho (mostrar/ocultar) dentro do input, aba Usuários.
+     Os seletores por #id (em vez de ".pw-field input") são de propósito: têm mais
+     especificidade que a regra genérica "input[type=password]{padding:12px 13px}" lá
+     embaixo, então o padding-right maior garante espaço reservado pro botão do olho,
+     não importa a ordem das regras no arquivo. */
+  .pw-field{position:relative;}
+  /* O olho é posicionado dentro deste invólucro, que envolve SÓ o input - assim ele fica
+     centralizado na altura do campo, sem contar o rótulo que fica acima. O display:block
+     no input tira o espaço extra que sobra embaixo de elementos inline. */
+  .pw-input-wrap{position:relative;}
+  .pw-input-wrap input{display:block; padding-right:42px;}
+  #pw-old, #pw-new, #pw-new2{padding-right:42px;}
+  .pw-eye{
+    position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center;
+    border:none; background:transparent; color:var(--muted); cursor:pointer; border-radius:8px;
+  }
+  .pw-eye:hover{background:var(--line); color:var(--ink);}
   input[type=text], input[type=email], input[type=password], input[type=date], input[type=time], input[type=number], select{
     width:100%;
     font-family:'Inter',sans-serif;
@@ -406,6 +424,11 @@
   }
   tbody td{padding:10px; border-bottom:1px solid var(--line); vertical-align:middle;}
   tbody tr:hover{background:#FAFAF8;}
+  /* Coluna de ações (Editar/Remover/Ver QR) das tabelas do painel: width:1% força o
+     navegador a dar o mínimo de espaço pra essa coluna, deixando as outras colunas
+     esticarem pra preencher a largura da tabela - assim os botões ficam sempre
+     encostados na borda direita, em qualquer largura de tela, igual em todas as abas. */
+  .actions-cell{width:1%; white-space:nowrap; text-align:right;}
   .km-chip{
     font-family:'JetBrains Mono',monospace;
     background:var(--odo-bg); color:var(--odo-fg);
@@ -624,7 +647,7 @@
                 acessado sem QR Code, ou seja, entrando direto pelo
                 link do site).
     - "admin" → painel do gestor (só depois de logar), com abas de
-                Visão geral, Checklists, Veículos, Motoristas e
+                Visão geral, Registros, Veículos, Motoristas e
                 Usuários.
     - "success" → tela de confirmação depois de enviar um checklist.
   =====================================================================
@@ -671,7 +694,7 @@
   // Abas do painel do gestor (menu lateral em renderAdmin / attachAdminEvents).
   var TABS = [
     {key:"overview", label:"Dashboard"},
-    {key:"checklists", label:"Checklists"},
+    {key:"checklists", label:"Registros"},
     {key:"vehicles", label:"Veículos"},
     {key:"drivers", label:"Motoristas"},
     {key:"users", label:"Usuários"},
@@ -695,13 +718,13 @@
     submitting: false,       // true enquanto o checklist está sendo enviado
     photoData: null,         // foto do checklist em base64 (antes de enviar)
     errors: {},              // erros de validação do formulário, por campo
-    adminFilter: "week",     // filtro de período na aba Checklists do gestor
-    adminVehicle: "all",     // filtro de veículo na aba Checklists do gestor
-    adminSearch: "",         // texto de busca na aba Checklists do gestor (só filtra ao clicar "Buscar"/Enter)
+    adminFilter: "week",     // filtro de período na aba Registros do gestor
+    adminVehicle: "all",     // filtro de veículo na aba Registros do gestor
+    adminSearch: "",         // texto de busca na aba Registros do gestor (só filtra ao clicar "Buscar"/Enter)
     adminSort: "asc",        // ordem da lista de checklists: asc (crescente) | desc (decrescente)
     adminPage: 1,            // página atual da lista de checklists
     overviewPage: 1,         // página atual da lista do Dashboard
-    modalPhoto: null,        // foto ampliada no modal (aba Checklists)
+    modalPhoto: null,        // foto ampliada no modal (aba Registros)
     loginUser: "",
     loginPass: "",
     loginError: false,
@@ -713,17 +736,29 @@
     newVehicle: emptyVehicleForm(),
     editingVehicleId: null,  // != null quando o form de veículo está em modo "Editar"
     newDriver: emptyDriverForm(),
-    newUser: {username:"", name:"", password:""},
+    newUser: {username:"", name:"", password:"", cpf:"", email:"", phone:""},
     editingDriverId: null,   // != null quando o form de motorista está em modo "Editar"
     editingUserId: null,     // != null quando o form de usuário está em modo "Editar"
-    pwUserId: null,          // id do usuário no modal "Alterar senha", ou null se fechado
+    pwUserId: null,          // id do usuário no modal "Alterar Senha", ou null se fechado
+    pwOldValue: "",          // senha atual - precisa bater com a senha salva pra liberar a troca
     pwValue: "",
+    pwValue2: "",            // confirmação da nova senha (precisa bater com pwValue)
+    pwShow: false,           // true = campos de senha do modal mostram o texto em vez de pontos
     pwError: "",
+    // Troca de senha OBRIGATÓRIA do primeiro login (acesso criado com senha provisória).
+    // Enquanto mustChangePassword for true, o painel fica coberto por um modal sem "Cancelar".
+    mustChangePassword: false,
+    forcePwOld: "",
+    forcePwValue: "",
+    forcePwValue2: "",
+    forcePwShow: false,
+    forcePwError: "",
+    forcePwBusy: false,
     manageSearch: "",        // busca na aba Gerenciar checklists
     editingEntryId: null,    // id do checklist em edição na aba Gerenciar checklists
     editEntryForm: null,     // cópia editável dos campos do checklist selecionado
     editEntryErrors: {},
-    confirmAction: null,     // {type:"save-entry"|"delete-entry", entryId} - abre o modal de senha
+    confirmAction: null,     // {type:"save-entry"|"delete-entry", entryId} ou {type:"delete-user", userId} - abre o modal de senha
     confirmPassword: "",
     confirmError: "",
     confirmBusy: false
@@ -741,6 +776,7 @@
     horaChegada: "",
     kmIn: "",
     condutor: "",
+    condutorId: "",       // id do motorista selecionado (aba Motoristas) - usado pra conferir a matrícula
     macaco: "",
     chaveRoda: "",
     estepe: ""
@@ -767,6 +803,68 @@
     var mm = String(d.getMonth()+1).padStart(2,"0");
     var dd = String(d.getDate()).padStart(2,"0");
     return d.getFullYear()+"-"+mm+"-"+dd;
+  }
+
+  // ---------------- RASCUNHO LOCAL DO CHECKLIST (aba/celular do motorista) ----------------
+  // O checklist é preenchido aos poucos: a pessoa pega o veículo, anota o km de saída,
+  // faz outras coisas no celular e só volta pra essa mesma página horas depois pra
+  // terminar (hora/km de chegada). Se nesse meio tempo o navegador recarregar a aba
+  // sozinho (comum no Android quando o app fica muito tempo em segundo plano e o sistema
+  // libera memória), o formulário perdia tudo, porque só existia na memória do JavaScript.
+  // Por isso agora cada mudança de campo também salva uma cópia em localStorage (que
+  // sobrevive a esse tipo de recarregamento), e o init() tenta restaurar essa cópia ao abrir
+  // a página de novo - sempre por veículo, já que o mesmo celular pode escanear QRs diferentes.
+  function draftKey(vehicleId){ return "cmtt_draft_" + (vehicleId || "geral"); }
+
+  function saveDraft(){
+    if(!form.vehicleId) return;
+    try{
+      var formCopy = Object.assign({}, form);
+      localStorage.setItem(draftKey(form.vehicleId), JSON.stringify({
+        form: formCopy,
+        photoData: state.photoData || null,
+        savedAt: Date.now()
+      }));
+    }catch(e){
+      // localStorage pode estar cheio ou bloqueado (ex: modo anônimo) - não trava o app por isso.
+      console.error("Não foi possível salvar rascunho local", e);
+    }
+  }
+
+  function clearDraft(vehicleId){
+    try{ localStorage.removeItem(draftKey(vehicleId)); }catch(e){}
+  }
+
+  // Só restaura rascunhos de até 18h atrás - passado isso é mais provável que seja um
+  // checklist esquecido de outro turno/dia do que a continuação do atual.
+  function loadDraft(vehicleId){
+    try{
+      var raw = localStorage.getItem(draftKey(vehicleId));
+      if(!raw) return null;
+      var data = JSON.parse(raw);
+      if(!data || !data.savedAt || (Date.now() - data.savedAt) > 18*60*60*1000){
+        clearDraft(vehicleId);
+        return null;
+      }
+      return data;
+    }catch(e){ return null; }
+  }
+
+  // Busca no servidor o Km de chegada do último checklist desse veículo e já sugere
+  // como Km de saída do checklist novo (só se o campo ainda estiver vazio - nunca
+  // sobrescreve o que a pessoa já digitou ou um rascunho restaurado).
+  async function applyLastKmSuggestion(vehicleId){
+    if(!vehicleId || form.kmOut !== "") return;
+    try{
+      var lastKm = await gsRun("getLastKmForVehicle", vehicleId);
+      if((lastKm || lastKm === 0) && form.vehicleId === vehicleId && form.kmOut === ""){
+        form.kmOut = String(lastKm);
+        saveDraft();
+        render();
+      }
+    }catch(e){
+      console.error("Não foi possível sugerir o km inicial", e);
+    }
   }
 
   // ---------------- CARREGAMENTO DE DADOS (via gsRun -> Code.gs -> Planilha) ----------------
@@ -804,6 +902,17 @@
       if(match){ form.vehicleId = match.id; state.vehicleLocked = true; }
     }
     if(!form.vehicleId && state.vehicles.length){ form.vehicleId = state.vehicles[0].id; }
+    if(form.vehicleId){
+      var draft = loadDraft(form.vehicleId);
+      if(draft && draft.form){
+        // Restaura o rascunho salvo (ver saveDraft) - mantém o veículo já decidido acima
+        // (pelo QR ou pelo primeiro da lista), mesmo que o rascunho seja de outro veículo.
+        form = Object.assign({}, form, draft.form, { vehicleId: form.vehicleId });
+        state.photoData = draft.photoData || null;
+      }else{
+        await applyLastKmSuggestion(form.vehicleId);
+      }
+    }
     state.loading = false;
     render();
   }
@@ -846,7 +955,15 @@
     try{
       var res = await gsRun("login", state.loginUser.trim(), state.loginPass);
       if(res && res.ok){
-        state.currentUser = { username: res.username, name: res.name };
+        state.currentUser = { id: res.id, username: res.username, name: res.name };
+        // Acesso recém-criado ainda está com a senha provisória: abre travado no modal de
+        // troca de senha, que só fecha depois de cadastrar uma senha nova.
+        if(res.mustChangePassword){
+          state.forcePwOld = state.loginPass;  // já sabemos a senha atual - poupa digitar de novo
+          state.forcePwValue = ""; state.forcePwValue2 = "";
+          state.forcePwShow = false; state.forcePwError = ""; state.forcePwBusy = false;
+          state.mustChangePassword = true;
+        }
         state.loginUser = ""; state.loginPass = ""; state.loginBusy = false;
         state.mode = "admin"; state.adminTab = "overview";
         state.loading = true; render();
@@ -870,6 +987,10 @@
   function logout(){
     state.currentUser = null;
     state.mode = "login";
+    // Limpa a troca de senha obrigatória, senão o modal reapareceria pro próximo login.
+    state.mustChangePassword = false;
+    state.forcePwOld = ""; state.forcePwValue = ""; state.forcePwValue2 = "";
+    state.forcePwShow = false; state.forcePwError = ""; state.forcePwBusy = false;
     render();
   }
 
@@ -900,6 +1021,9 @@
 
   // Quantos registros aparecem por página nas listas de checklists.
   var PAGE_SIZE = 10;
+  // Quantos checklists o Dashboard carrega no total (2 páginas de 10). A lista completa
+  // fica na aba "Registros" - aqui é só um resumo, pra tela abrir rápido.
+  var OVERVIEW_MAX = 20;
 
   // Monta o rodapé de páginas (1 2 3 … ) + botão de voltar ao topo. `attr` é o atributo
   // usado nos botões (ex: "data-page-checklists"), pra cada lista ter o seu.
@@ -973,6 +1097,25 @@
     return {plate:"", marca:"", model:"", renavam:"", chassi:"", anoModelo:"", anoFabricacao:"", vinculo:"patrimonio"};
   }
 
+  // Formulário de usuário em branco (aba Usuários).
+  function emptyUserForm(){
+    return {username:"", name:"", password:"", cpf:"", email:"", phone:""};
+  }
+
+  // Confere se uma senha tem letra maiúscula, minúscula, número e símbolo, com pelo menos
+  // 8 caracteres - usado no modal "Alterar Senha". O servidor confere de novo (changeUserPassword
+  // no Código.gs), então mesmo chamando a função direto (fora da tela) a regra vale.
+  function isStrongPassword(pw){
+    return !!pw && pw.length >= 8 && /[a-z]/.test(pw) && /[A-Z]/.test(pw) && /\d/.test(pw) && /[^A-Za-z0-9]/.test(pw);
+  }
+
+  // Ícone de olho (mostrar/ocultar senha), no mesmo estilo dos outros ícones do app.
+  function eyeIcon(open){
+    return open
+      ? '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>'
+      : '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7c1.8 0 3.4.4 4.8 1.1M22 12s-3.5 7-10 7c-1.8 0-3.4-.4-4.8-1.1M4 4l16 16"/><path d="M9.5 9.7A3 3 0 0 0 12 15a3 3 0 0 0 2.3-1.1"/></svg>';
+  }
+
   // Cadastra um motorista novo, ou salva as alterações se state.editingDriverId estiver
   // preenchido (botão "Editar" da lista chama startEditDriver() pra ligar esse modo).
   async function addDriver(){
@@ -1035,8 +1178,11 @@
     if(state.editingUserId){
       if(!u.username.trim()){ alert("Informe o usuário."); return; }
       try{
-        state.users = await gsRun("updateUser", state.editingUserId, u.username.trim(), u.name.trim());
-        state.newUser = {username:"", name:"", password:""};
+        state.users = await gsRun("updateUser", state.editingUserId, {
+          username: u.username.trim(), name: u.name.trim(),
+          cpf: u.cpf.trim(), email: u.email.trim(), phone: u.phone.trim()
+        });
+        state.newUser = emptyUserForm();
         state.editingUserId = null;
       }catch(e){
         alert((e && e.message) || "Não foi possível salvar o usuário.");
@@ -1049,8 +1195,11 @@
       return;
     }
     try{
-      state.users = await gsRun("addUser", u.username.trim(), u.password, u.name.trim());
-      state.newUser = {username:"", name:"", password:""};
+      state.users = await gsRun("addUser", {
+        username: u.username.trim(), password: u.password, name: u.name.trim(),
+        cpf: u.cpf.trim(), email: u.email.trim(), phone: u.phone.trim()
+      });
+      state.newUser = emptyUserForm();
     }catch(e){
       alert((e && e.message) || "Não foi possível criar o usuário.");
     }
@@ -1060,7 +1209,10 @@
   function startEditUser(id){
     var u = state.users.find(function(x){ return x.id === id; });
     if(!u) return;
-    state.newUser = {username:u.username, name:u.name, password:""};
+    state.newUser = {
+      username:u.username, name:u.name, password:"",
+      cpf:u.cpf||"", email:u.email||"", phone:u.phone||""
+    };
     state.editingUserId = id;
     render();
     var el = document.getElementById("u-username");
@@ -1068,44 +1220,109 @@
   }
 
   function cancelEditUser(){
-    state.newUser = {username:"", name:"", password:""};
+    state.newUser = emptyUserForm();
     state.editingUserId = null;
     render();
   }
 
-  async function removeUser(id){
+  // Não remove direto: abre o modal pedindo a senha do usuário logado primeiro
+  // (mesmo padrão de requestDeleteManagedEntry, usado em "Gerenciar checklists").
+  function requestRemoveUser(id){
     if(state.users.length <= 1){ alert("Não é possível remover o último usuário."); return; }
-    try{
-      state.users = await gsRun("removeUser", id);
-      if(state.editingUserId === id) cancelEditUser();
-    }catch(e){
-      alert((e && e.message) || "Não foi possível remover o usuário agora.");
-    }
+    state.confirmAction = {type:"delete-user", userId:id};
+    state.confirmPassword = ""; state.confirmError = ""; state.confirmBusy = false;
     render();
   }
 
-  // ---- Modal "Alterar senha" (aba Usuários) ----
+  // ---- Modal "Alterar Senha" (aba Usuários) ----
   function openPasswordModal(id){
-    state.pwUserId = id; state.pwValue = ""; state.pwError = "";
+    state.pwUserId = id; state.pwOldValue = ""; state.pwValue = ""; state.pwValue2 = ""; state.pwShow = false; state.pwError = "";
     render();
   }
   function closePasswordModal(){
-    state.pwUserId = null; state.pwValue = ""; state.pwError = "";
+    state.pwUserId = null; state.pwOldValue = ""; state.pwValue = ""; state.pwValue2 = ""; state.pwShow = false; state.pwError = "";
     render();
   }
   async function submitPasswordModal(){
-    if(!state.pwValue || state.pwValue.length < 4){
-      state.pwError = "A nova senha precisa ter pelo menos 4 caracteres.";
+    if(!state.pwOldValue){
+      state.pwError = "Informe a senha atual.";
+      render();
+      return;
+    }
+    if(state.pwValue !== state.pwValue2){
+      state.pwError = "As duas senhas precisam ser iguais.";
+      render();
+      return;
+    }
+    if(!isStrongPassword(state.pwValue)){
+      state.pwError = "A senha precisa ter pelo menos 8 caracteres, com letra maiúscula, minúscula, número e símbolo.";
       render();
       return;
     }
     try{
-      await gsRun("changeUserPassword", state.pwUserId, state.pwValue);
+      // O servidor confere a senha atual de novo antes de trocar (changeUserPassword no
+      // Código.gs) - a checagem aqui é só pra não fazer a chamada com o campo vazio.
+      await gsRun("changeUserPassword", state.pwUserId, state.pwOldValue, state.pwValue);
       closePasswordModal();
     }catch(e){
       state.pwError = (e && e.message) || "Não foi possível trocar a senha agora.";
       render();
     }
+  }
+
+  // ---- Troca de senha obrigatória no primeiro login ----
+  // O acesso é criado pelo gestor com uma senha provisória; enquanto ela não for trocada,
+  // o painel abre coberto por este modal (sem "Cancelar" e sem "Sair" - só saindo pelo login).
+  async function submitForcePassword(){
+    if(state.forcePwValue !== state.forcePwValue2){
+      state.forcePwError = "As duas senhas precisam ser iguais.";
+      render();
+      return;
+    }
+    if(!isStrongPassword(state.forcePwValue)){
+      state.forcePwError = "A senha precisa ter pelo menos 8 caracteres, com letra maiúscula, minúscula, número e símbolo.";
+      render();
+      return;
+    }
+    state.forcePwBusy = true; state.forcePwError = ""; render();
+    try{
+      await gsRun("changeUserPassword", state.currentUser.id, state.forcePwOld, state.forcePwValue);
+      state.mustChangePassword = false;
+      state.forcePwOld = ""; state.forcePwValue = ""; state.forcePwValue2 = "";
+      state.forcePwShow = false; state.forcePwBusy = false;
+      // Recarrega a lista de usuários pro selo "senha provisória" sumir na aba Usuários.
+      try{ await loadUsers(); }catch(e){}
+    }catch(e){
+      state.forcePwError = (e && e.message) || "Não foi possível salvar a senha agora.";
+      state.forcePwBusy = false;
+    }
+    render();
+  }
+
+  function renderForcePasswordModal(){
+    return '<div class="modal-bg"><div class="modal-card">'+
+      '<h3>Crie sua senha</h3>'+
+      '<p>Este acesso ainda está com a senha provisória cadastrada pelo gestor. Defina uma senha só sua para continuar.</p>'+
+      '<div class="field">'+
+        '<label>Nova senha</label>'+
+        '<div class="pw-input-wrap">'+
+          '<input type="'+(state.forcePwShow?'text':'password')+'" id="fp-new" value="'+escapeHtml(state.forcePwValue)+'" autocomplete="new-password">'+
+          '<button type="button" class="pw-eye" id="fp-eye" aria-label="Mostrar ou ocultar senha">'+eyeIcon(state.forcePwShow)+'</button>'+
+        '</div>'+
+      '</div>'+
+      '<div class="field">'+
+        '<label>Repita a nova senha</label>'+
+        '<div class="pw-input-wrap">'+
+          '<input type="'+(state.forcePwShow?'text':'password')+'" id="fp-new2" value="'+escapeHtml(state.forcePwValue2)+'" autocomplete="new-password">'+
+        '</div>'+
+      '</div>'+
+      '<div class="hint">Pelo menos 8 caracteres, com letra maiúscula, minúscula, número e símbolo.</div>'+
+      (state.forcePwError ? '<div class="error-text" style="margin-top:8px;">'+escapeHtml(state.forcePwError)+'</div>' : '')+
+      '<div class="modal-actions" style="margin-top:14px;">'+
+        '<button class="btn btn-outline btn-small" id="fp-logout">Sair</button>'+
+        '<button class="btn btn-primary btn-small" id="fp-save" '+(state.forcePwBusy?'disabled':'')+'>'+(state.forcePwBusy?'Salvando…':'Salvar senha')+'</button>'+
+      '</div>'+
+    '</div></div>';
   }
 
   // ---- Aba "Gerenciar checklists" ----
@@ -1164,6 +1381,10 @@
       if(state.confirmAction.type === "delete-entry"){
         state.entries = await gsRun("deleteEntry", state.confirmAction.entryId, username, state.confirmPassword);
         if(state.editingEntryId === state.confirmAction.entryId) cancelManageEdit();
+      }else if(state.confirmAction.type === "delete-user"){
+        var delUserId = state.confirmAction.userId;
+        state.users = await gsRun("removeUser", delUserId, username, state.confirmPassword);
+        if(state.editingUserId === delUserId) cancelEditUser();
       }else{
         var f = state.editEntryForm;
         var vehicle = state.vehicles.find(function(v){ return v.id === f.vehicleId; }) || {};
@@ -1219,7 +1440,17 @@
   function validate(){
     var errs = {};
     if(!form.vehicleId) errs.vehicleId = "Selecione o veículo.";
-    if(!form.matricula || !/^[0-9]{1,15}$/.test(form.matricula)) errs.matricula = "Informe a matrícula (somente números, até 15 dígitos).";
+    if(!form.matricula || !/^[0-9]{1,15}$/.test(form.matricula)){
+      errs.matricula = "Informe a matrícula (somente números, até 15 dígitos).";
+    }else{
+      // Se o condutor selecionado tem matrícula cadastrada (aba Motoristas), o número
+      // digitado aqui precisa bater com ela - confirma que foi ele mesmo quem preencheu,
+      // não outra pessoa usando o nome dele (no lugar do antigo PIN).
+      var matriculaDriver = state.drivers.find(function(dr){ return dr.id === form.condutorId; });
+      if(matriculaDriver && matriculaDriver.matricula && form.matricula.trim() !== String(matriculaDriver.matricula).trim()){
+        errs.matricula = "Sua matrícula está errada. Tente novamente.";
+      }
+    }
     if(!form.date) errs.date = "Informe a data.";
     if(!form.percurso || form.percurso.trim().length < 2) errs.percurso = "Informe o percurso.";
     if(!form.condutor || form.condutor.trim().length < 3) errs.condutor = "Informe o nome completo do condutor.";
@@ -1250,6 +1481,7 @@
       date: form.date,
       percurso: form.percurso.trim(),
       condutor: form.condutor.trim(),
+      condutorId: form.condutorId || "",
       horaSaida: form.horaSaida,
       horaChegada: form.horaChegada,
       kmOut: Number(form.kmOut),
@@ -1265,10 +1497,15 @@
       delete fullEntry.photoData;
       fullEntry.date = normalizeDateStr(fullEntry.date);
       state.entries.unshift(fullEntry);
+      clearDraft(form.vehicleId); // checklist enviado - o rascunho local não serve mais
       state.mode = "success";
     }catch(e){
       console.error("Erro ao salvar checklist", e);
-      alert("Não foi possível salvar o checklist agora. Verifique sua conexão e tente novamente.");
+      // Mostra a mensagem real quando o servidor recusou por um motivo específico (ex:
+      // matrícula errada) - só cai na mensagem genérica se não vier motivo nenhum (ex: sem
+      // conexão). O formulário NUNCA é limpo aqui - a pessoa não perde o que já preencheu,
+      // só corrige a matrícula e tenta enviar de novo.
+      alert((e && e.message) || "Não foi possível salvar o checklist agora. Verifique sua conexão e tente novamente.");
     }
     state.submitting = false;
     render();
@@ -1279,16 +1516,20 @@
   // continua travado no mesmo veículo.
   function resetForm(){
     var keepVehicle = state.vehicleLocked ? form.vehicleId : (state.vehicles.length ? state.vehicles[0].id : "");
+    // Se for outro checklist seguido do mesmo veículo, já sugere o Km de chegada do
+    // checklist anterior como Km de saída deste (o carro não andou sozinho enquanto isso).
+    var nextKmOut = (state.vehicleLocked && form.kmIn !== "" && !isNaN(form.kmIn)) ? String(form.kmIn) : "";
     form = {
       vehicleId: keepVehicle,
       matricula: "",
       date: new Date().toISOString().slice(0,10),
       percurso: "",
       horaSaida: "",
-      kmOut: "",
+      kmOut: nextKmOut,
       horaChegada: "",
       kmIn: "",
       condutor: "",
+      condutorId: "",
       macaco: "",
       chaveRoda: "",
       estepe: ""
@@ -1296,10 +1537,14 @@
     state.photoData = null;
     state.errors = {};
     state.mode = "form";
+    saveDraft();
     render();
+    // Se não deu pra reaproveitar o Km de chegada do checklist anterior (ex: veículo
+    // diferente), tenta sugerir com base no último checklist desse veículo no servidor.
+    if(!nextKmOut) applyLastKmSuggestion(form.vehicleId);
   }
 
-  // ---------------- FILTROS E RELATÓRIO (aba Checklists do gestor) ----------------
+  // ---------------- FILTROS E RELATÓRIO (aba Registros do gestor) ----------------
   // Diz se uma data cai dentro do filtro escolhido (hoje / semana / mês / tudo).
   function withinRange(dateStr, filter){
     if(filter === "all") return true;
@@ -1320,8 +1565,9 @@
   }
 
   // Aplica período + veículo + busca de texto sobre a lista de checklists, e ordena pela
-  // data/hora de registro (createdAt) conforme state.adminSort. Usado tanto pela tabela
-  // da aba Checklists quanto pelo PDF exportado - por isso o PDF respeita a mesma ordem.
+  // data do registro (campo "date", preenchido pelo motorista) conforme state.adminSort -
+  // não pelo horário de envio (createdAt). Usado tanto pela tabela da aba Registros quanto
+  // pelo PDF exportado - por isso o PDF respeita a mesma ordem.
   function filteredEntries(){
     return state.entries.filter(function(e){
       if(!withinRange(e.date, state.adminFilter)) return false;
@@ -1334,7 +1580,11 @@
       }
       return true;
     }).sort(function(a,b){
-      return state.adminSort === "desc" ? (b.createdAt - a.createdAt) : (a.createdAt - b.createdAt);
+      // Ordena só pela data do registro. Em caso de empate (mais de um checklist no mesmo
+      // dia), usa o horário de envio como desempate estável, sem virar critério principal.
+      var cmp = a.date < b.date ? -1 : (a.date > b.date ? 1 : 0);
+      if(cmp === 0) cmp = a.createdAt - b.createdAt;
+      return state.adminSort === "desc" ? -cmp : cmp;
     });
   }
 
@@ -1494,10 +1744,12 @@
     var condutorOptions = '<option value="">Selecione o condutor</option>' + state.drivers.map(function(dr){
       return '<option value="'+dr.id+'"'+(dr.name===form.condutor?' selected':'')+'>'+escapeHtml(dr.name)+'</option>';
     }).join("");
-    // Enquanto o condutor selecionado tiver matrícula cadastrada, o campo Matrícula fica
-    // travado (somente leitura) com o número do cadastro - evita digitar um número errado.
-    var selectedDriver = state.drivers.find(function(dr){ return dr.name === form.condutor; });
-    var matriculaLocked = !!(selectedDriver && selectedDriver.matricula);
+    // Se o motorista selecionado tem matrícula cadastrada (aba Motoristas), o checklist só
+    // é aceito com a matrícula certa - confirma que foi ele mesmo quem preencheu, não outra
+    // pessoa usando o nome dele. Por isso o campo NUNCA vem preenchido automaticamente:
+    // precisa ser digitado de cabeça.
+    var selectedDriver = state.drivers.find(function(dr){ return dr.id === form.condutorId; });
+    var matriculaConfirm = !!(selectedDriver && selectedDriver.matricula);
     var kmDiff =(form.kmOut !== "" && form.kmIn !== "" && !isNaN(form.kmOut) && !isNaN(form.kmIn)) ? (Number(form.kmIn)-Number(form.kmOut)) : null;
 
     return renderTopbar()+
@@ -1527,8 +1779,8 @@
         '</div>'+
         '<div class="field">'+
           '<label>Matrícula</label>'+
-          '<input type="text" inputmode="numeric" maxlength="15" id="f-matricula" placeholder="Ex: 123456" value="'+escapeHtml(form.matricula)+'"'+(matriculaLocked?' readonly':'')+'>'+
-          (matriculaLocked ? '<div class="hint">Preenchida automaticamente pelo cadastro do condutor.</div>' : '')+
+          '<input type="text" inputmode="numeric" maxlength="15" id="f-matricula" placeholder="Ex: 123456" value="'+escapeHtml(form.matricula)+'">'+
+          (matriculaConfirm ? '<div class="hint">Confirmação do motorista.</div>' : '')+
           (e.matricula ? '<div class="error-text">'+e.matricula+'</div>' : '')+
         '</div>'+
         '<div class="field">'+
@@ -1731,9 +1983,13 @@
     var todayList = state.entries.filter(function(e){ return withinRange(e.date, "today"); });
     var weekList = state.entries.filter(function(e){ return withinRange(e.date, "week"); });
     var weekKm = weekList.reduce(function(s,e){ return s + Math.max(0, e.kmIn-e.kmOut); }, 0);
-    state.overviewPage = paginaValida(state.overviewPage, state.entries.length);
+    // O Dashboard mostra só os 20 checklists mais recentes (2 páginas de 10), pra tela não
+    // ficar pesada quando a planilha tiver muitos registros. A lista completa fica na aba
+    // "Registros", que tem filtros e busca.
+    var ultimos = state.entries.slice(0, OVERVIEW_MAX);
+    state.overviewPage = paginaValida(state.overviewPage, ultimos.length);
     var inicio = (state.overviewPage-1) * PAGE_SIZE;
-    var recent = state.entries.slice(inicio, inicio + PAGE_SIZE);
+    var recent = ultimos.slice(inicio, inicio + PAGE_SIZE);
     var recentRows = recent.map(function(e){
       var veh = state.vehicles.find(function(v){ return v.id === e.vehicleId; });
       return '<tr>'+
@@ -1747,7 +2003,7 @@
     }).join("");
     return adminTopbarRow("Dashboard")+
       '<div class="kpi-grid">'+
-        '<div class="kpi-card"><div class="kpi-label">Checklists hoje</div><div class="kpi-value">'+todayList.length+'</div></div>'+
+        '<div class="kpi-card"><div class="kpi-label">Registros hoje</div><div class="kpi-value">'+todayList.length+'</div></div>'+
         '<div class="kpi-card"><div class="kpi-label">Km rodados (7 dias)</div><div class="kpi-value">'+weekKm+'</div></div>'+
         '<div class="kpi-card"><div class="kpi-label">Veículos na frota</div><div class="kpi-value">'+state.vehicles.length+'</div></div>'+
         '<div class="kpi-card"><div class="kpi-label">Motoristas cadastrados</div><div class="kpi-value">'+state.drivers.length+'</div></div>'+
@@ -1758,16 +2014,17 @@
           '<div style="overflow-x:auto;"><table><thead><tr>'+
             '<th>Enviado em</th><th>Data do registro</th><th>Condutor</th><th>Veículo</th><th>Percurso</th><th>Rodado</th>'+
           '</tr></thead><tbody>'+recentRows+'</tbody></table></div>'+
-          renderPager(state.overviewPage, state.entries.length, "data-page-ov")
+          renderPager(state.overviewPage, ultimos.length, "data-page-ov")+
+          (state.entries.length > OVERVIEW_MAX ? '<div class="hint">Mostrando os '+OVERVIEW_MAX+' checklists mais recentes. Veja todos na aba Registros.</div>' : '')
         ) : '<div class="empty-state">Nenhum checklist registrado ainda.</div>')+
       '</div>';
   }
 
-  // Aba "Checklists": tabela com todos os registros, filtros e botão de gerar PDF.
+  // Aba "Registros": tabela com todos os registros, filtros e botão de gerar PDF.
   function renderAdminChecklists(){
     var list = filteredEntries();
     var totalKm = list.reduce(function(s,e){ return s + Math.max(0, e.kmIn-e.kmOut); }, 0);
-    var vehOptions = '<option value="all">Todos os veículos</option>' + state.vehicles.map(function(v){
+    var vehOptions = '<option value="all">Todos os Veículos</option>' + state.vehicles.map(function(v){
       return '<option value="'+v.id+'"'+(state.adminVehicle===v.id?' selected':'')+'>'+escapeHtml(v.plate)+'</option>';
     }).join("");
     // A paginação corta só o que aparece na tela. Os totais acima e o PDF continuam
@@ -1796,7 +2053,7 @@
       '</tr>';
     }).join("");
 
-    return adminTopbarRow("Checklists")+
+    return adminTopbarRow("Registros")+
       '<div class="stat-row">'+
         '<div class="stat-chip"><div class="n">'+list.length+'</div><div class="l">Registros no período</div></div>'+
         '<div class="stat-chip"><div class="n">'+totalKm+'</div><div class="l">Km rodados</div></div>'+
@@ -1815,8 +2072,8 @@
           '<button class="btn btn-primary btn-small" id="a-search-btn">Buscar</button>'+
           '<div class="filter-right">'+
             '<select id="a-sort" class="select-filter" title="Classificar por">'+
-              '<option value="asc"'+(state.adminSort==="asc"?' selected':'')+'>Ordem crescente</option>'+
-              '<option value="desc"'+(state.adminSort==="desc"?' selected':'')+'>Ordem decrescente</option>'+
+              '<option value="asc"'+(state.adminSort==="asc"?' selected':'')+'>Ordem Crescente</option>'+
+              '<option value="desc"'+(state.adminSort==="desc"?' selected':'')+'>Ordem Decrescente</option>'+
             '</select>'+
             '<button class="btn btn-primary btn-small" id="a-export">Gerar PDF</button>'+
             refreshButton()+
@@ -1888,7 +2145,7 @@
         manageEquipRow('chaveRoda', 'Chave de Roda', editForm.chaveRoda)+
         manageEquipRow('estepe', 'Estepe', editForm.estepe)+
         '<div style="display:flex; gap:8px; margin-top:14px;">'+
-          '<button class="btn btn-primary btn-small" id="me-save">Salvar alterações</button>'+
+          '<button class="btn btn-primary btn-small" id="me-save">Salvar Alterações</button>'+
           '<button class="btn btn-outline btn-small" id="me-cancel">Cancelar</button>'+
         '</div>'+
       '</div>';
@@ -1904,7 +2161,7 @@
         '<td>'+escapeHtml(entry.condutor||"")+'</td>'+
         '<td><span class="veh-plate">'+escapeHtml(plate)+'</span></td>'+
         '<td><strong>'+(entry.kmIn-entry.kmOut)+' km</strong></td>'+
-        '<td style="white-space:nowrap;">'+
+        '<td class="actions-cell">'+
           '<button class="btn btn-outline btn-small" data-manage-edit="'+entry.id+'">Editar</button> '+
           '<button class="veh-del" data-manage-del="'+entry.id+'">Apagar</button>'+
         '</td>'+
@@ -1921,7 +2178,7 @@
         '</div>'+
         (rows ? (
           '<div style="overflow-x:auto;"><table><thead><tr>'+
-            '<th>Enviado em</th><th>Data do registro</th><th>Percurso</th><th>Condutor</th><th>Veículo</th><th>Rodado</th><th></th>'+
+            '<th>Enviado em</th><th>Data do registro</th><th>Percurso</th><th>Condutor</th><th>Veículo</th><th>Rodado</th><th class="actions-cell"></th>'+
           '</tr></thead><tbody>'+rows+'</tbody></table></div>'
         ) : '<div class="empty-state">Nenhum checklist encontrado.</div>')+
       '</div>'+
@@ -1945,7 +2202,7 @@
           '<td>'+escapeHtml(v.anoModelo||"—")+'</td>'+
           '<td>'+escapeHtml(v.anoFabricacao||"—")+'</td>'+
           '<td><span class="pill '+vin[1]+'">'+vin[0]+'</span></td>'+
-          '<td style="white-space:nowrap;">'+
+          '<td class="actions-cell">'+
             '<button class="btn btn-outline btn-small" data-qr="'+v.id+'">'+(open?'Ocultar QR':'Ver QR Code')+'</button> '+
             '<button class="btn btn-outline btn-small" data-edit-vehicle="'+v.id+'">Editar</button> '+
             '<button class="veh-del" data-del="'+v.id+'">Remover</button>'+
@@ -1976,11 +2233,11 @@
         (rows ? (
           '<div style="overflow-x:auto;"><table><thead><tr>'+
             '<th>Placa</th><th>Marca</th><th>Modelo</th><th>Renavam</th><th>Chassi</th>'+
-            '<th>Ano modelo</th><th>Ano fabricação</th><th>Vínculo</th><th></th>'+
+            '<th>Ano Modelo</th><th>Ano de Fabricação</th><th>Vínculo</th><th class="actions-cell"></th>'+
           '</tr></thead><tbody>'+rows+'</tbody></table></div>'
         ) : '<div class="empty-state">Nenhum veículo cadastrado ainda.</div>')+
       '</div>'+
-      '<div class="card"><h2>'+(editing ? 'Editar veículo' : 'Cadastrar veículo')+'</h2>'+
+      '<div class="card"><h2>'+(editing ? 'Editar Veículo' : 'Cadastrar Veículo')+'</h2>'+
         '<div class="form-row2">'+
           '<div class="field"><label>Placa</label><input type="text" id="v-plate" placeholder="Ex: ABC-1234" value="'+escapeHtml(nv.plate)+'"></div>'+
           '<div class="field"><label>Marca</label><input type="text" id="v-marca" placeholder="Ex: CHEVROLET" value="'+escapeHtml(nv.marca)+'"></div>'+
@@ -1994,11 +2251,11 @@
           '<div class="field"><label>Chassi</label><input type="text" maxlength="17" id="v-chassi" value="'+escapeHtml(nv.chassi)+'"></div>'+
         '</div>'+
         '<div class="form-row2">'+
-          '<div class="field"><label>Ano modelo</label><input type="text" inputmode="numeric" maxlength="4" id="v-anomodelo" placeholder="Ex: 2024" value="'+escapeHtml(nv.anoModelo)+'"></div>'+
-          '<div class="field"><label>Ano de fabricação</label><input type="text" inputmode="numeric" maxlength="4" id="v-anofab" placeholder="Ex: 2023" value="'+escapeHtml(nv.anoFabricacao)+'"></div>'+
+          '<div class="field"><label>Ano Modelo</label><input type="text" inputmode="numeric" maxlength="4" id="v-anomodelo" placeholder="Ex: 2024" value="'+escapeHtml(nv.anoModelo)+'"></div>'+
+          '<div class="field"><label>Ano de Fabricação</label><input type="text" inputmode="numeric" maxlength="4" id="v-anofab" placeholder="Ex: 2023" value="'+escapeHtml(nv.anoFabricacao)+'"></div>'+
         '</div>'+
         '<div style="display:flex; gap:8px;">'+
-          '<button class="btn btn-primary btn-small" id="v-add">'+(editing ? 'Salvar alterações' : 'Cadastrar veículo')+'</button>'+
+          '<button class="btn btn-primary btn-small" id="v-add">'+(editing ? 'Salvar Alterações' : 'Cadastrar Veículo')+'</button>'+
           (editing ? '<button class="btn btn-outline btn-small" id="v-cancel">Cancelar</button>' : '')+
         '</div>'+
       '</div>';
@@ -2021,7 +2278,11 @@
         '<td>'+brDate(d.cnhValidade)+'</td>'+
         '<td><span class="pill '+doc[1]+'">'+doc[0]+'</span></td>'+
         '<td class="mono">'+escapeHtml(d.matricula)+'</td>'+
-        '<td style="white-space:nowrap;"><button class="btn btn-outline btn-small" data-edit-driver="'+d.id+'">Editar</button> <button class="veh-del" data-del-driver="'+d.id+'">Remover</button></td>'+
+        '<td><span class="pill '+(d.matricula?'pill-ok':'pill-warn')+'" title="'+(d.matricula?'Esse motorista precisa digitar a própria matrícula pra enviar checklist.':'Esse motorista ainda não tem matrícula cadastrada - qualquer um pode enviar checklist no nome dele.')+'">'+(d.matricula?'Confirmação Ativa':'Sem Confirmação')+'</span></td>'+
+        '<td class="actions-cell">'+
+          '<button class="btn btn-outline btn-small" data-edit-driver="'+d.id+'">Editar</button> '+
+          '<button class="veh-del" data-del-driver="'+d.id+'">Remover</button>'+
+        '</td>'+
       '</tr>';
     }).join("");
     var nd = state.newDriver;
@@ -2037,18 +2298,19 @@
           '<div style="overflow-x:auto;"><table><thead><tr>'+
             '<th>Status</th><th>Nome do Condutor</th><th>CPF</th><th>Nascimento</th><th>Telefone</th>'+
             '<th>Categoria</th><th>Registro CNH</th><th>Emissão CNH</th><th>Validade CNH</th>'+
-            '<th>Documento</th><th>Matrícula</th><th></th>'+
+            '<th>Documento</th><th>Matrícula</th><th>Confirmação</th><th class="actions-cell"></th>'+
           '</tr></thead><tbody>'+rows+'</tbody></table></div>'
         ) : '<div class="empty-state">Nenhum motorista cadastrado ainda.</div>')+
       '</div>'+
-      '<div class="card"><h2>'+(editing ? 'Editar motorista' : 'Cadastrar motorista')+'</h2>'+
+      '<div class="card"><h2>'+(editing ? 'Editar Motorista' : 'Cadastrar Motorista')+'</h2>'+
         '<div class="form-row2">'+
           '<div class="field"><label>Nome do Condutor</label><input type="text" id="d-name" value="'+escapeHtml(nd.name)+'"></div>'+
           '<div class="field"><label>Matrícula</label><input type="text" inputmode="numeric" maxlength="15" id="d-matricula" value="'+escapeHtml(nd.matricula)+'"></div>'+
         '</div>'+
+        '<div class="hint" style="margin-top:-10px;margin-bottom:14px;">Se preenchida, o motorista precisa digitar essa mesma matrícula no checklist pra confirmar identidade.</div>'+
         '<div class="form-row2">'+
           '<div class="field"><label>CPF</label><input type="text" inputmode="numeric" maxlength="14" id="d-cpf" placeholder="000.000.000-00" value="'+escapeHtml(nd.cpf)+'"></div>'+
-          '<div class="field"><label>Data de nascimento</label><input type="date" id="d-birthdate" value="'+nd.birthDate+'"></div>'+
+          '<div class="field"><label>Data de Nascimento</label><input type="date" id="d-birthdate" value="'+nd.birthDate+'"></div>'+
         '</div>'+
         '<div class="form-row2">'+
           '<div class="field"><label>Telefone</label><input type="text" id="d-phone" placeholder="(00) 00000-0000" value="'+escapeHtml(nd.phone)+'"></div>'+
@@ -2059,11 +2321,11 @@
           '<div class="field"><label>Registro da CNH</label><input type="text" inputmode="numeric" maxlength="11" id="d-cnhregistro" value="'+escapeHtml(nd.cnhRegistro)+'"></div>'+
         '</div>'+
         '<div class="form-row2">'+
-          '<div class="field"><label>Data de emissão da CNH</label><input type="date" id="d-cnhemissao" value="'+nd.cnhEmissao+'"></div>'+
+          '<div class="field"><label>Data de Emissão da CNH</label><input type="date" id="d-cnhemissao" value="'+nd.cnhEmissao+'"></div>'+
           '<div class="field"><label>Validade da CNH</label><input type="date" id="d-cnhvalidade" value="'+nd.cnhValidade+'"></div>'+
         '</div>'+
         '<div style="display:flex; gap:8px;">'+
-          '<button class="btn btn-primary btn-small" id="d-add">'+(editing ? 'Salvar alterações' : 'Cadastrar motorista')+'</button>'+
+          '<button class="btn btn-primary btn-small" id="d-add">'+(editing ? 'Salvar Alterações' : 'Cadastrar Motorista')+'</button>'+
           (editing ? '<button class="btn btn-outline btn-small" id="d-cancel">Cancelar</button>' : '')+
         '</div>'+
       '</div>';
@@ -2076,7 +2338,7 @@
         '<div><div style="font-weight:700;">'+escapeHtml(u.name||u.username)+'</div><div style="font-size:12px;color:var(--muted);">@'+escapeHtml(u.username)+'</div></div>'+
         '<div style="display:flex; gap:6px; margin-left:auto;">'+
           '<button class="btn btn-outline btn-small" data-edit-user="'+u.id+'">Editar</button>'+
-          '<button class="btn btn-outline btn-small" data-pw-user="'+u.id+'">Alterar senha</button>'+
+          '<button class="btn btn-outline btn-small" data-pw-user="'+u.id+'">Alterar Senha</button>'+
           '<button class="veh-del" data-del-user="'+u.id+'" style="margin-left:0;">Remover</button>'+
         '</div>'+
       '</div>';
@@ -2087,22 +2349,43 @@
 
     return adminTopbarRow("Usuários")+
       '<div class="card">'+cardHeaderWithRefresh("Contas com acesso ao painel")+(rows || '<div class="empty-state">Nenhum usuário cadastrado.</div>')+'</div>'+
-      '<div class="card"><h2>'+(editing ? 'Editar acesso' : 'Criar novo acesso')+'</h2>'+
+      '<div class="card"><h2>'+(editing ? 'Editar Acesso' : 'Criar Novo Acesso')+'</h2>'+
         '<div class="form-row2">'+
           '<div class="field"><label>Nome</label><input type="text" id="u-name" value="'+escapeHtml(nu.name)+'"></div>'+
           '<div class="field"><label>Usuário</label><input type="text" id="u-username" autocapitalize="off" value="'+escapeHtml(nu.username)+'"></div>'+
         '</div>'+
+        '<div class="form-row2">'+
+          '<div class="field"><label>CPF</label><input type="text" inputmode="numeric" maxlength="14" id="u-cpf" placeholder="Ex: 000.000.000-00" value="'+escapeHtml(nu.cpf)+'"></div>'+
+          '<div class="field"><label>E-mail</label><input type="email" id="u-email" placeholder="nome@exemplo.com" value="'+escapeHtml(nu.email)+'"></div>'+
+        '</div>'+
+        '<div class="field"><label>Telefone</label><input type="text" id="u-phone" placeholder="Ex: (11) 91234-5678" value="'+escapeHtml(nu.phone)+'"></div>'+
         (editing ? '' : '<div class="field"><label>Senha</label><input type="password" id="u-password" value=""></div>')+
         '<div style="display:flex; gap:8px;">'+
-          '<button class="btn btn-primary btn-small" id="u-add">'+(editing ? 'Salvar alterações' : 'Criar acesso')+'</button>'+
+          '<button class="btn btn-primary btn-small" id="u-add">'+(editing ? 'Salvar Alterações' : 'Criar Acesso')+'</button>'+
           (editing ? '<button class="btn btn-outline btn-small" id="u-cancel">Cancelar</button>' : '')+
         '</div>'+
       '</div>'+
       (pwUser ? (
         '<div class="modal-bg" id="pw-modal-bg"><div class="modal-card">'+
-          '<h3>Alterar senha</h3>'+
+          '<h3>Alterar Senha</h3>'+
           '<p>Nova senha de acesso para <b>'+escapeHtml(pwUser.name||pwUser.username)+'</b> (@'+escapeHtml(pwUser.username)+').</p>'+
-          '<div class="field"><input type="password" id="pw-new" placeholder="Nova senha (mín. 4 caracteres)" value="'+escapeHtml(state.pwValue)+'"></div>'+
+          '<div class="field">'+
+            '<div class="pw-input-wrap">'+
+              '<input type="'+(state.pwShow?"text":"password")+'" id="pw-old" placeholder="Senha atual" value="'+escapeHtml(state.pwOldValue)+'">'+
+              '<button type="button" class="pw-eye" id="pw-eye" title="Mostrar ou ocultar senha" aria-label="Mostrar ou ocultar senha">'+eyeIcon(state.pwShow)+'</button>'+
+            '</div>'+
+          '</div>'+
+          '<div class="field">'+
+            '<div class="pw-input-wrap">'+
+              '<input type="'+(state.pwShow?"text":"password")+'" id="pw-new" placeholder="Nova senha" value="'+escapeHtml(state.pwValue)+'">'+
+            '</div>'+
+          '</div>'+
+          '<div class="field">'+
+            '<div class="pw-input-wrap">'+
+              '<input type="'+(state.pwShow?"text":"password")+'" id="pw-new2" placeholder="Confirmar nova senha" value="'+escapeHtml(state.pwValue2)+'">'+
+            '</div>'+
+          '</div>'+
+          '<div class="hint" style="margin-top:-8px;margin-bottom:10px;">Mínimo 8 caracteres, com letra maiúscula, minúscula, número e símbolo.</div>'+
           (state.pwError ? '<div class="error-text" style="margin-top:-8px;margin-bottom:12px;">'+escapeHtml(state.pwError)+'</div>' : '')+
           '<div class="modal-actions">'+
             '<button class="btn btn-outline btn-small" id="pw-cancel">Cancelar</button>'+
@@ -2155,23 +2438,33 @@
       '<div class="admin-main">'+content+'</div>'+
     '</div>'+
     (state.modalPhoto ? '<div class="modal-bg" id="photo-modal-bg"><img src="'+state.modalPhoto+'"></div>' : '')+
-    (state.confirmAction ? renderConfirmModal() : '');
+    (state.confirmAction ? renderConfirmModal() : '')+
+    // Vem por último pra ficar por cima de tudo: enquanto a senha provisória não for
+    // trocada, não dá pra usar o painel.
+    (state.mustChangePassword ? renderForcePasswordModal() : '');
   }
 
   // Modal de "segunda senha" pra confirmar edição/exclusão de um checklist já enviado
   // (aba "Gerenciar checklists"). Pede a senha do usuário logado antes de chamar o servidor.
   function renderConfirmModal(){
-    var isDelete = state.confirmAction.type === "delete-entry";
-    return '<div class="modal-bg" id="confirm-modal-bg"><div class="modal-card">'+
-      '<h3>'+(isDelete ? 'Apagar checklist' : 'Salvar alterações')+'</h3>'+
-      '<p>'+(isDelete
+    var type = state.confirmAction.type;
+    var isDelete = type === "delete-entry";
+    var isDeleteUser = type === "delete-user";
+    var title = isDeleteUser ? 'Remover usuário' : (isDelete ? 'Apagar checklist' : 'Salvar Alterações');
+    var message = isDeleteUser
+      ? 'Essa ação remove o acesso desse usuário ao painel e não pode ser desfeita. Confirme sua senha (do usuário logado agora) pra continuar.'
+      : (isDelete
         ? 'Essa ação apaga o checklist da planilha e não pode ser desfeita. Confirme sua senha do painel pra continuar.'
-        : 'Confirme sua senha do painel pra salvar as alterações neste checklist.')+'</p>'+
+        : 'Confirme sua senha do painel pra salvar as alterações neste checklist.');
+    var okLabel = state.confirmBusy ? 'Confirmando…' : (isDeleteUser ? 'Remover' : (isDelete ? 'Apagar' : 'Confirmar'));
+    return '<div class="modal-bg" id="confirm-modal-bg"><div class="modal-card">'+
+      '<h3>'+title+'</h3>'+
+      '<p>'+message+'</p>'+
       '<div class="field"><input type="password" id="cf-password" placeholder="Sua senha" value="'+escapeHtml(state.confirmPassword)+'"></div>'+
       (state.confirmError ? '<div class="error-text" style="margin-top:-8px;margin-bottom:12px;">'+escapeHtml(state.confirmError)+'</div>' : '')+
       '<div class="modal-actions">'+
         '<button class="btn btn-outline btn-small" id="cf-cancel">Cancelar</button>'+
-        '<button class="btn btn-primary btn-small" id="cf-ok" '+(state.confirmBusy?'disabled':'')+'>'+(state.confirmBusy?'Confirmando…':(isDelete?'Apagar':'Confirmar'))+'</button>'+
+        '<button class="btn btn-primary btn-small" id="cf-ok" '+(state.confirmBusy?'disabled':'')+'>'+okLabel+'</button>'+
       '</div>'+
     '</div></div>';
   }
@@ -2185,42 +2478,52 @@
   // equipamentos, foto) e o botão de enviar.
   function attachFormEvents(){
     var $ = function(id){ return document.getElementById(id); };
-    if($("f-vehicle")) $("f-vehicle").onchange = function(ev){ form.vehicleId = ev.target.value; };
+    if($("f-vehicle")) $("f-vehicle").onchange = function(ev){
+      form.vehicleId = ev.target.value;
+      form.kmOut = ""; // veículo trocado: o km sugerido do veículo anterior não vale mais
+      saveDraft();
+      applyLastKmSuggestion(form.vehicleId);
+    };
     if($("f-condutor")) $("f-condutor").onchange = function(ev){
       var dr = state.drivers.find(function(x){ return x.id === ev.target.value; });
       form.condutor = dr ? dr.name : "";
-      // Sempre sincroniza com o motorista escolhido (mesmo limpando, se ele não tiver
-      // matrícula cadastrada) - senão a matrícula do condutor anterior poderia ficar
-      // "esquecida" no campo depois de trocar a seleção.
-      form.matricula = (dr && dr.matricula) ? dr.matricula : "";
+      form.condutorId = dr ? dr.id : "";
+      // O campo Matrícula sempre começa vazio ao trocar de condutor - se ele tiver
+      // matrícula cadastrada, precisa digitar de cabeça pra confirmar (no lugar do antigo
+      // PIN); sem cadastro, fica livre pra digitar sem confirmação nenhuma.
+      form.matricula = "";
+      saveDraft();
       render();
     };
     if($("f-matricula")) $("f-matricula").oninput = function(ev){
       form.matricula = ev.target.value.replace(/\D/g,"").slice(0,15);
       ev.target.value = form.matricula;
+      saveDraft();
     };
-    if($("f-date")) $("f-date").onchange = function(ev){ form.date = ev.target.value; };
+    if($("f-date")) $("f-date").onchange = function(ev){ form.date = ev.target.value; saveDraft(); };
     if($("f-percurso")) $("f-percurso").oninput = function(ev){
       form.percurso = ev.target.value.toUpperCase();
       ev.target.value = form.percurso;
+      saveDraft();
     };
-    if($("f-horasaida")) $("f-horasaida").onchange = function(ev){ form.horaSaida = ev.target.value; render(); };
-    if($("f-horachegada")) $("f-horachegada").onchange = function(ev){ form.horaChegada = ev.target.value; render(); };
-    if($("f-kmout")) $("f-kmout").oninput = function(ev){ form.kmOut = ev.target.value; render(); focusAfter("f-kmout"); };
-    if($("f-kmin")) $("f-kmin").oninput = function(ev){ form.kmIn = ev.target.value; render(); focusAfter("f-kmin"); };
+    if($("f-horasaida")) $("f-horasaida").onchange = function(ev){ form.horaSaida = ev.target.value; saveDraft(); render(); };
+    if($("f-horachegada")) $("f-horachegada").onchange = function(ev){ form.horaChegada = ev.target.value; saveDraft(); render(); };
+    if($("f-kmout")) $("f-kmout").oninput = function(ev){ form.kmOut = ev.target.value; saveDraft(); render(); focusAfter("f-kmout"); };
+    if($("f-kmin")) $("f-kmin").oninput = function(ev){ form.kmIn = ev.target.value; saveDraft(); render(); focusAfter("f-kmin"); };
     document.querySelectorAll("[data-equip]").forEach(function(group){
       var key = group.getAttribute("data-equip");
       group.querySelectorAll("button").forEach(function(btn){
-        btn.onclick = function(){ form[key] = btn.getAttribute("data-val"); render(); };
+        btn.onclick = function(){ form[key] = btn.getAttribute("data-val"); saveDraft(); render(); };
       });
     });
     if($("f-photo-input")) $("f-photo-input").onchange = async function(ev){
       var file = ev.target.files[0];
       if(!file) return;
       state.photoData = await resizeImage(file);
+      saveDraft();
       render();
     };
-    if($("f-photo-remove")) $("f-photo-remove").onclick = function(){ state.photoData = null; render(); };
+    if($("f-photo-remove")) $("f-photo-remove").onclick = function(){ state.photoData = null; saveDraft(); render(); };
     if($("f-submit")) $("f-submit").onclick = submitForm;
     if($("f-admin-link")) $("f-admin-link").onclick = function(ev){
       ev.preventDefault();
@@ -2262,7 +2565,7 @@
     if($("a-brand-toggle")) $("a-brand-toggle").onclick = toggleSidebar;
     if($("a-sidebar-backdrop")) $("a-sidebar-backdrop").onclick = toggleSidebar;
 
-    // aba Checklists - qualquer mudança de filtro volta pra primeira página, senão a pessoa
+    // aba Registros - qualquer mudança de filtro volta pra primeira página, senão a pessoa
     // poderia ficar numa página que não existe mais na lista nova.
     document.querySelectorAll("[data-filter]").forEach(function(btn){
       btn.onclick = function(){ state.adminFilter = btn.getAttribute("data-filter"); state.adminPage = 1; render(); };
@@ -2276,7 +2579,7 @@
     if($("a-sort")) $("a-sort").onchange = function(ev){ state.adminSort = ev.target.value; state.adminPage = 1; render(); };
     if($("a-export")) $("a-export").onclick = generatePDF;
 
-    // Rodapé de páginas (Checklists e Dashboard) + botão de voltar ao topo.
+    // Rodapé de páginas (Registros e Dashboard) + botão de voltar ao topo.
     document.querySelectorAll("[data-page-cl]").forEach(function(btn){
       btn.onclick = function(){ state.adminPage = Number(btn.getAttribute("data-page-cl")); render(); scrollAdminToTop(); };
     });
@@ -2374,11 +2677,14 @@
     // aba Usuários
     if($("u-name")) $("u-name").oninput = function(ev){ state.newUser.name = ev.target.value; };
     if($("u-username")) $("u-username").oninput = function(ev){ state.newUser.username = ev.target.value; };
+    if($("u-cpf")) $("u-cpf").oninput = function(ev){ state.newUser.cpf = ev.target.value; };
+    if($("u-email")) $("u-email").oninput = function(ev){ state.newUser.email = ev.target.value; };
+    if($("u-phone")) $("u-phone").oninput = function(ev){ state.newUser.phone = ev.target.value; };
     if($("u-password")) $("u-password").oninput = function(ev){ state.newUser.password = ev.target.value; };
     if($("u-add")) $("u-add").onclick = addUser;
     if($("u-cancel")) $("u-cancel").onclick = cancelEditUser;
     document.querySelectorAll("[data-del-user]").forEach(function(btn){
-      btn.onclick = function(){ removeUser(btn.getAttribute("data-del-user")); };
+      btn.onclick = function(){ requestRemoveUser(btn.getAttribute("data-del-user")); };
     });
     document.querySelectorAll("[data-edit-user]").forEach(function(btn){
       btn.onclick = function(){ startEditUser(btn.getAttribute("data-edit-user")); };
@@ -2386,9 +2692,25 @@
     document.querySelectorAll("[data-pw-user]").forEach(function(btn){
       btn.onclick = function(){ openPasswordModal(btn.getAttribute("data-pw-user")); };
     });
+    if($("pw-old")) $("pw-old").oninput = function(ev){ state.pwOldValue = ev.target.value; };
     if($("pw-new")) $("pw-new").oninput = function(ev){ state.pwValue = ev.target.value; };
+    if($("pw-new2")) $("pw-new2").oninput = function(ev){ state.pwValue2 = ev.target.value; };
+    if($("pw-eye")) $("pw-eye").onclick = function(){ state.pwShow = !state.pwShow; render(); };
     if($("pw-cancel")) $("pw-cancel").onclick = closePasswordModal;
     if($("pw-save")) $("pw-save").onclick = submitPasswordModal;
+
+    // modal de troca de senha obrigatória (primeiro login)
+    if($("fp-new")){
+      $("fp-new").focus();
+      $("fp-new").oninput = function(ev){ state.forcePwValue = ev.target.value; };
+    }
+    if($("fp-new2")){
+      $("fp-new2").oninput = function(ev){ state.forcePwValue2 = ev.target.value; };
+      $("fp-new2").onkeydown = function(ev){ if(ev.key === "Enter") submitForcePassword(); };
+    }
+    if($("fp-eye")) $("fp-eye").onclick = function(){ state.forcePwShow = !state.forcePwShow; render(); };
+    if($("fp-save")) $("fp-save").onclick = submitForcePassword;
+    if($("fp-logout")) $("fp-logout").onclick = logout;
 
     // aba Gerenciar checklists - igual à aba Checklists, a busca só filtra ao confirmar.
     if($("mg-search")){
