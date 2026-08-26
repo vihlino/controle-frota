@@ -1,60 +1,110 @@
-# render.yaml - Configuracao do Render para o SITRA
+# Configuracao do projeto SITRA no Render.
 #
-# O que este arquivo faz:
-#   - Cria o banco Postgres automaticamente
-#   - Cria o servidor da API Node usando o Dockerfile
-#   - Liga os dois via variavel de ambiente DATABASE_URL
+# O projeto possui:
 #
-# Como usar:
-#   1. Suba o projeto no GitHub
-#   2. Acesse render.com, crie uma conta gratis
-#   3. New > Blueprint > escolha o repositorio
-#   4. O Render le este arquivo e cria tudo sozinho
-#   5. Ao final, anote a URL da API (ex.: https://sitra-api.onrender.com)
-#   6. Coloque essa URL no front antes de fazer o build do Netlify
-
-databases:
-  - name: sitra-db
-    databaseName: sitra
-    user: sitra
-    plan: free          # banco gratis, ate 1 GB
+# - Um banco PostgreSQL: sitra-db
+# - Uma API Node.js: sitra-api
+#
+# A API e construida usando a pasta "app" como contexto Docker.
+# Isso permite que o Docker tenha acesso tanto a:
+#
+# app/api/ -> codigo da API
+# app/db/  -> arquivos SQL do banco
 
 services:
+
+  # --------------------------------------------------------------------------
+  # API DO SITRA
+  # --------------------------------------------------------------------------
+
   - type: web
     name: sitra-api
+
+    # A API utiliza Docker para o deploy.
     runtime: docker
-    dockerfilePath: app/api/Dockerfile
-    dockerContext: app/api
-    plan: free          # servidor gratis (dorme apos 15 min sem uso)
+
+    # Repositorio conectado ao Render.
+    repo: https://github.com/vihlino/controle-frota
+
+    # Branch utilizada para o deploy.
+    branch: feature/login-como-tela-inicial
+
+    # Plano atual do servico.
+    plan: free
+
+    # Regiao onde a API esta hospedada.
+    region: oregon
+
+    # ------------------------------------------------------------------------
+    # DOCKER
+    # ------------------------------------------------------------------------
+
+    # O contexto agora e a pasta "app".
+    #
+    # Dessa forma, durante o build, o Docker consegue acessar:
+    #
+    # app/api/
+    # app/db/
+    dockerContext: app
+
+    # Caminho do Dockerfile relativo ao dockerContext.
+    #
+    # Como o contexto agora e "app", o Dockerfile esta em:
+    #
+    # app/api/Dockerfile
+    #
+    # e por isso o caminho relativo e apenas:
+    #
+    # api/Dockerfile
+    dockerfilePath: api/Dockerfile
+
+    # ------------------------------------------------------------------------
+    # HEALTH CHECK
+    # ------------------------------------------------------------------------
+
+    # O Render verifica esta rota para confirmar que a API esta funcionando.
     healthCheckPath: /api/saude
+
+    # ------------------------------------------------------------------------
+    # DEPLOY
+    # ------------------------------------------------------------------------
+
+    # Um novo commit na branch configurada gera um novo deploy.
+    autoDeployTrigger: commit
+
+    # ------------------------------------------------------------------------
+    # VARIAVEIS DE AMBIENTE
+    # ------------------------------------------------------------------------
+
     envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PGHOST
-        fromDatabase:
-          name: sitra-db
-          property: host
-      - key: PGPORT
-        fromDatabase:
-          name: sitra-db
-          property: port
-      - key: PGDATABASE
-        fromDatabase:
-          name: sitra-db
-          property: database
-      - key: PGUSER
-        fromDatabase:
-          name: sitra-db
-          property: user
-      - key: PGPASSWORD
-        fromDatabase:
-          name: sitra-db
-          property: password
-      - key: JWT_SECRET
-        generateValue: true   # Render gera um valor seguro automaticamente
-      - key: JWT_EXPIRES_IN
-        value: 8h
+
+      # Login inicial utilizado pelo seed do sistema.
       - key: SEED_LOGIN
-        value: admin
-      - key: SEED_SENHA
-        sync: false           # voce preenche no painel do Render
+        sync: false
+
+      # Tempo de expiracao do token JWT.
+      - key: JWT_EXPIRES_IN
+        sync: false
+
+      # Chave utilizada para assinar os tokens JWT.
+      - key: JWT_SECRET
+        sync: false
+
+      # ----------------------------------------------------------------------
+      # CONEXAO COM O POSTGRESQL
+      # ----------------------------------------------------------------------
+
+      - key: PGHOST
+        sync: false
+
+      - key: PGPORT
+        sync: false
+
+      - key: PGDATABASE
+        sync: false
+
+      - key: PGUSER
+        sync: false
+
+      - key: PGPASSWORD
+        sync: false

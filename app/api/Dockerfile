@@ -1,23 +1,61 @@
 # Dockerfile da API SITRA
 # Usado pelo Render para construir e rodar o servidor Node.js.
 #
-# Etapas:
-#   1. Instala so as dependencias de producao (sem devDependencies)
-#   2. Copia o codigo
-#   3. Sobe na porta que o Render definir (PORT)
+# O contexto do Docker agora e a pasta "app", e nao apenas "app/api".
+# Isso permite que o container tenha acesso tanto ao codigo da API
+# quanto aos arquivos SQL localizados em "../db".
+#
+# Estrutura usada no build:
+#
+# app/
+# ├── api/
+# │   ├── package.json
+# │   ├── package-lock.json
+# │   └── src/
+# │
+# └── db/
+#     ├── 001_sitra_v1.sql
+#     └── 002_sitra_telas.sql
 
 FROM node:20-alpine
 
+# Todos os arquivos da API serao organizados dentro de /app
+# no container.
 WORKDIR /app
 
-# Copia so os manifestos primeiro: se o codigo mudar mas o package.json nao,
-# o Docker reaproveita a camada do npm install (mais rapido).
-COPY package*.json ./
+# Copia apenas os manifestos primeiro.
+#
+# Se o codigo mudar, mas o package.json/package-lock.json nao,
+# o Docker consegue reaproveitar a camada das dependencias,
+# deixando o build mais rapido.
+COPY api/package*.json ./
+
+# Instala somente as dependencias necessarias para producao.
 RUN npm ci --omit=dev
 
-COPY . .
+# Copia o codigo da API.
+#
+# O conteudo de app/api passa a ficar diretamente em /app.
+COPY api/ .
 
-# O Render injeta PORT automaticamente. O server.js ja le process.env.PORT.
+# Copia os arquivos SQL para dentro do container.
+#
+# Eles ficarao disponiveis em:
+#
+# /app/db/001_sitra_v1.sql
+# /app/db/002_sitra_telas.sql
+#
+# O futuro inicializador do banco podera ler esses arquivos
+# para criar a estrutura do PostgreSQL quando necessario.
+COPY db/ ./db/
+
+# A API usa a porta definida pelo Render atraves da variavel PORT.
+# O EXPOSE serve apenas como documentacao da porta utilizada.
 EXPOSE 3333
 
+# Inicia a API.
+#
+# O server.js sera responsavel por iniciar o sistema.
+# Depois vamos adicionar a inicializacao/verificacao do banco
+# antes de liberar a API para receber requisicoes.
 CMD ["node", "src/server.js"]
