@@ -1,0 +1,19 @@
+# Dependencias - nunca vao para o GitHub
+node_modules/
+api/node_modules/
+web/node_modules/
+
+# Build do front - recriado pelo Netlify
+web/dist/
+
+# Variaveis de ambiente - contem senhas, NUNCA sobe
+api/.env
+.env
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operacional
+.DS_Store
+Thumbs.db

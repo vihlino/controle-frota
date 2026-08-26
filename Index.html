@@ -152,14 +152,9 @@
      embaixo, então o padding-right maior garante espaço reservado pro botão do olho,
      não importa a ordem das regras no arquivo. */
   .pw-field{position:relative;}
-  /* O olho é posicionado dentro deste invólucro, que envolve SÓ o input - assim ele fica
-     centralizado na altura do campo, sem contar o rótulo que fica acima. O display:block
-     no input tira o espaço extra que sobra embaixo de elementos inline. */
-  .pw-input-wrap{position:relative;}
-  .pw-input-wrap input{display:block; padding-right:42px;}
   #pw-old, #pw-new, #pw-new2{padding-right:42px;}
   .pw-eye{
-    position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    position:absolute; right:6px; top:0; bottom:0; margin:auto 0;
     width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center;
     border:none; background:transparent; color:var(--muted); cursor:pointer; border-radius:8px;
   }
@@ -732,6 +727,7 @@
     loginBusy: false,
     webAppUrl: "",           // URL pública do site, usada para montar o link/QR de cada veículo
     qrOpenFor: null,         // id do veículo com o QR Code aberto na aba Veículos
+    qrShortLinks: {},        // cache local {vehicleId: link curto} pra não gerar de novo toda hora
     showVehicleManager: false,
     newVehicle: emptyVehicleForm(),
     editingVehicleId: null,  // != null quando o form de veículo está em modo "Editar"
@@ -745,15 +741,6 @@
     pwValue2: "",            // confirmação da nova senha (precisa bater com pwValue)
     pwShow: false,           // true = campos de senha do modal mostram o texto em vez de pontos
     pwError: "",
-    // Troca de senha OBRIGATÓRIA do primeiro login (acesso criado com senha provisória).
-    // Enquanto mustChangePassword for true, o painel fica coberto por um modal sem "Cancelar".
-    mustChangePassword: false,
-    forcePwOld: "",
-    forcePwValue: "",
-    forcePwValue2: "",
-    forcePwShow: false,
-    forcePwError: "",
-    forcePwBusy: false,
     manageSearch: "",        // busca na aba Gerenciar checklists
     editingEntryId: null,    // id do checklist em edição na aba Gerenciar checklists
     editEntryForm: null,     // cópia editável dos campos do checklist selecionado
@@ -955,15 +942,7 @@
     try{
       var res = await gsRun("login", state.loginUser.trim(), state.loginPass);
       if(res && res.ok){
-        state.currentUser = { id: res.id, username: res.username, name: res.name };
-        // Acesso recém-criado ainda está com a senha provisória: abre travado no modal de
-        // troca de senha, que só fecha depois de cadastrar uma senha nova.
-        if(res.mustChangePassword){
-          state.forcePwOld = state.loginPass;  // já sabemos a senha atual - poupa digitar de novo
-          state.forcePwValue = ""; state.forcePwValue2 = "";
-          state.forcePwShow = false; state.forcePwError = ""; state.forcePwBusy = false;
-          state.mustChangePassword = true;
-        }
+        state.currentUser = { username: res.username, name: res.name };
         state.loginUser = ""; state.loginPass = ""; state.loginBusy = false;
         state.mode = "admin"; state.adminTab = "overview";
         state.loading = true; render();
@@ -987,10 +966,6 @@
   function logout(){
     state.currentUser = null;
     state.mode = "login";
-    // Limpa a troca de senha obrigatória, senão o modal reapareceria pro próximo login.
-    state.mustChangePassword = false;
-    state.forcePwOld = ""; state.forcePwValue = ""; state.forcePwValue2 = "";
-    state.forcePwShow = false; state.forcePwError = ""; state.forcePwBusy = false;
     render();
   }
 
@@ -1021,9 +996,6 @@
 
   // Quantos registros aparecem por página nas listas de checklists.
   var PAGE_SIZE = 10;
-  // Quantos checklists o Dashboard carrega no total (2 páginas de 10). A lista completa
-  // fica na aba "Registros" - aqui é só um resumo, pra tela abrir rápido.
-  var OVERVIEW_MAX = 20;
 
   // Monta o rodapé de páginas (1 2 3 … ) + botão de voltar ao topo. `attr` é o atributo
   // usado nos botões (ex: "data-page-checklists"), pra cada lista ter o seu.
@@ -1268,61 +1240,6 @@
       state.pwError = (e && e.message) || "Não foi possível trocar a senha agora.";
       render();
     }
-  }
-
-  // ---- Troca de senha obrigatória no primeiro login ----
-  // O acesso é criado pelo gestor com uma senha provisória; enquanto ela não for trocada,
-  // o painel abre coberto por este modal (sem "Cancelar" e sem "Sair" - só saindo pelo login).
-  async function submitForcePassword(){
-    if(state.forcePwValue !== state.forcePwValue2){
-      state.forcePwError = "As duas senhas precisam ser iguais.";
-      render();
-      return;
-    }
-    if(!isStrongPassword(state.forcePwValue)){
-      state.forcePwError = "A senha precisa ter pelo menos 8 caracteres, com letra maiúscula, minúscula, número e símbolo.";
-      render();
-      return;
-    }
-    state.forcePwBusy = true; state.forcePwError = ""; render();
-    try{
-      await gsRun("changeUserPassword", state.currentUser.id, state.forcePwOld, state.forcePwValue);
-      state.mustChangePassword = false;
-      state.forcePwOld = ""; state.forcePwValue = ""; state.forcePwValue2 = "";
-      state.forcePwShow = false; state.forcePwBusy = false;
-      // Recarrega a lista de usuários pro selo "senha provisória" sumir na aba Usuários.
-      try{ await loadUsers(); }catch(e){}
-    }catch(e){
-      state.forcePwError = (e && e.message) || "Não foi possível salvar a senha agora.";
-      state.forcePwBusy = false;
-    }
-    render();
-  }
-
-  function renderForcePasswordModal(){
-    return '<div class="modal-bg"><div class="modal-card">'+
-      '<h3>Crie sua senha</h3>'+
-      '<p>Este acesso ainda está com a senha provisória cadastrada pelo gestor. Defina uma senha só sua para continuar.</p>'+
-      '<div class="field">'+
-        '<label>Nova senha</label>'+
-        '<div class="pw-input-wrap">'+
-          '<input type="'+(state.forcePwShow?'text':'password')+'" id="fp-new" value="'+escapeHtml(state.forcePwValue)+'" autocomplete="new-password">'+
-          '<button type="button" class="pw-eye" id="fp-eye" aria-label="Mostrar ou ocultar senha">'+eyeIcon(state.forcePwShow)+'</button>'+
-        '</div>'+
-      '</div>'+
-      '<div class="field">'+
-        '<label>Repita a nova senha</label>'+
-        '<div class="pw-input-wrap">'+
-          '<input type="'+(state.forcePwShow?'text':'password')+'" id="fp-new2" value="'+escapeHtml(state.forcePwValue2)+'" autocomplete="new-password">'+
-        '</div>'+
-      '</div>'+
-      '<div class="hint">Pelo menos 8 caracteres, com letra maiúscula, minúscula, número e símbolo.</div>'+
-      (state.forcePwError ? '<div class="error-text" style="margin-top:8px;">'+escapeHtml(state.forcePwError)+'</div>' : '')+
-      '<div class="modal-actions" style="margin-top:14px;">'+
-        '<button class="btn btn-outline btn-small" id="fp-logout">Sair</button>'+
-        '<button class="btn btn-primary btn-small" id="fp-save" '+(state.forcePwBusy?'disabled':'')+'>'+(state.forcePwBusy?'Salvando…':'Salvar senha')+'</button>'+
-      '</div>'+
-    '</div></div>';
   }
 
   // ---- Aba "Gerenciar checklists" ----
@@ -1983,13 +1900,9 @@
     var todayList = state.entries.filter(function(e){ return withinRange(e.date, "today"); });
     var weekList = state.entries.filter(function(e){ return withinRange(e.date, "week"); });
     var weekKm = weekList.reduce(function(s,e){ return s + Math.max(0, e.kmIn-e.kmOut); }, 0);
-    // O Dashboard mostra só os 20 checklists mais recentes (2 páginas de 10), pra tela não
-    // ficar pesada quando a planilha tiver muitos registros. A lista completa fica na aba
-    // "Registros", que tem filtros e busca.
-    var ultimos = state.entries.slice(0, OVERVIEW_MAX);
-    state.overviewPage = paginaValida(state.overviewPage, ultimos.length);
+    state.overviewPage = paginaValida(state.overviewPage, state.entries.length);
     var inicio = (state.overviewPage-1) * PAGE_SIZE;
-    var recent = ultimos.slice(inicio, inicio + PAGE_SIZE);
+    var recent = state.entries.slice(inicio, inicio + PAGE_SIZE);
     var recentRows = recent.map(function(e){
       var veh = state.vehicles.find(function(v){ return v.id === e.vehicleId; });
       return '<tr>'+
@@ -2014,8 +1927,7 @@
           '<div style="overflow-x:auto;"><table><thead><tr>'+
             '<th>Enviado em</th><th>Data do registro</th><th>Condutor</th><th>Veículo</th><th>Percurso</th><th>Rodado</th>'+
           '</tr></thead><tbody>'+recentRows+'</tbody></table></div>'+
-          renderPager(state.overviewPage, ultimos.length, "data-page-ov")+
-          (state.entries.length > OVERVIEW_MAX ? '<div class="hint">Mostrando os '+OVERVIEW_MAX+' checklists mais recentes. Veja todos na aba Registros.</div>' : '')
+          renderPager(state.overviewPage, state.entries.length, "data-page-ov")
         ) : '<div class="empty-state">Nenhum checklist registrado ainda.</div>')+
       '</div>';
   }
@@ -2190,8 +2102,11 @@
   function renderAdminVehicles(){
     var rows = state.vehicles.map(function(v){
       var link = state.webAppUrl ? (state.webAppUrl + (state.webAppUrl.indexOf("?")>-1?"&":"?") + "v=" + encodeURIComponent(v.id)) : "";
+      // O QR Code sempre codifica o link completo (funciona mesmo se o encurtador estiver
+      // fora do ar) - o link curto é só pra ficar mais fácil de ler/copiar na tela.
       var qrImg = link ? ("https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=" + encodeURIComponent(link)) : "";
       var open = state.qrOpenFor === v.id;
+      var shortLink = state.qrShortLinks[v.id] || "";
       var vin = VINCULO_STATUS[v.vinculo] || ["—","pill-muted"];
       return '<tr>'+
           '<td><span class="veh-plate">'+escapeHtml(v.plate)+'</span></td>'+
@@ -2213,7 +2128,8 @@
             '<div class="qr-box">'+
               (qrImg ? '<img src="'+qrImg+'" alt="QR Code '+escapeHtml(v.plate)+'">' : '<div class="hint">Carregando link…</div>')+
               '<div class="qr-info">'+
-                '<div class="qr-link">'+escapeHtml(link)+'</div>'+
+                '<div class="qr-link">'+(shortLink ? escapeHtml(shortLink) : (link ? '<span class="hint">Gerando link curto…</span>' : ''))+'</div>'+
+                (shortLink ? '<div class="hint">Link completo: '+escapeHtml(link)+'</div>' : '')+
                 '<div class="hint">Imprima e cole este QR Code no veículo '+escapeHtml(v.plate)+'. Ele abre o checklist já travado nesse veículo, evitando registro no carro errado.</div>'+
                 (qrImg ? '<a class="btn btn-outline btn-small" style="margin-top:8px; display:inline-flex; width:auto;" href="'+qrImg+'" target="_blank" rel="noopener">Baixar imagem</a>' : '')+
               '</div>'+
@@ -2349,7 +2265,7 @@
 
     return adminTopbarRow("Usuários")+
       '<div class="card">'+cardHeaderWithRefresh("Contas com acesso ao painel")+(rows || '<div class="empty-state">Nenhum usuário cadastrado.</div>')+'</div>'+
-      '<div class="card"><h2>'+(editing ? 'Editar Acesso' : 'Criar Novo Acesso')+'</h2>'+
+      '<div class="card"><h2>'+(editing ? 'Editar acesso' : 'Criar novo acesso')+'</h2>'+
         '<div class="form-row2">'+
           '<div class="field"><label>Nome</label><input type="text" id="u-name" value="'+escapeHtml(nu.name)+'"></div>'+
           '<div class="field"><label>Usuário</label><input type="text" id="u-username" autocapitalize="off" value="'+escapeHtml(nu.username)+'"></div>'+
@@ -2361,7 +2277,7 @@
         '<div class="field"><label>Telefone</label><input type="text" id="u-phone" placeholder="Ex: (11) 91234-5678" value="'+escapeHtml(nu.phone)+'"></div>'+
         (editing ? '' : '<div class="field"><label>Senha</label><input type="password" id="u-password" value=""></div>')+
         '<div style="display:flex; gap:8px;">'+
-          '<button class="btn btn-primary btn-small" id="u-add">'+(editing ? 'Salvar Alterações' : 'Criar Acesso')+'</button>'+
+          '<button class="btn btn-primary btn-small" id="u-add">'+(editing ? 'Salvar Alterações' : 'Criar acesso')+'</button>'+
           (editing ? '<button class="btn btn-outline btn-small" id="u-cancel">Cancelar</button>' : '')+
         '</div>'+
       '</div>'+
@@ -2369,21 +2285,15 @@
         '<div class="modal-bg" id="pw-modal-bg"><div class="modal-card">'+
           '<h3>Alterar Senha</h3>'+
           '<p>Nova senha de acesso para <b>'+escapeHtml(pwUser.name||pwUser.username)+'</b> (@'+escapeHtml(pwUser.username)+').</p>'+
-          '<div class="field">'+
-            '<div class="pw-input-wrap">'+
-              '<input type="'+(state.pwShow?"text":"password")+'" id="pw-old" placeholder="Senha atual" value="'+escapeHtml(state.pwOldValue)+'">'+
-              '<button type="button" class="pw-eye" id="pw-eye" title="Mostrar ou ocultar senha" aria-label="Mostrar ou ocultar senha">'+eyeIcon(state.pwShow)+'</button>'+
-            '</div>'+
+          '<div class="field pw-field">'+
+            '<input type="'+(state.pwShow?"text":"password")+'" id="pw-old" placeholder="Senha atual" value="'+escapeHtml(state.pwOldValue)+'">'+
+            '<button type="button" class="pw-eye" id="pw-eye" title="Mostrar ou ocultar senha" aria-label="Mostrar ou ocultar senha">'+eyeIcon(state.pwShow)+'</button>'+
           '</div>'+
-          '<div class="field">'+
-            '<div class="pw-input-wrap">'+
-              '<input type="'+(state.pwShow?"text":"password")+'" id="pw-new" placeholder="Nova senha" value="'+escapeHtml(state.pwValue)+'">'+
-            '</div>'+
+          '<div class="field pw-field">'+
+            '<input type="'+(state.pwShow?"text":"password")+'" id="pw-new" placeholder="Nova senha" value="'+escapeHtml(state.pwValue)+'">'+
           '</div>'+
-          '<div class="field">'+
-            '<div class="pw-input-wrap">'+
-              '<input type="'+(state.pwShow?"text":"password")+'" id="pw-new2" placeholder="Confirmar nova senha" value="'+escapeHtml(state.pwValue2)+'">'+
-            '</div>'+
+          '<div class="field pw-field">'+
+            '<input type="'+(state.pwShow?"text":"password")+'" id="pw-new2" placeholder="Confirmar nova senha" value="'+escapeHtml(state.pwValue2)+'">'+
           '</div>'+
           '<div class="hint" style="margin-top:-8px;margin-bottom:10px;">Mínimo 8 caracteres, com letra maiúscula, minúscula, número e símbolo.</div>'+
           (state.pwError ? '<div class="error-text" style="margin-top:-8px;margin-bottom:12px;">'+escapeHtml(state.pwError)+'</div>' : '')+
@@ -2438,10 +2348,7 @@
       '<div class="admin-main">'+content+'</div>'+
     '</div>'+
     (state.modalPhoto ? '<div class="modal-bg" id="photo-modal-bg"><img src="'+state.modalPhoto+'"></div>' : '')+
-    (state.confirmAction ? renderConfirmModal() : '')+
-    // Vem por último pra ficar por cima de tudo: enquanto a senha provisória não for
-    // trocada, não dá pra usar o painel.
-    (state.mustChangePassword ? renderForcePasswordModal() : '');
+    (state.confirmAction ? renderConfirmModal() : '');
   }
 
   // Modal de "segunda senha" pra confirmar edição/exclusão de um checklist já enviado
@@ -2642,6 +2549,13 @@
         var id = btn.getAttribute("data-qr");
         state.qrOpenFor = (state.qrOpenFor === id) ? null : id;
         render();
+        // Só busca o link curto na primeira vez que o QR desse veículo é aberto - o
+        // resultado fica em cache em state.qrShortLinks pro resto da sessão.
+        if(state.qrOpenFor === id && !state.qrShortLinks[id]){
+          gsRun("getVehicleQrLink", id).then(function(res){
+            if(res && res.shortUrl){ state.qrShortLinks[id] = res.shortUrl; render(); }
+          }).catch(function(){ /* sem link curto agora, a tela mostra o link completo mesmo */ });
+        }
       };
     });
 
@@ -2698,19 +2612,6 @@
     if($("pw-eye")) $("pw-eye").onclick = function(){ state.pwShow = !state.pwShow; render(); };
     if($("pw-cancel")) $("pw-cancel").onclick = closePasswordModal;
     if($("pw-save")) $("pw-save").onclick = submitPasswordModal;
-
-    // modal de troca de senha obrigatória (primeiro login)
-    if($("fp-new")){
-      $("fp-new").focus();
-      $("fp-new").oninput = function(ev){ state.forcePwValue = ev.target.value; };
-    }
-    if($("fp-new2")){
-      $("fp-new2").oninput = function(ev){ state.forcePwValue2 = ev.target.value; };
-      $("fp-new2").onkeydown = function(ev){ if(ev.key === "Enter") submitForcePassword(); };
-    }
-    if($("fp-eye")) $("fp-eye").onclick = function(){ state.forcePwShow = !state.forcePwShow; render(); };
-    if($("fp-save")) $("fp-save").onclick = submitForcePassword;
-    if($("fp-logout")) $("fp-logout").onclick = logout;
 
     // aba Gerenciar checklists - igual à aba Checklists, a busca só filtra ao confirmar.
     if($("mg-search")){

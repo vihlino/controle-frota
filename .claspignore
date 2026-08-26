@@ -1,4 +1,13 @@
-**/**
-!Index.html
-!Código.gs
+# Ignorar arquivos de configuração e pastas locais
+**/.git/**
+**/.claude/**
+**/graphify-out/**
+
+# Ignorar documentação
+README.md
+CLAUDE.md
+
+# Permitir todos os arquivos do Apps Script
+!*.gs
+!*.html
 !appsscript.json

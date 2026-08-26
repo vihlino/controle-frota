@@ -1,0 +1,85 @@
+/* Tokens do SITRA, tirados dos mockups em TELAS/ e do briefing de design. */
+
+@font-face {
+  font-family: "Noto Sans";
+  src: url("/fonts/NotoSans-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Noto Sans";
+  src: url("/fonts/NotoSans-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Noto Sans";
+  src: url("/fonts/NotoSans-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Noto Sans";
+  src: url("/fonts/NotoSans-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  /* marca */
+  --amarelo: #f5b800;
+  --amarelo-escuro: #c8930a;
+  --amarelo-suave: #fff6dc;
+
+  /* superficies - tema claro */
+  --fundo: #f4f5f7;
+  --superficie: #ffffff;
+  --superficie-2: #fafafa;
+  --borda: #e6e8eb;
+  --borda-forte: #d3d7dc;
+
+  /* texto */
+  --texto: #111315;
+  --texto-2: #5b6167;
+  --texto-3: #8b9198;
+
+  /* barra lateral (sempre escura, como no mockup) */
+  --lateral-fundo: #0d0d0d;
+  --lateral-texto: #d6d8da;
+  --lateral-texto-2: #85898e;
+  --lateral-hover: #1c1c1c;
+
+  /* estados */
+  --verde: #17a34a;
+  --verde-suave: #e7f6ec;
+  --vermelho: #e02424;
+  --vermelho-suave: #fdeaea;
+  --laranja: #f97316;
+  --laranja-suave: #fff0e6;
+  --azul: #2563eb;
+  --azul-suave: #e8effd;
+
+  /* forma */
+  --raio: 12px;
+  --raio-sm: 8px;
+  --sombra: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --lateral-largura: 232px;
+  --topo-altura: 76px;
+}
+
+:root[data-tema="escuro"] {
+  --fundo: #0f1113;
+  --superficie: #17191c;
+  --superficie-2: #1d2024;
+  --borda: #2a2e33;
+  --borda-forte: #3a3f45;
+  --texto: #f2f4f6;
+  --texto-2: #a7adb4;
+  --texto-3: #7c828a;
+  --amarelo-suave: #3a2f0c;
+  --verde-suave: #102a1a;
+  --vermelho-suave: #331416;
+  --laranja-suave: #331e0e;
+  --azul-suave: #14203a;
+  --sombra: 0 1px 2px rgba(0, 0, 0, 0.4);
+}

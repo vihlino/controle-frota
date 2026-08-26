@@ -1,0 +1,59 @@
+# render.yaml - Configuracao do Render para o SITRA
+#
+# O que este arquivo faz:
+#   - Cria o banco Postgres automaticamente
+#   - Cria o servidor da API Node usando o Dockerfile
+#   - Liga os dois via variavel de ambiente DATABASE_URL
+#
+# Como usar:
+#   1. Suba o projeto no GitHub
+#   2. Acesse render.com, crie uma conta gratis
+#   3. New > Blueprint > escolha o repositorio
+#   4. O Render le este arquivo e cria tudo sozinho
+#   5. Ao final, anote a URL da API (ex.: https://sitra-api.onrender.com)
+#   6. Coloque essa URL no front antes de fazer o build do Netlify
+
+databases:
+  - name: sitra-db
+    databaseName: sitra
+    user: sitra
+    plan: free          # banco gratis, ate 1 GB
+
+services:
+  - type: web
+    name: sitra-api
+    runtime: docker
+    dockerfilePath: api/Dockerfile
+    plan: free          # servidor gratis (dorme apos 15 min sem uso)
+    healthCheckPath: /api/saude
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PGHOST
+        fromDatabase:
+          name: sitra-db
+          property: host
+      - key: PGPORT
+        fromDatabase:
+          name: sitra-db
+          property: port
+      - key: PGDATABASE
+        fromDatabase:
+          name: sitra-db
+          property: database
+      - key: PGUSER
+        fromDatabase:
+          name: sitra-db
+          property: user
+      - key: PGPASSWORD
+        fromDatabase:
+          name: sitra-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true   # Render gera um valor seguro automaticamente
+      - key: JWT_EXPIRES_IN
+        value: 8h
+      - key: SEED_LOGIN
+        value: admin
+      - key: SEED_SENHA
+        sync: false           # voce preenche no painel do Render

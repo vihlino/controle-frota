@@ -1,0 +1,161 @@
+/**
+ * VeiculoDetalhe.jsx - A ficha completa de um veiculo.
+ *
+ * Junta tres consultas: os dados do veiculo, um resumo em numeros e a linha do
+ * tempo com checklists, inspecoes, manutencoes e sinistros misturados em ordem
+ * cronologica.
+ */
+import { useEffect, useState } from "react";
+import { useOutletContext, useParams, useNavigate, Link } from "react-router-dom";
+import Cartao from "../../components/Cartao.jsx";
+import Icone from "../../components/Icone.jsx";
+import Trilha from "../../components/Trilha.jsx";
+import Selo from "../../components/Selo.jsx";
+import Kpi from "../../components/Kpi.jsx";
+import { api } from "../../lib/api.js";
+import { data, dinheiro, numero } from "../../lib/formato.js";
+
+const ROTULO_ORIGEM = {
+  CHECKLIST: { texto: "Checklist", tom: "azul", icone: "checklist" },
+  INSPECAO: { texto: "Inspecao", tom: "amarelo", icone: "calendar" },
+  MANUTENCAO: { texto: "Manutencao", tom: "laranja", icone: "kpi-wrench" },
+  SINISTRO: { texto: "Sinistro", tom: "vermelho", icone: "alert-triangle" },
+};
+
+export default function VeiculoDetalhe() {
+  const { id } = useParams();
+  const navegar = useNavigate();
+  const { definirCabecalho } = useOutletContext();
+  const [veiculo, setVeiculo] = useState(null);
+  const [resumo, setResumo] = useState(null);
+  const [historico, setHistorico] = useState([]);
+  const [erro, setErro] = useState("");
+
+  useEffect(() => {
+    definirCabecalho({ titulo: "Detalhes do veiculo", legenda: "Ficha completa e historico." });
+  }, [definirCabecalho]);
+
+  useEffect(() => {
+    api(`/frotas/veiculos/${id}`).then(setVeiculo).catch((e) => setErro(e.message));
+    api(`/frotas/veiculos/${id}/resumo`).then(setResumo).catch(() => {});
+    api(`/frotas/veiculos/${id}/historico`).then(setHistorico).catch(() => {});
+  }, [id]);
+
+  if (erro) return <Cartao><div className="vazio">{erro}</div></Cartao>;
+  if (!veiculo) return <div className="carregando">Carregando o veiculo...</div>;
+
+  const ficha = [
+    ["Placa", veiculo.placa],
+    ["Marca", veiculo.marca],
+    ["Modelo", veiculo.modelo],
+    ["Renavam", veiculo.renavam || "-"],
+    ["Chassi", veiculo.chassi || "-"],
+    ["Ano de fabricacao", veiculo.ano_fabricacao],
+    ["Ano modelo", veiculo.ano_modelo],
+    ["Cor", veiculo.cor],
+    ["Tipo de veiculo", veiculo.tipo_veiculo],
+    ["Combustivel", veiculo.tipo_combustivel],
+    ["Capacidade", veiculo.capacidade || "-"],
+    ["Setor", veiculo.setor],
+    ["Quilometragem atual", `${numero(veiculo.quilometragem_atual)} km`],
+    ["QR Code", veiculo.qr_codigo || "Ainda nao gerado"],
+  ];
+
+  return (
+    <>
+      <div className="cabecalho-pagina">
+        <div>
+          <Trilha
+            itens={[
+              { rotulo: "Frotas" },
+              { rotulo: "Veiculos", para: "/frotas/veiculos" },
+              { rotulo: veiculo.placa },
+            ]}
+          />
+          <h1>
+            {veiculo.marca} {veiculo.modelo}
+          </h1>
+          <p>
+            Placa {veiculo.placa} - {veiculo.setor} - <Selo valor={veiculo.status} />
+          </p>
+        </div>
+        <div className="cabecalho-pagina__acoes">
+          <button className="botao" onClick={() => navegar("/frotas/veiculos")}>Voltar</button>
+          <Link className="botao botao--primario" to={`/frotas/veiculos/${id}/qrcode`}>
+            <Icone nome="checklist" tamanho={15} /> QR Code
+          </Link>
+        </div>
+      </div>
+
+      {resumo && (
+        <div className="kpis">
+          <Kpi icone="checklist" rotulo="Checklists" valor={resumo.checklists}
+               nota="Registros de uso" tom="azul" />
+          <Kpi icone="calendar" rotulo="Inspecoes" valor={resumo.inspecoes}
+               nota="Realizadas" tom="amarelo" />
+          <Kpi icone="kpi-wrench" rotulo="OS em aberto" valor={resumo.os_abertas}
+               nota={dinheiro(resumo.custo_manutencao)} tom="laranja" />
+          <Kpi icone="alert-triangle" rotulo="Sinistros" valor={resumo.sinistros}
+               nota={`${numero(resumo.documentos_vencidos)} doc. vencidos`} tom="vermelho" />
+        </div>
+      )}
+
+      <div className="grade-2">
+        <Cartao titulo="Ficha do veiculo">
+          <dl className="lista-dados">
+            {ficha.map(([r, v]) => (
+              <div className="lista-dados__linha" key={r}>
+                <dt>{r}</dt>
+                <dd>{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </Cartao>
+
+        <Cartao titulo="Historico do veiculo">
+          <ol className="linha-tempo linha-tempo--rolagem">
+            {historico.map((h, i) => {
+              const origem = ROTULO_ORIGEM[h.origem] || { texto: h.origem, tom: "azul" };
+              return (
+                <li key={`${h.origem}-${h.id_registro}-${i}`}>
+                  <span className="linha-tempo__ponto" data-tom={origem.tom} />
+                  <div>
+                    <strong>{h.titulo}</strong>
+                    <span>
+                      {data(h.data)} - {origem.texto} - {h.pessoa}
+                    </span>
+                  </div>
+                  <Selo valor={h.status} />
+                </li>
+              );
+            })}
+          </ol>
+          {historico.length === 0 && (
+            <div className="vazio">Este veiculo ainda nao tem movimentacao registrada.</div>
+          )}
+        </Cartao>
+      </div>
+
+      <Cartao titulo="Observacoes">
+        <p className="texto-corrido">{veiculo.observacoes || "Nenhuma observacao registrada."}</p>
+      </Cartao>
+
+      <Cartao titulo="Atalhos deste veiculo">
+        <div className="acoes-rapidas">
+          <Link className="acao-rapida" to={`/frotas/checklists?veiculo=${id}`}>
+            <Icone nome="checklist" tamanho={20} /> Checklists
+          </Link>
+          <Link className="acao-rapida" to={`/frotas/documentos?veiculo=${id}`}>
+            <Icone nome="nav-gestao" tamanho={20} /> Documentos
+          </Link>
+          <Link className="acao-rapida" to="/frotas/inspecoes">
+            <Icone nome="calendar" tamanho={20} /> Inspecoes
+          </Link>
+          <Link className="acao-rapida" to="/frotas/manutencoes">
+            <Icone nome="kpi-wrench" tamanho={20} /> Manutencoes
+          </Link>
+        </div>
+      </Cartao>
+    </>
+  );
+}

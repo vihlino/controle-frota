@@ -1,0 +1,56 @@
+SITRA
+│
+├── 🖥️ Dashboard TI
+├── 🚗 Dashboard Frotas
+└── 🚨 Dashboard Fiscalização
+
+
+SITRA
+│
+├── 🔝 TOPO
+│   ├── 🔔 Alertas
+│   └── 👤 Perfil do Usuário
+│
+├── 📊 Dashboard
+│
+├── 🚗 Frotas
+│   ├── Veículos
+│   ├── Servidores
+│   ├── Checklists
+│   ├── Inspeções
+│   ├── Manutenções / OS
+│   ├── Documentação
+│   └── Sinistros
+│
+├── 🚨 Fiscalização
+│   ├── Serviço Diário
+│   ├── Equipes
+│   │   └── Apoios
+│   ├── Viaturas
+│   ├── Ocorrências
+│   ├── Manutenções / OS
+│   ├── Checklists
+│   └── Pontuação 🔒- Essa tela em especifica será apenas para o Gestor do Fiscalização, por irá ficar a parte de documentação dos itens, oferecido pelo documento de Goiânia. 
+│
+├── 📄 Relatórios
+│   ├── Relatórios de Frotas
+│   ├── Relatórios de Fiscalização
+│   └── Atestação
+│
+├── ⚙️ Administração
+├── Usuários
+├── Servidores
+├── Perfis e Permissões
+├── Setores
+└── Parâmetros do Sistema
+    │
+    ├── Configurações Gerais
+    ├── Sistema de Alertas
+    ├── E-mail / Notificações
+    └── Backup
+│
+└── 🔎 Auditoria
+    ├── Logs de Acesso
+    ├── Logs de Ações
+    ├── Alterações de Registros
+    └── Exportar Logs

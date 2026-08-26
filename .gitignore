@@ -1,1 +1,27 @@
-.claude/
+# Dependencias Node
+node_modules/
+app/api/node_modules/
+app/web/node_modules/
+
+# Build gerado
+app/web/dist/
+
+# Variaveis de ambiente com senhas - NUNCA sobe
+.env
+app/api/.env
+
+# Backups e arquivos temporarios
+SITRA_BACKUP_*.tar.gz
+~$*
+
+# Pasta de design com 240 MB de fontes e imagens brutas (GitHub bloqueia >100 MB)
+# Guarde essa pasta no Google Drive ou no Figma.
+SITRA DESIGN/
+
+# Ambientes de versoes anteriores (o codigo atual esta em app/)
+SITRA_V1.1_AMBIENTE_DEV_ATUALIZADO/
+SITRA_V1.2_ATUALIZADO/
+SITRA_V1.3_COMPLETO_CONSOLIDADO/
+
+# Grafo do Graphify (gerado automaticamente a partir do codigo)
+graphify-out/

@@ -1,0 +1,165 @@
+/**
+ * Perfis.jsx - Perfis e permissoes.
+ * Escolhe-se um perfil a esquerda e marcam-se as permissoes a direita,
+ * agrupadas por modulo. Salvar substitui TODAS as permissoes do perfil de
+ * uma vez, em transacao.
+ */
+import { useEffect, useState } from "react";
+import { useOutletContext } from "react-router-dom";
+import Cartao from "../../components/Cartao.jsx";
+import Icone from "../../components/Icone.jsx";
+import Trilha from "../../components/Trilha.jsx";
+import Selo from "../../components/Selo.jsx";
+import { api } from "../../lib/api.js";
+import { numero } from "../../lib/formato.js";
+import { useSessao } from "../../lib/sessao.jsx";
+
+// Acesso por modulo, tela e acao: o perfil recebe permissoes e o usuario herda
+// as permissoes do perfil dele.
+export default function Perfis() {
+  const { definirCabecalho } = useOutletContext();
+  const { podeVer } = useSessao();
+  const [perfis, setPerfis] = useState([]);
+  const [catalogo, setCatalogo] = useState({ porModulo: {} });
+  const [escolhido, setEscolhido] = useState(null);
+  const [marcadas, setMarcadas] = useState(new Set());
+  const [salvando, setSalvando] = useState(false);
+  const [aviso, setAviso] = useState("");
+
+  const podeEditar = podeVer("PERFIL_EDITAR");
+
+  useEffect(() => {
+    definirCabecalho({
+      titulo: "Perfis e Permissoes",
+      legenda: "Defina o que cada perfil pode ver e fazer.",
+    });
+  }, [definirCabecalho]);
+
+  useEffect(() => {
+    api("/admin/perfis?porPagina=100").then((r) => {
+      setPerfis(r.itens);
+      if (r.itens[0]) escolher(r.itens[0]);
+    }).catch(() => {});
+    api("/permissoes").then(setCatalogo).catch(() => {});
+  }, []);
+
+  async function escolher(perfil) {
+    setEscolhido(perfil);
+    setAviso("");
+    const ids = await api(`/permissoes/perfil/${perfil.id_perfil}`);
+    setMarcadas(new Set(ids));
+  }
+
+  function alternar(idPermissao) {
+    setMarcadas((atual) => {
+      const nova = new Set(atual);
+      if (nova.has(idPermissao)) nova.delete(idPermissao);
+      else nova.add(idPermissao);
+      return nova;
+    });
+  }
+
+  function alternarModulo(permissoes, ligar) {
+    setMarcadas((atual) => {
+      const nova = new Set(atual);
+      for (const p of permissoes) {
+        if (ligar) nova.add(p.id_permissao);
+        else nova.delete(p.id_permissao);
+      }
+      return nova;
+    });
+  }
+
+  async function salvar() {
+    setSalvando(true);
+    setAviso("");
+    try {
+      await api(`/permissoes/perfil/${escolhido.id_perfil}`, {
+        method: "PUT",
+        body: { permissoes: [...marcadas] },
+      });
+      setAviso(`Permissoes do perfil ${escolhido.nome} salvas.`);
+    } catch (e) {
+      setAviso(e.message);
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="cabecalho-pagina">
+        <div>
+          <Trilha itens={[{ rotulo: "Administracao" }, { rotulo: "Perfis e Permissoes" }]} />
+          <h1>Perfis e Permissoes</h1>
+          <p>O usuario herda as permissoes do perfil. Marque o que cada perfil pode fazer.</p>
+        </div>
+        {podeEditar && escolhido && (
+          <button className="botao botao--primario" onClick={salvar} disabled={salvando}>
+            {salvando ? "Salvando..." : `Salvar permissoes de ${escolhido.nome}`}
+          </button>
+        )}
+      </div>
+
+      {aviso && <div className="aviso">{aviso}</div>}
+
+      <div className="perfis">
+        <aside className="perfis__lista">
+          {perfis.map((p) => (
+            <button
+              key={p.id_perfil}
+              className="perfil"
+              data-ativo={escolhido?.id_perfil === p.id_perfil}
+              onClick={() => escolher(p)}
+            >
+              <strong>{p.nome}</strong>
+              <span>{p.descricao || "Sem descricao"}</span>
+              <small>
+                {numero(p.permissoes)} permissoes - {numero(p.usuarios)} usuarios
+              </small>
+            </button>
+          ))}
+        </aside>
+
+        <div className="perfis__permissoes">
+          {Object.entries(catalogo.porModulo).map(([modulo, permissoes]) => {
+            const todasMarcadas = permissoes.every((p) => marcadas.has(p.id_permissao));
+            return (
+              <Cartao
+                key={modulo}
+                titulo={modulo}
+                acao={
+                  podeEditar && (
+                    <button
+                      className="cartao__acao"
+                      onClick={() => alternarModulo(permissoes, !todasMarcadas)}
+                    >
+                      {todasMarcadas ? "Desmarcar todas" : "Marcar todas"}
+                    </button>
+                  )
+                }
+              >
+                <div className="permissoes">
+                  {permissoes.map((p) => (
+                    <label key={p.id_permissao} className="permissao">
+                      <input
+                        type="checkbox"
+                        disabled={!podeEditar}
+                        checked={marcadas.has(p.id_permissao)}
+                        onChange={() => alternar(p.id_permissao)}
+                      />
+                      <span>
+                        <strong>{p.nome}</strong>
+                        <small>{p.descricao || p.codigo}</small>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </Cartao>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+}
