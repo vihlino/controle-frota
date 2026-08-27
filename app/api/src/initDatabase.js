@@ -378,10 +378,10 @@ async function garantirGestores(cliente) {
 
     const { rows: setor } = await cliente.query(
       `INSERT INTO setor (nome, descricao)
-       VALUES ($1, $1)
+       VALUES ($1, $2)
        ON CONFLICT (nome) DO UPDATE SET nome = EXCLUDED.nome
        RETURNING id_setor`,
-      [g.setor]
+      [g.setor, g.setor]
     );
 
     const { rows: servidor } = await cliente.query(

@@ -28,6 +28,8 @@ import "dotenv/config";
 
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 import sessao from "./routes/sessao.js";
 import dashboard from "./routes/dashboard.js";
@@ -95,9 +97,23 @@ async function iniciarServidor() {
    * Middlewares globais.
    */
 
-  app.use(cors());
+  app.use(helmet());
 
-  app.use(express.json({ limit: "5mb" }));
+  const origens = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(",").map((s) => s.trim())
+    : ["http://localhost:5173"];
+  app.use(cors({ origin: origens, credentials: true }));
+
+  // Rate limit geral: 200 req/min por IP
+  app.use(rateLimit({ windowMs: 60_000, max: 200, standardHeaders: true, legacyHeaders: false }));
+
+  // Rate limit restrito no login: 10 tentativas/15min por IP
+  app.use("/api/sessao/login", rateLimit({
+    windowMs: 15 * 60_000, max: 10, standardHeaders: true, legacyHeaders: false,
+    message: { erro: "Muitas tentativas de login. Tente novamente em 15 minutos." },
+  }));
+
+  app.use(express.json({ limit: "1mb" }));
 
   /*
    * -------------------------------------------------------------------------

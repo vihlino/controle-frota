@@ -18,7 +18,14 @@ import jwt from "jsonwebtoken";
 
 // A chave que assina os tokens. Se ela vazar, qualquer um consegue forjar um
 // token de administrador - por isso ela vive no .env e nunca no codigo.
-const SECRET = process.env.JWT_SECRET || "dev_secret";
+const SECRET = process.env.JWT_SECRET;
+if (!SECRET || SECRET.length < 32) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("JWT_SECRET nao definido ou muito curto. Configure no painel do Render.");
+  }
+  console.warn("[AVISO] JWT_SECRET nao definido — usando chave fraca so para desenvolvimento.");
+}
+const _SECRET = SECRET || "dev_secret_apenas_para_desenvolvimento_local";
 
 /**
  * Cria um token assinado com os dados do usuario.
@@ -32,7 +39,7 @@ const SECRET = process.env.JWT_SECRET || "dev_secret";
  * @returns {string} O token pronto para o front guardar.
  */
 export function assinarToken(payload) {
-  return jwt.sign(payload, SECRET, {
+  return jwt.sign(payload, _SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "8h",
   });
 }
@@ -57,7 +64,7 @@ export function autenticar(req, res, next) {
   try {
     // verify() confere a assinatura E a validade. Se qualquer uma falhar,
     // ele lanca excecao.
-    req.usuario = jwt.verify(token, SECRET);
+    req.usuario = jwt.verify(token, _SECRET);
     next();
   } catch {
     // Nao distinguimos "token invalido" de "token expirado" na mensagem: para
