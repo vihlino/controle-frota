@@ -80,6 +80,9 @@ ALTER TABLE documento_veiculo
 -- 7. RELATORIO: nome proprio e o status "aguardando ateste" do fluxo de
 --    atestacao definido para o SITRA.
 ALTER TABLE relatorio ADD COLUMN IF NOT EXISTS nome VARCHAR(200);
+ALTER TABLE relatorio ADD COLUMN IF NOT EXISTS status VARCHAR(30) NOT NULL DEFAULT 'GERADO';
+ALTER TABLE relatorio ADD COLUMN IF NOT EXISTS snapshot JSONB;
+ALTER TABLE relatorio ADD COLUMN IF NOT EXISTS hash_sha256 VARCHAR(64);
 
 ALTER TABLE relatorio DROP CONSTRAINT IF EXISTS chk_relatorio_status_v12;
 ALTER TABLE relatorio
