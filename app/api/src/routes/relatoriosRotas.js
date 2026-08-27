@@ -66,9 +66,9 @@ router.get("/", autenticar, exigePermissao("RELATORIOS_VISUALIZAR"), async (req,
 
     const { rows } = await query(
       `SELECT r.id_relatorio, r.nome, r.tipo, r.modulo, r.periodo_inicio, r.periodo_fim,
-              r.data_geracao, r.formato, r.status, r.hash_conteudo,
+              r.data_geracao, r.formato, r.status, r.hash_sha256,
               s.nome AS gerado_por_nome, s.cargo_funcao AS gerado_por_cargo,
-              jsonb_array_length(COALESCE(r.conteudo_snapshot -> 'linhas', '[]'::jsonb)) AS registros,
+              jsonb_array_length(COALESCE(r.snapshot -> 'linhas', '[]'::jsonb)) AS registros,
               (SELECT jsonb_build_object(
                         'nome', sa.nome, 'cargo', sa.cargo_funcao,
                         'data', a.data_atestacao, 'observacao', a.observacao)
@@ -121,7 +121,7 @@ router.post("/", autenticar, exigePermissao("RELATORIOS_GERAR"), async (req, res
     const { rows } = await query(
       `INSERT INTO relatorio
          (nome, tipo, modulo, periodo_inicio, periodo_fim, gerado_por, formato,
-          conteudo_snapshot, hash_conteudo, status)
+          snapshot, hash_sha256, status)
        VALUES ($1, $2, $3, $4, $5, $6, 'PDF', $7, $8, 'AGUARDANDO_ATESTE')
        RETURNING id_relatorio, nome, tipo, status, data_geracao`,
       [
@@ -173,8 +173,8 @@ router.get("/:id", autenticar, exigePermissao("RELATORIOS_VISUALIZAR"), async (r
     );
 
     // Confere se o conteudo continua igual ao que foi selado na geracao.
-    const integro = relatorio.conteudo_snapshot
-      ? calcularHash(relatorio.conteudo_snapshot) === relatorio.hash_conteudo
+    const integro = relatorio.snapshot
+      ? calcularHash(relatorio.snapshot) === relatorio.hash_sha256
       : null;
 
     res.json({ ...relatorio, atestacoes: atestacoes.rows, integro });
