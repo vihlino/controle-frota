@@ -15,6 +15,7 @@ const PRIORIDADES = [
   { valor: "MEDIA", rotulo: "Média" },
   { valor: "ALTA", rotulo: "Alta" },
 ];
+const PRIORIDADE_COR = { BAIXA: "var(--verde)", MEDIA: "var(--amarelo-escuro)", ALTA: "var(--vermelho)" };
 
 export default function AgendarManutencao() {
   const navegar = useNavigate();
@@ -77,8 +78,6 @@ export default function AgendarManutencao() {
     }
   }
 
-  const PRIORIDADE_COR = { BAIXA: "var(--verde)", MEDIA: "var(--amarelo)", ALTA: "var(--vermelho)" };
-
   return (
     <>
       <div className="cabecalho-pagina">
@@ -87,14 +86,18 @@ export default function AgendarManutencao() {
           <h1>Agendar manutenção</h1>
           <p>Preencha as informações para agendar uma nova manutenção.</p>
         </div>
+        <button type="button" className="botao" onClick={() => navegar("/frotas/manutencoes")}>← Voltar</button>
       </div>
 
       <form onSubmit={salvar}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "20px", alignItems: "start" }}>
-          <div>
+        <div className="pagina-form">
+          <div className="pagina-form__corpo">
             {/* Seção 1 */}
-            <div className="cartao" style={{ padding: "28px", marginBottom: "20px" }}>
-              <h2 style={{ margin: "0 0 20px", fontSize: "15px", fontWeight: 600 }}>1. Informações gerais</h2>
+            <div className="form-secao">
+              <h2 className="form-secao__titulo">
+                <span className="form-secao__numero">1</span>
+                Informações gerais
+              </h2>
               {erro && <div className="login__erro" style={{ marginBottom: "16px" }}>{erro}</div>}
               <div className="formulario-grade">
                 <Selecao rotulo="Veículo *" id="id_veiculo" required vazio="Selecione"
@@ -106,7 +109,7 @@ export default function AgendarManutencao() {
                        placeholder="km" readOnly value={veiculoSelecionado?.quilometragem_atual || ""} />
                 <Selecao rotulo="Tipo de manutenção *" id="tipo" required opcoes={TIPOS} {...campo("tipo")} />
                 <Texto rotulo="Oficina / Fornecedor *" id="oficina" required
-                       placeholder="Selecione a oficina" {...campo("oficina")} />
+                       placeholder="Nome da oficina" {...campo("oficina")} />
                 <Texto rotulo="Responsável pela oficina" id="responsavel_oficina"
                        placeholder="Nome do responsável" {...campo("responsavel_oficina")} />
                 <Texto rotulo="Telefone da oficina" id="telefone_oficina"
@@ -118,11 +121,14 @@ export default function AgendarManutencao() {
             </div>
 
             {/* Seção 2 */}
-            <div className="cartao" style={{ padding: "28px", marginBottom: "20px" }}>
-              <h2 style={{ margin: "0 0 20px", fontSize: "15px", fontWeight: 600 }}>2. Informações complementares (opcional)</h2>
+            <div className="form-secao">
+              <h2 className="form-secao__titulo">
+                <span className="form-secao__numero">2</span>
+                Informações complementares (opcional)
+              </h2>
               <div className="formulario-grade">
-                <Texto rotulo="Custo estimado" id="custo" type="number" min="0" step="0.01"
-                       placeholder="R$ 0,00" {...campo("custo")} />
+                <Texto rotulo="Custo estimado (R$)" id="custo" type="number" min="0" step="0.01"
+                       placeholder="0,00" {...campo("custo")} />
                 <Data rotulo="Prazo previsto" id="prazo_previsto" {...campo("prazo_previsto")} />
                 <Area rotulo="Peças necessárias" id="pecas"
                       placeholder="Liste as peças necessárias (se houver)..."
@@ -133,74 +139,88 @@ export default function AgendarManutencao() {
               </div>
             </div>
 
-            {/* Seção 3 */}
-            <div className="cartao" style={{ padding: "28px", marginBottom: "20px" }}>
-              <h2 style={{ margin: "0 0 20px", fontSize: "15px", fontWeight: 600 }}>3. Itens a serem verificados / serviços</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr 36px", gap: "8px", alignItems: "center", marginBottom: "8px" }}>
-                <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--texto-2)" }}>#</span>
-                <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--texto-2)" }}>Item / Serviço</span>
-                <span />
+            {/* Seção 3 — itens a verificar */}
+            <div className="form-secao">
+              <h2 className="form-secao__titulo">
+                <span className="form-secao__numero">3</span>
+                Itens a serem verificados / serviços
+              </h2>
+              <div className="lista-itens">
+                {itens.map((item, idx) => (
+                  <div key={idx} className="lista-itens__linha" style={{ gridTemplateColumns: "28px 1fr 1fr 36px" }}>
+                    <span className="lista-itens__numero">{idx + 1}</span>
+                    <input className="campo__input" placeholder="Item ou serviço" value={item.descricao}
+                           onChange={(e) => setItens((p) => p.map((it, i) => i === idx ? { ...it, descricao: e.target.value } : it))} />
+                    <input className="campo__input" placeholder="Observação (opcional)" value={item.observacao}
+                           onChange={(e) => setItens((p) => p.map((it, i) => i === idx ? { ...it, observacao: e.target.value } : it))} />
+                    <button type="button" className="botao-icone" title="Remover" onClick={() => removerItem(idx)}>✕</button>
+                  </div>
+                ))}
               </div>
-              {itens.map((item, idx) => (
-                <div key={idx} style={{ display: "grid", gridTemplateColumns: "28px 1fr 1fr 36px", gap: "8px", marginBottom: "10px", alignItems: "center" }}>
-                  <span style={{ fontSize: "13px", color: "var(--texto-2)", textAlign: "center" }}>{idx + 1}</span>
-                  <input className="campo__input" placeholder="Item ou serviço" value={item.descricao}
-                         onChange={(e) => setItens((p) => p.map((it, i) => i === idx ? { ...it, descricao: e.target.value } : it))} />
-                  <input className="campo__input" placeholder="Observação (opcional)" value={item.observacao}
-                         onChange={(e) => setItens((p) => p.map((it, i) => i === idx ? { ...it, observacao: e.target.value } : it))} />
-                  <button type="button" className="botao-icone" title="Remover" onClick={() => removerItem(idx)}>✕</button>
-                </div>
-              ))}
-              <button type="button" className="botao" style={{ marginTop: "4px" }} onClick={adicionarItem}>+ Adicionar item</button>
+              <button type="button" className="botao botao--pequeno" style={{ marginTop: "14px" }} onClick={adicionarItem}>
+                + Adicionar item
+              </button>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
-              <button type="button" className="botao" onClick={() => navegar("/frotas/manutencoes")}>✕ Cancelar</button>
+            <div className="pagina-acoes">
+              <button type="button" className="botao" onClick={() => navegar("/frotas/manutencoes")}>Cancelar</button>
               <button type="submit" className="botao botao--primario" disabled={salvando}>
-                📅 {salvando ? "Agendando..." : "Agendar manutenção"}
+                {salvando ? "Agendando..." : "Agendar manutenção"}
               </button>
             </div>
           </div>
 
           {/* Sidebar de resumo */}
-          <div className="cartao" style={{ padding: "24px", position: "sticky", top: "20px" }}>
-            <h3 style={{ margin: "0 0 16px", fontSize: "14px", fontWeight: 600 }}>Resumo do agendamento</h3>
-            <div style={{ fontSize: "13px", display: "flex", flexDirection: "column", gap: "12px" }}>
-              <div>
-                <div style={{ color: "var(--texto-2)", fontSize: "11px", marginBottom: "2px" }}>Veículo</div>
-                <strong>{veiculoSelecionado ? `${veiculoSelecionado.placa} — ${veiculoSelecionado.marca} ${veiculoSelecionado.modelo}` : "—"}</strong>
+          <div className="pagina-form__sidebar">
+            <div className="cartao" style={{ padding: "24px" }}>
+              <div className="cartao__topo">
+                <span className="cartao__titulo">Resumo do agendamento</span>
               </div>
-              <div>
-                <div style={{ color: "var(--texto-2)", fontSize: "11px", marginBottom: "2px" }}>Tipo de manutenção</div>
-                <strong>{TIPOS.find((t) => t.valor === formulario.tipo)?.rotulo || "—"}</strong>
-              </div>
-              <div>
-                <div style={{ color: "var(--texto-2)", fontSize: "11px", marginBottom: "2px" }}>Data agendada</div>
-                <strong>{formulario.data_agendada || "—"}</strong>
-              </div>
-              <div>
-                <div style={{ color: "var(--texto-2)", fontSize: "11px", marginBottom: "2px" }}>Prioridade</div>
-                <strong style={{ color: PRIORIDADE_COR[formulario.gravidade] }}>
-                  {PRIORIDADES.find((p) => p.valor === formulario.gravidade)?.rotulo || "—"}
-                </strong>
-              </div>
-              {veiculoSelecionado && (
-                <div>
-                  <div style={{ color: "var(--texto-2)", fontSize: "11px", marginBottom: "2px" }}>Quilometragem atual</div>
-                  <strong>{veiculoSelecionado.quilometragem_atual?.toLocaleString("pt-BR") || "—"} km</strong>
+              <div className="cartao__corpo">
+                <div className="resumo-card">
+                  <div className="resumo-card__linha">
+                    <span className="resumo-card__rotulo">Veículo</span>
+                    <span className="resumo-card__valor">
+                      {veiculoSelecionado ? `${veiculoSelecionado.placa} — ${veiculoSelecionado.marca} ${veiculoSelecionado.modelo}` : "—"}
+                    </span>
+                  </div>
+                  <div className="resumo-card__linha">
+                    <span className="resumo-card__rotulo">Tipo de manutenção</span>
+                    <span className="resumo-card__valor">{TIPOS.find((t) => t.valor === formulario.tipo)?.rotulo || "—"}</span>
+                  </div>
+                  <div className="resumo-card__linha">
+                    <span className="resumo-card__rotulo">Data agendada</span>
+                    <span className="resumo-card__valor">{formulario.data_agendada || "—"}</span>
+                  </div>
+                  <div className="resumo-card__linha">
+                    <span className="resumo-card__rotulo">Prioridade</span>
+                    <span className="resumo-card__valor" style={{ color: PRIORIDADE_COR[formulario.gravidade] }}>
+                      {PRIORIDADES.find((p) => p.valor === formulario.gravidade)?.rotulo || "—"}
+                    </span>
+                  </div>
+                  {veiculoSelecionado && (
+                    <div className="resumo-card__linha">
+                      <span className="resumo-card__rotulo">Quilometragem atual</span>
+                      <span className="resumo-card__valor">{veiculoSelecionado.quilometragem_atual?.toLocaleString("pt-BR") || "—"} km</span>
+                    </div>
+                  )}
+                  <div className="resumo-card__linha">
+                    <span className="resumo-card__rotulo">Oficina</span>
+                    <span className="resumo-card__valor">{formulario.oficina || "—"}</span>
+                  </div>
+                  <div className="resumo-card__linha">
+                    <span className="resumo-card__rotulo">Custo estimado</span>
+                    <span className="resumo-card__valor">{formulario.custo ? dinheiro(formulario.custo) : "R$ 0,00"}</span>
+                  </div>
+                  <div className="resumo-card__linha">
+                    <span className="resumo-card__rotulo">Prazo previsto</span>
+                    <span className="resumo-card__valor">{formulario.prazo_previsto || "Não informado"}</span>
+                  </div>
+                  <div className="resumo-card__linha">
+                    <span className="resumo-card__rotulo">Itens a verificar</span>
+                    <span className="resumo-card__valor">{itens.filter((i) => i.descricao).length} item(s)</span>
+                  </div>
                 </div>
-              )}
-              <div>
-                <div style={{ color: "var(--texto-2)", fontSize: "11px", marginBottom: "2px" }}>Oficina</div>
-                <strong>{formulario.oficina || "—"}</strong>
-              </div>
-              <div>
-                <div style={{ color: "var(--texto-2)", fontSize: "11px", marginBottom: "2px" }}>Custo estimado</div>
-                <strong>{formulario.custo ? dinheiro(formulario.custo) : "R$ 0,00"}</strong>
-              </div>
-              <div>
-                <div style={{ color: "var(--texto-2)", fontSize: "11px", marginBottom: "2px" }}>Prazo previsto</div>
-                <strong>{formulario.prazo_previsto || "Não informado"}</strong>
               </div>
             </div>
           </div>

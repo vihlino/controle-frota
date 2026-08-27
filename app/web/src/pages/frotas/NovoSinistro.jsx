@@ -27,6 +27,24 @@ const GRAVIDADES = [
   { valor: "PERDA_TOTAL", rotulo: "Perda total" },
 ];
 
+function SimNao({ nome, rotulo: label, valor, onChange }) {
+  return (
+    <div className="campo">
+      <label>{label}</label>
+      <div className="sim-nao">
+        <label className="sim-nao__opcao">
+          <input type="radio" name={nome} value="true" checked={!!valor}
+                 onChange={() => onChange(true)} /> Sim
+        </label>
+        <label className="sim-nao__opcao">
+          <input type="radio" name={nome} value="false" checked={!valor}
+                 onChange={() => onChange(false)} /> Não
+        </label>
+      </div>
+    </div>
+  );
+}
+
 export default function NovoSinistro() {
   const navegar = useNavigate();
   const { definirCabecalho } = useOutletContext();
@@ -54,6 +72,8 @@ export default function NovoSinistro() {
     onChange: (e) => setFormulario((f) => ({ ...f, [nome]: e.target.value })),
   });
 
+  const setBool = (nome) => (val) => setFormulario((f) => ({ ...f, [nome]: val }));
+
   async function salvar(e) {
     e.preventDefault();
     setSalvando(true);
@@ -77,22 +97,6 @@ export default function NovoSinistro() {
     }
   }
 
-  const SimNao = ({ nome, rotulo: label }) => (
-    <div className="campo">
-      <label>{label}</label>
-      <div style={{ display: "flex", gap: "16px", marginTop: "6px" }}>
-        <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
-          <input type="radio" name={nome} value="true" checked={!!formulario[nome]}
-                 onChange={() => setFormulario((f) => ({ ...f, [nome]: true }))} /> Sim
-        </label>
-        <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
-          <input type="radio" name={nome} value="false" checked={!formulario[nome]}
-                 onChange={() => setFormulario((f) => ({ ...f, [nome]: false }))} /> Não
-        </label>
-      </div>
-    </div>
-  );
-
   return (
     <>
       <div className="cabecalho-pagina">
@@ -101,29 +105,33 @@ export default function NovoSinistro() {
           <h1>Novo sinistro</h1>
           <p>Registre um novo sinistro ocorrido com veículo da frota.</p>
         </div>
+        <button type="button" className="botao" onClick={() => navegar("/frotas/sinistros")}>← Voltar</button>
       </div>
 
       <form onSubmit={salvar}>
         {/* Seção 1 */}
-        <div className="cartao" style={{ padding: "28px", marginBottom: "20px" }}>
-          <h2 style={{ margin: "0 0 20px", fontSize: "15px", fontWeight: 600 }}>1. Informações gerais</h2>
+        <div className="form-secao">
+          <h2 className="form-secao__titulo">
+            <span className="form-secao__numero">1</span>
+            Informações gerais
+          </h2>
           {erro && <div className="login__erro" style={{ marginBottom: "16px" }}>{erro}</div>}
           <div className="formulario-grade">
             <Selecao rotulo="Veículo *" id="id_veiculo" required vazio="Selecione o veículo"
                      opcoes={veiculos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}` }))}
                      {...campo("id_veiculo")} />
-            <Data rotulo="Data / Hora do sinistro *" id="data" required {...campo("data")} />
+            <Data rotulo="Data do sinistro *" id="data" required {...campo("data")} />
+            <Texto rotulo="Hora do sinistro" id="hora" type="time" {...campo("hora")} />
             <Selecao rotulo="Tipo de sinistro *" id="tipo" required opcoes={TIPOS} {...campo("tipo")} />
             <Texto rotulo="Local do sinistro *" id="local" required
-                   placeholder="Informe o local" {...campo("local")} />
-            <Selecao rotulo="Responsável pelo veículo *" id="id_responsavel" required vazio="Selecione o responsável"
-                     opcoes={servidores.map((s) => ({ valor: s.id_servidor, rotulo: s.nome }))}
-                     {...campo("id_responsavel")} />
-            <Selecao rotulo="Condutor no momento do sinistro *" id="id_servidor" required vazio="Selecione o condutor"
+                   placeholder="Ex.: Av. Brasil, 1250 - Centro" {...campo("local")} />
+            <Selecao rotulo="Condutor no momento *" id="id_servidor" required vazio="Selecione o condutor"
                      opcoes={servidores.map((s) => ({ valor: s.id_servidor, rotulo: s.nome }))}
                      {...campo("id_servidor")} />
-            <SimNao nome="houve_terceiros" rotulo="Houve terceiros envolvidos? *" />
-            <SimNao nome="tem_bo" rotulo="Possui registro policial? *" />
+            <SimNao nome="houve_terceiros" rotulo="Houve terceiros envolvidos? *"
+                    valor={formulario.houve_terceiros} onChange={setBool("houve_terceiros")} />
+            <SimNao nome="tem_bo" rotulo="Possui registro policial (B.O.)? *"
+                    valor={formulario.tem_bo} onChange={setBool("tem_bo")} />
             <Area rotulo="Descrição do sinistro *" id="descricao" largo required
                   placeholder="Descreva como ocorreu o sinistro..."
                   {...campo("descricao")} />
@@ -131,8 +139,11 @@ export default function NovoSinistro() {
         </div>
 
         {/* Seção 2 */}
-        <div className="cartao" style={{ padding: "28px", marginBottom: "20px" }}>
-          <h2 style={{ margin: "0 0 20px", fontSize: "15px", fontWeight: 600 }}>2. Danos e avaliação inicial</h2>
+        <div className="form-secao">
+          <h2 className="form-secao__titulo">
+            <span className="form-secao__numero">2</span>
+            Danos e avaliação inicial
+          </h2>
           <div className="formulario-grade">
             <Selecao rotulo="Parte do veículo danificada *" id="parte_danificada" required
                      vazio="Selecione a parte" opcoes={PARTES_VEICULO} {...campo("parte_danificada")} />
@@ -142,32 +153,35 @@ export default function NovoSinistro() {
                   placeholder="Descreva os danos identificados no veículo..."
                   {...campo("descricao_danos")} />
           </div>
-          <div style={{ border: "2px dashed var(--borda-forte)", borderRadius: "var(--raio)", padding: "32px", textAlign: "center", color: "var(--texto-2)", marginTop: "16px" }}>
-            <div style={{ fontSize: "28px", marginBottom: "8px" }}>☁</div>
-            <p style={{ margin: "0 0 8px", fontWeight: 500 }}>Arraste e solte as fotos aqui</p>
-            <p style={{ margin: "0 0 10px", fontSize: "13px" }}>ou</p>
+          <div className="upload-area" style={{ marginTop: "16px" }}>
+            <div className="upload-area__icone">☁</div>
+            <p className="upload-area__titulo">Arraste e solte as fotos aqui</p>
+            <p className="upload-area__sub">ou</p>
             <button type="button" className="botao">Selecionar arquivos</button>
-            <p style={{ margin: "10px 0 0", fontSize: "12px" }}>Formatos: JPG, PNG &nbsp;•&nbsp; Máximo: 10MB por arquivo</p>
+            <p className="upload-area__info">Formatos: JPG, PNG &nbsp;•&nbsp; Máximo: 10MB por arquivo</p>
           </div>
         </div>
 
         {/* Seção 3 */}
-        <div className="cartao" style={{ padding: "28px", marginBottom: "20px" }}>
-          <h2 style={{ margin: "0 0 20px", fontSize: "15px", fontWeight: 600 }}>3. Encaminhamentos e observações (opcional)</h2>
+        <div className="form-secao">
+          <h2 className="form-secao__titulo">
+            <span className="form-secao__numero">3</span>
+            Encaminhamentos e observações (opcional)
+          </h2>
           <div className="formulario-grade">
             <Area rotulo="Providências tomadas imediatamente" id="providencias" largo
                   placeholder="Informe as providências tomadas no momento do sinistro..."
                   {...campo("providencias")} />
             <Area rotulo="Observações adicionais" id="observacoes" largo
-                  placeholder="Informe observações adicionais..."
+                  placeholder="Observações adicionais..."
                   {...campo("observacoes")} />
           </div>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
-          <button type="button" className="botao" onClick={() => navegar("/frotas/sinistros")}>✕ Cancelar</button>
+        <div className="pagina-acoes">
+          <button type="button" className="botao" onClick={() => navegar("/frotas/sinistros")}>Cancelar</button>
           <button type="submit" className="botao botao--primario" disabled={salvando}>
-            💾 {salvando ? "Salvando..." : "Salvar sinistro"}
+            {salvando ? "Salvando..." : "Registrar sinistro"}
           </button>
         </div>
       </form>

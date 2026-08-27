@@ -74,75 +74,85 @@ export default function NovoDocumento() {
           <h1>Novo documento</h1>
           <p>Cadastre um novo documento para a frota.</p>
         </div>
+        <button type="button" className="botao" onClick={() => navegar("/frotas/documentos")}>← Voltar</button>
       </div>
 
       <form onSubmit={salvar}>
         {/* Seção 1 */}
-        <div className="cartao" style={{ padding: "28px", marginBottom: "20px" }}>
-          <h2 style={{ margin: "0 0 20px", fontSize: "15px", fontWeight: 600 }}>1. Informações do documento</h2>
+        <div className="form-secao">
+          <h2 className="form-secao__titulo">
+            <span className="form-secao__numero">1</span>
+            Informações do documento
+          </h2>
           {erro && <div className="login__erro" style={{ marginBottom: "16px" }}>{erro}</div>}
           <div className="formulario-grade">
             <Selecao rotulo="Categoria do documento *" id="categoria" required vazio="Selecione a categoria"
                      opcoes={CATEGORIAS.map((c) => ({ valor: c, rotulo: c }))} {...campo("categoria")} />
             <Texto rotulo="Tipo de documento *" id="tipo_documento" required
-                   placeholder="Selecione o tipo" {...campo("tipo_documento")} />
+                   placeholder="Ex.: CRLV, Seguro" {...campo("tipo_documento")} />
             <Texto rotulo="Nº / Referência" id="numero_documento"
-                   placeholder="Informe o número ou referência" {...campo("numero_documento")} />
+                   placeholder="Número ou referência" {...campo("numero_documento")} />
             <Selecao rotulo="Veículo *" id="id_veiculo" required vazio="Selecione o veículo"
                      opcoes={veiculos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}` }))}
                      {...campo("id_veiculo")} />
             <Texto rotulo="Órgão / Emissor" id="orgao_emissor"
-                   placeholder="Informe o órgão ou emissor" {...campo("orgao_emissor")} />
-            <Selecao rotulo="Responsável *" id="id_responsavel" required vazio="Selecione o responsável"
+                   placeholder="Ex.: DETRAN, Seguradora" {...campo("orgao_emissor")} />
+            <Selecao rotulo="Responsável" id="id_responsavel" vazio="Selecione o responsável"
                      opcoes={servidores.map((s) => ({ valor: s.id_servidor, rotulo: s.nome }))}
                      {...campo("id_responsavel")} />
             <Data rotulo="Data de emissão *" id="data_emissao" required {...campo("data_emissao")} />
             <Data rotulo="Data de vencimento *" id="data_validade" required {...campo("data_validade")} />
             <Selecao rotulo="Validade" id="validade" vazio="Selecione a validade"
                      opcoes={TIPOS_VALIDADE} {...campo("validade")} />
-            <Area rotulo="Descrição / Observações" id="observacoes" largo
-                  placeholder="Informe observações adicionais sobre o documento (opcional)..."
+            <Area rotulo="Observações" id="observacoes" largo
+                  placeholder="Observações adicionais (opcional)..."
                   {...campo("observacoes")} />
           </div>
         </div>
 
-        {/* Seção 2 */}
-        <div className="cartao" style={{ padding: "28px", marginBottom: "20px" }}>
-          <h2 style={{ margin: "0 0 20px", fontSize: "15px", fontWeight: 600 }}>2. Arquivo do documento</h2>
-          <div style={{ border: "2px dashed var(--borda-forte)", borderRadius: "var(--raio)", padding: "48px", textAlign: "center", color: "var(--texto-2)", cursor: "pointer" }}>
-            <div style={{ fontSize: "32px", marginBottom: "8px" }}>☁</div>
-            <p style={{ margin: "0 0 4px", fontWeight: 500 }}>Arraste e solte o arquivo aqui</p>
-            <p style={{ margin: "0 0 12px", fontSize: "13px" }}>ou</p>
+        {/* Seção 2 — Upload */}
+        <div className="form-secao">
+          <h2 className="form-secao__titulo">
+            <span className="form-secao__numero">2</span>
+            Arquivo do documento
+          </h2>
+          <div className="upload-area">
+            <div className="upload-area__icone">☁</div>
+            <p className="upload-area__titulo">Arraste e solte o arquivo aqui</p>
+            <p className="upload-area__sub">ou</p>
             <button type="button" className="botao">Selecionar arquivo</button>
-            <p style={{ margin: "12px 0 0", fontSize: "12px" }}>Formatos permitidos: PDF, JPG, PNG &nbsp;•&nbsp; Tamanho máximo: 10MB</p>
+            <p className="upload-area__info">Formatos permitidos: PDF, JPG, PNG &nbsp;•&nbsp; Tamanho máximo: 10MB</p>
           </div>
         </div>
 
-        {/* Seção 3 */}
-        <div className="cartao" style={{ padding: "28px", marginBottom: "20px" }}>
-          <h2 style={{ margin: "0 0 20px", fontSize: "15px", fontWeight: 600 }}>3. Notificações</h2>
-          <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+        {/* Seção 3 — Notificações */}
+        <div className="form-secao">
+          <h2 className="form-secao__titulo">
+            <span className="form-secao__numero">3</span>
+            Notificações de vencimento
+          </h2>
+          <div className="campo campo--marcavel">
+            <label>
               <input type="checkbox" checked={formulario.alerta_vencimento}
                      onChange={(e) => setFormulario((f) => ({ ...f, alerta_vencimento: e.target.checked }))} />
-              <span>Receber alerta antes do vencimento</span>
+              Receber alerta antes do vencimento
             </label>
-            {formulario.alerta_vencimento && (
-              <>
-                <Selecao rotulo="Dias de antecedência *" id="dias_antecedencia" required
-                         opcoes={DIAS_ANTECEDENCIA} {...campo("dias_antecedencia")} />
-                <div style={{ background: "var(--amarelo-suave)", border: "1px solid var(--amarelo)", borderRadius: "var(--raio-sm)", padding: "12px 16px", fontSize: "13px", flex: 1 }}>
-                  Você receberá um alerta com antecedência do vencimento deste documento.
-                </div>
-              </>
-            )}
           </div>
+          {formulario.alerta_vencimento && (
+            <div style={{ marginTop: "16px", display: "grid", gridTemplateColumns: "220px 1fr", gap: "16px", alignItems: "start" }}>
+              <Selecao rotulo="Dias de antecedência" id="dias_antecedencia"
+                       opcoes={DIAS_ANTECEDENCIA} {...campo("dias_antecedencia")} />
+              <div className="card-info" style={{ marginBottom: 0, alignSelf: "end" }}>
+                Você receberá um alerta com antecedência do vencimento deste documento.
+              </div>
+            </div>
+          )}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
-          <button type="button" className="botao" onClick={() => navegar("/frotas/documentos")}>✕ Cancelar</button>
+        <div className="pagina-acoes">
+          <button type="button" className="botao" onClick={() => navegar("/frotas/documentos")}>Cancelar</button>
           <button type="submit" className="botao botao--primario" disabled={salvando}>
-            💾 {salvando ? "Salvando..." : "Salvar documento"}
+            {salvando ? "Salvando..." : "Salvar documento"}
           </button>
         </div>
       </form>

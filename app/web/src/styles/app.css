@@ -331,6 +331,153 @@ button { font: inherit; cursor: pointer; }
   gap: 16px;
   margin-bottom: 18px;
 }
+.grade-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.grade-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+/* ---------- paginas de formulario (full-page) ---------- */
+
+/* Layout com sidebar lateral fixa */
+.pagina-form {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+  align-items: start;
+}
+.pagina-form__corpo { display: flex; flex-direction: column; gap: 0; }
+.pagina-form__sidebar {
+  position: sticky;
+  top: calc(var(--topo-altura) + 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Seção de formulário numerada */
+.form-secao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+  padding: 28px;
+  margin-bottom: 20px;
+}
+.form-secao__titulo {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--borda);
+  color: var(--texto);
+}
+.form-secao__numero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--amarelo);
+  color: #0d0d0d;
+  font-size: 12px;
+  font-weight: 700;
+  margin-right: 10px;
+  flex: none;
+}
+
+/* Card de resumo / sidebar */
+.resumo-card { display: flex; flex-direction: column; gap: 14px; }
+.resumo-card__linha {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+.resumo-card__rotulo {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-3);
+}
+.resumo-card__valor { font-weight: 600; color: var(--texto); }
+
+/* Card informativo com ícone (alerta / destaque na página) */
+.card-info {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--amarelo-suave);
+  border: 1px solid rgba(245, 184, 0, 0.4);
+  border-radius: var(--raio-sm);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  font-size: 13.5px;
+}
+.card-info--azul { background: var(--azul-suave); border-color: rgba(37, 99, 235, 0.25); color: var(--azul); }
+.card-info--vermelho { background: var(--vermelho-suave); border-color: rgba(224, 36, 36, 0.25); color: var(--vermelho); }
+.card-info--verde { background: var(--verde-suave); border-color: rgba(23, 163, 74, 0.25); color: var(--verde); }
+.card-info p { margin: 3px 0 0; color: var(--texto-2); }
+
+/* Itens de lista editável (lista de itens a verificar) */
+.lista-itens { display: flex; flex-direction: column; gap: 10px; }
+.lista-itens__linha {
+  display: grid;
+  gap: 8px;
+  align-items: center;
+}
+.lista-itens__numero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--superficie-2);
+  border: 1px solid var(--borda);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--texto-2);
+  flex: none;
+}
+
+/* Rodapé de ações da página */
+.pagina-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 20px;
+}
+
+/* Preview / destaque de dado calculado */
+.preview-dado {
+  background: var(--superficie-2);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-sm);
+  padding: 18px 20px;
+}
+.preview-dado__rotulo {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--texto-3);
+  margin-bottom: 6px;
+}
+.preview-dado__valor { font-size: 20px; font-weight: 700; color: var(--texto); }
+
+@media (max-width: 900px) {
+  .pagina-form { grid-template-columns: 1fr; }
+  .pagina-form__sidebar { position: static; }
+}
 
 /* ---------- tabelas ---------- */
 
@@ -830,6 +977,22 @@ button { font: inherit; cursor: pointer; }
 .campo--largo { grid-column: 1 / -1; }
 .campo__ajuda { font-size: 12.5px; color: var(--texto-3); }
 
+/* input standalone (sem wrapper .campo com label — ex: listas de itens) */
+.campo__input {
+  height: 42px;
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio-sm);
+  background: var(--superficie);
+  color: var(--texto);
+  padding: 0 12px;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+  width: 100%;
+}
+.campo__input:focus { border-color: var(--amarelo); box-shadow: 0 0 0 3px var(--amarelo-suave); }
+.campo__input::placeholder { color: var(--texto-3); }
+
 .aviso {
   background: var(--verde-suave);
   color: var(--verde);
@@ -1200,6 +1363,37 @@ button { font: inherit; cursor: pointer; }
 .lateral__rotulo { display: inline-flex; align-items: center; gap: 5px; }
 .lateral__cadeado { color: var(--amarelo); font-weight: 700; }
 .lateral__item--ativo .lateral__cadeado { color: #0d0d0d; }
+
+/* ---------- area de upload ---------- */
+
+.upload-area {
+  border: 2px dashed var(--borda-forte);
+  border-radius: var(--raio);
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--texto-2);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.upload-area:hover { border-color: var(--amarelo); background: var(--amarelo-suave); }
+.upload-area__icone { font-size: 36px; margin-bottom: 10px; }
+.upload-area__titulo { margin: 0 0 4px; font-weight: 500; font-size: 15px; color: var(--texto); }
+.upload-area__sub { margin: 0 0 12px; font-size: 13px; }
+.upload-area__info { margin: 12px 0 0; font-size: 12px; color: var(--texto-3); }
+
+/* ---------- sim / nao ---------- */
+
+.sim-nao { display: flex; gap: 16px; margin-top: 2px; }
+.sim-nao__opcao {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--texto);
+  font-weight: 400;
+}
+.sim-nao__opcao input { accent-color: var(--amarelo); width: 16px; height: 16px; }
 
 /* ---------- impressao ---------- */
 

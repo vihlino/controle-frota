@@ -83,17 +83,23 @@ export default function NovaInspecao() {
           <h1>Nova inspeção</h1>
           <p>Agende uma nova inspeção periódica para o veículo.</p>
         </div>
-        <button className="botao" onClick={() => navegar("/frotas/inspecoes")}>← Voltar para inspeções</button>
+        <button type="button" className="botao" onClick={() => navegar("/frotas/inspecoes")}>← Voltar</button>
       </div>
 
       <form onSubmit={salvar}>
-        <div className="cartao" style={{ padding: "28px", marginBottom: "20px" }}>
-          <h2 style={{ margin: "0 0 20px", fontSize: "16px", fontWeight: 600 }}>Dados do agendamento</h2>
+        {/* Seção 1 — Dados do agendamento */}
+        <div className="form-secao">
+          <h2 className="form-secao__titulo">
+            <span className="form-secao__numero">1</span>
+            Dados do agendamento
+          </h2>
 
           {formulario.tipo === "PERSONALIZADA" && (
-            <div style={{ background: "var(--amarelo-suave)", border: "1px solid var(--amarelo)", borderRadius: "var(--raio-sm)", padding: "12px 16px", marginBottom: "20px", fontSize: "13px" }}>
-              <strong>Sobre a frequência personalizada</strong>
-              <p style={{ margin: "4px 0 0", color: "var(--texto-2)" }}>Será necessário informar o intervalo em dias para definir a próxima inspeção.</p>
+            <div className="card-info" style={{ marginBottom: "20px" }}>
+              <div>
+                <strong>Sobre a frequência personalizada</strong>
+                <p>Será necessário informar o intervalo em dias para definir a próxima inspeção.</p>
+              </div>
             </div>
           )}
 
@@ -110,34 +116,37 @@ export default function NovaInspecao() {
                      opcoes={usuarios.map((u) => ({ valor: u.id_usuario, rotulo: u.nome }))}
                      {...campo("id_gestor")} />
             <Texto rotulo="Quilometragem prevista (opcional)" id="quilometragem" type="number" min="0"
-                   placeholder="Informe a quilometragem prevista" {...campo("quilometragem")} />
-            <Texto rotulo="Local da inspeção (opcional)" id="local"
-                   placeholder="Informe o local onde será realizada a inspeção" largo {...campo("local")} />
+                   placeholder="km" {...campo("quilometragem")} />
+            <Texto rotulo="Local da inspeção (opcional)" id="local" largo
+                   placeholder="Ex.: Garagem Central" {...campo("local")} />
             <Area rotulo="Observações (opcional)" id="observacoes" largo
-                  placeholder="Adicione informações relevantes sobre o agendamento da inspeção..."
+                  placeholder="Adicione informações relevantes sobre o agendamento..."
                   {...campo("observacoes")} />
           </div>
         </div>
 
-        <div className="cartao" style={{ padding: "28px", marginBottom: "20px" }}>
-          <h2 style={{ margin: "0 0 8px", fontSize: "16px", fontWeight: 600 }}>Próxima inspeção</h2>
-          <p style={{ margin: "0 0 20px", fontSize: "13px", color: "var(--texto-2)" }}>Com base na frequência selecionada, a próxima inspeção será calculada automaticamente.</p>
+        {/* Seção 2 — Próxima inspeção calculada */}
+        <div className="form-secao">
+          <h2 className="form-secao__titulo">
+            <span className="form-secao__numero">2</span>
+            Próxima inspeção (calculada automaticamente)
+          </h2>
           <div className="grade-2">
-            <div style={{ background: "var(--superficie-2)", border: "1px solid var(--borda)", borderRadius: "var(--raio-sm)", padding: "20px" }}>
-              <div style={{ fontSize: "12px", color: "var(--texto-2)", marginBottom: "6px" }}>📅 Próxima inspeção estimada</div>
-              <strong style={{ fontSize: "18px" }}>{proxima ? data(proxima) : "--/--/----"}</strong>
+            <div className="preview-dado">
+              <div className="preview-dado__rotulo">Próxima inspeção estimada</div>
+              <div className="preview-dado__valor">{proxima ? data(proxima) : "--/--/----"}</div>
             </div>
-            <div style={{ background: "var(--superficie-2)", border: "1px solid var(--borda)", borderRadius: "var(--raio-sm)", padding: "20px" }}>
-              <div style={{ fontSize: "12px", color: "var(--texto-2)", marginBottom: "6px" }}>🔄 Intervalo</div>
-              <strong style={{ fontSize: "18px" }}>{diasIntervalo ? `${diasIntervalo} dias` : "--"}</strong>
+            <div className="preview-dado">
+              <div className="preview-dado__rotulo">Intervalo</div>
+              <div className="preview-dado__valor">{diasIntervalo ? `${diasIntervalo} dias` : "—"}</div>
             </div>
           </div>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+        <div className="pagina-acoes">
           <button type="button" className="botao" onClick={() => navegar("/frotas/inspecoes")}>Cancelar</button>
           <button type="submit" className="botao botao--primario" disabled={salvando}>
-            📅 {salvando ? "Agendando..." : "Agendar inspeção"}
+            {salvando ? "Agendando..." : "Agendar inspeção"}
           </button>
         </div>
       </form>
