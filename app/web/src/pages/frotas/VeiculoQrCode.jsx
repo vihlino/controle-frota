@@ -42,7 +42,7 @@ export default function VeículoQrCode() {
   async function gerar() {
     setGerando(true);
     try {
-      await api(`/qrcode/veículo/${id}`, { method: "POST" });
+      await api(`/qrcode/veiculo/${id}`, { method: "POST" });
       setQr(await api(`/qrcode/imagem/${id}`));
     } catch (e) {
       setErro(e.message);

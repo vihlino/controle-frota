@@ -18,10 +18,10 @@ export default function Lateral({ recolhida, tema, alternarTema }) {
   // O menu so mostra o que o perfil pode abrir: nada de item que leva a uma
   // tela de "sem acesso".
   const blocos = MENU
-    .filter((b) => !b.permissão || podeVer(b.permissão))
+    .filter((b) => !b.permissao || podeVer(b.permissao))
     .map((b) => ({
       ...b,
-      itens: b.itens.filter((i) => !i.permissão || podeVer(i.permissão)),
+      itens: b.itens.filter((i) => !i.permissao || podeVer(i.permissao)),
     }))
     .filter((b) => b.itens.length);
 
