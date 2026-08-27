@@ -90,6 +90,7 @@ export default function App() {
         <Route path="/frotas/manutencoes" element={<ComPermissao codigo={FROTAS}><Manutencoes /></ComPermissao>} />
         <Route path="/frotas/documentos" element={<ComPermissao codigo={FROTAS}><Documentos /></ComPermissao>} />
         <Route path="/frotas/sinistros" element={<ComPermissao codigo={FROTAS}><Sinistros /></ComPermissao>} />
+        <Route path="/frotas/motoristas" element={<ComPermissao codigo={FROTAS}><Servidores /></ComPermissao>} />
         <Route path="/frotas/relatorios" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><Relatorios /></ComPermissao>} />
         <Route path="/frotas/relatorios/:id" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><RelatorioVer /></ComPermissao>} />
 
@@ -99,6 +100,7 @@ export default function App() {
         <Route path="/fiscalizacao/ocorrencias" element={<ComPermissao codigo={FISC}><Ocorrencias /></ComPermissao>} />
         <Route path="/fiscalizacao/manutencoes" element={<ComPermissao codigo={FISC}><ManutencoesFisc /></ComPermissao>} />
         <Route path="/fiscalizacao/checklists" element={<ComPermissao codigo={FISC}><ChecklistsFiscalizacao /></ComPermissao>} />
+        <Route path="/fiscalizacao/motoristas" element={<ComPermissao codigo={FISC}><Servidores /></ComPermissao>} />
         <Route path="/fiscalizacao/pontuacao" element={<ComPermissao codigo="FISCALIZACAO_GERENCIAR_PONTUACAO"><Pontuacao /></ComPermissao>} />
         <Route path="/fiscalizacao/relatorios" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><Relatorios /></ComPermissao>} />
 
