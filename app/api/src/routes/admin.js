@@ -37,7 +37,7 @@ export const servidores = criarCrud({
   entidade: "servidor",
   select: `servidor.*, setor.nome AS setor,
            (SELECT COUNT(*)::int FROM usuario u WHERE u.id_servidor = servidor.id_servidor) AS tem_usuario`,
-  from: "servidor JOIN setor ON setor.id_setor = servidor.id_setor",
+  from: "servidor LEFT JOIN setor ON setor.id_setor = servidor.id_setor",
   busca: ["servidor.nome", "servidor.matricula", "servidor.cpf", "servidor.email"],
   filtros: { setor: "servidor.id_setor", status: "servidor.status" },
   ordenaveis: {
