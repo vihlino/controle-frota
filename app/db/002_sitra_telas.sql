@@ -114,7 +114,8 @@ COMMIT;
 -- ============================================================
 BEGIN;
 
-CREATE OR REPLACE VIEW vw_perfil_usuario AS
+DROP VIEW IF EXISTS vw_perfil_usuario;
+CREATE VIEW vw_perfil_usuario AS
 SELECT
     u.id_usuario,
     u.login,
