@@ -344,6 +344,73 @@ async function garantirAdministrador(cliente) {
 
 }
 
+async function garantirGestores(cliente) {
+  const gestores = [
+    {
+      login: "gestor.frotas",
+      nome: "Gestor de Frotas",
+      matricula: "GF0001",
+      email: "gestor.frotas@sitra.local",
+      cargo: "Gestor de Frotas",
+      setor: "Gestao de Frotas",
+      perfil: "Gestor Frotas",
+    },
+    {
+      login: "gestor.fiscalizacao",
+      nome: "Gestor de Fiscalizacao",
+      matricula: "GFS0001",
+      email: "gestor.fiscalizacao@sitra.local",
+      cargo: "Gestor de Fiscalizacao",
+      setor: "Fiscalizacao",
+      perfil: "Gestor Fiscalizacao",
+    },
+  ];
+
+  for (const g of gestores) {
+    const { rows: jaExiste } = await cliente.query(
+      "SELECT id_usuario FROM usuario WHERE login = $1",
+      [g.login]
+    );
+    if (jaExiste[0]) {
+      console.log(`Usuario "${g.login}" ja existe.`);
+      continue;
+    }
+
+    const { rows: setor } = await cliente.query(
+      `INSERT INTO setor (nome, descricao)
+       VALUES ($1, $1)
+       ON CONFLICT (nome) DO UPDATE SET nome = EXCLUDED.nome
+       RETURNING id_setor`,
+      [g.setor]
+    );
+
+    const { rows: servidor } = await cliente.query(
+      `INSERT INTO servidor (nome, cpf, data_nascimento, telefone, email, matricula, cargo_funcao, id_setor)
+       VALUES ($1, '000.000.000-00', '1990-01-01', '(00) 00000-0000', $2, $3, $4, $5)
+       ON CONFLICT (matricula) DO UPDATE SET nome = EXCLUDED.nome
+       RETURNING id_servidor`,
+      [g.nome, g.email, g.matricula, g.cargo, setor[0].id_setor]
+    );
+
+    const { rows: perfil } = await cliente.query(
+      "SELECT id_perfil FROM perfil WHERE nome = $1",
+      [g.perfil]
+    );
+    if (!perfil[0]) {
+      console.log(`Perfil "${g.perfil}" nao encontrado, pulando ${g.login}.`);
+      continue;
+    }
+
+    const senhaHash = await bcrypt.hash(SENHA, 10);
+    await cliente.query(
+      `INSERT INTO usuario (id_servidor, id_perfil, login, senha_hash)
+       VALUES ($1, $2, $3, $4)`,
+      [servidor[0].id_servidor, perfil[0].id_perfil, g.login, senhaHash]
+    );
+    console.log(`Usuario "${g.login}" criado com sucesso.`);
+  }
+}
+
 /**
  * Inicializa o banco do SITRA.
  *
@@ -388,6 +455,7 @@ export async function inicializarBanco() {
      */
 
     await garantirAdministrador(cliente);
+    await garantirGestores(cliente);
 
     /*
      * Confirma todas as alteracoes.

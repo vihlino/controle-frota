@@ -40,7 +40,7 @@ export default function Perfis() {
       setPerfis(r.itens);
       if (r.itens[0]) escolher(r.itens[0]);
     }).catch(() => {});
-    api("/permissões").then(setCatalogo).catch(() => {});
+    api("/permissoes").then(setCatalogo).catch(() => {});
   }, []);
 
   async function escolher(perfil) {

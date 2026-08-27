@@ -156,7 +156,7 @@ export default function criarPagina(config) {
         chave: "ações",
         rotulo: "Ações",
         render: (registro) => (
-          <Ações
+          <Acoes
             ações={[
               { rotulo: "Editar", aoClicar: () => abrir(registro) },
               ...(config.permiteExcluir

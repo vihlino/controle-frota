@@ -139,7 +139,7 @@ export default function Usuários() {
     colunas.push({
       chave: "ações", rotulo: "Ações",
       render: (u) => (
-        <Ações
+        <Acoes
           ações={[
             {
               rotulo: "Trocar senha",

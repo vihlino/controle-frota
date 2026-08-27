@@ -67,13 +67,7 @@ export default function Lateral({ recolhida, tema, alternarTema }) {
         ))}
       </nav>
 
-      <div className="lateral__rodape">
-        <button className="lateral__tema" onClick={alternarTema}>
-          <Icone nome="moon" tamanho={18} />
-          {!recolhida && <span>Modo escuro</span>}
-          <span className="interruptor" data-ligado={tema === "escuro"} />
-        </button>
-      </div>
+      <div className="lateral__rodape" />
     </aside>
   );
 }

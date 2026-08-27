@@ -162,7 +162,7 @@ export default function Documentos() {
     {
       chave: "ações", rotulo: "Ações",
       render: (d) => (
-        <Ações
+        <Acoes
           ações={[
             { rotulo: "Ver veículo", aoClicar: () => navegar(`/frotas/veiculos/${d.id_veículo}`) },
             ...(podeGerenciar

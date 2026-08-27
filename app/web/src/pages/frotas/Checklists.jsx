@@ -102,7 +102,7 @@ export default function Checklists() {
     {
       chave: "ações", rotulo: "Ações",
       render: (c) => (
-        <Ações
+        <Acoes
           ações={[
             {
               rotulo: "Visualizar detalhes",

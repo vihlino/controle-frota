@@ -43,7 +43,7 @@ export default function Relatórios() {
   const podeGerar = podeVer("RELATORIOS_GERAR");
 
   useEffect(() => {
-    api("/relatórios/tipos").then(setTipos).catch(() => {});
+    api("/relatorios/tipos").then(setTipos).catch(() => {});
   }, []);
 
   async function gerar(e) {
@@ -51,7 +51,7 @@ export default function Relatórios() {
     setSalvando(true);
     setErroForm("");
     try {
-      const novo = await api("/relatórios", { method: "POST", body: formulario });
+      const novo = await api("/relatorios", { method: "POST", body: formulario });
       setGerando(false);
       navegar(`/frotas/relatorios/${novo.id_relatório}`);
     } catch (e) {

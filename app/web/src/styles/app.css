@@ -188,6 +188,7 @@ button { font: inherit; cursor: pointer; }
   white-space: nowrap;
 }
 .topo__sino {
+  margin-left: auto;
   position: relative;
   background: none;
   border: none;

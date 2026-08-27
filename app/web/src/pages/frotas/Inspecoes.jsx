@@ -48,7 +48,7 @@ export default function Inspeções() {
 
   useEffect(() => {
     api("/frotas/veiculos/opcoes").then(setVeículos).catch(() => {});
-    api("/usuários?porPagina=200").then((r) => setUsuários(r.itens)).catch(() => {});
+    api("/usuarios?porPagina=200").then((r) => setUsuários(r.itens)).catch(() => {});
   }, []);
 
   async function agendar(e) {
@@ -142,7 +142,7 @@ export default function Inspeções() {
     {
       chave: "ações", rotulo: "Ações",
       render: (i) => (
-        <Ações
+        <Acoes
           ações={[
             {
               rotulo: "Visualizar detalhes",

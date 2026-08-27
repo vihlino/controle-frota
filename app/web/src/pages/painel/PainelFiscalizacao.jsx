@@ -20,10 +20,10 @@ export default function PainelFiscalização({ dados }) {
         <Kpi icone="fisc-viatura" rotulo="Checklists de viatura hoje"
              valor={kpis.checklistsHoje} nota="Enviados hoje" />
         <Kpi icone="fisc-ocorrencias" rotulo="Ocorrências hoje"
-             valor={kpis.ocorrênciasHoje.hoje}
-             nota={`${numero(kpis.ocorrênciasHoje.em_andamento)} em andamento`} />
+             valor={kpis.ocorrenciasHoje.hoje}
+             nota={`${numero(kpis.ocorrenciasHoje.em_andamento)} em andamento`} />
         <Kpi icone="alert-triangle" rotulo="Ocorrências ontem"
-             valor={kpis.ocorrênciasHoje.ontem} nota="Para comparacao" />
+             valor={kpis.ocorrenciasHoje.ontem} nota="Para comparacao" />
       </div>
 
       <Cartao titulo="Ocorrências de hoje"

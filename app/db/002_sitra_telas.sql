@@ -146,4 +146,33 @@ GROUP BY
     s.id_servidor, s.nome, s.email, s.telefone, s.matricula, s.cargo_funcao,
     st.nome, p.nome;
 
+-- Perfis Gestor Frotas e Gestor Fiscalizacao
+INSERT INTO perfil (nome, descricao) VALUES
+    ('Gestor Frotas',        'Acesso completo ao modulo de Frotas'),
+    ('Gestor Fiscalizacao',  'Acesso completo ao modulo de Fiscalizacao')
+ON CONFLICT (nome) DO NOTHING;
+
+INSERT INTO perfil_permissao (id_perfil, id_permissao)
+SELECT p.id_perfil, pe.id_permissao
+FROM perfil p
+JOIN permissao pe ON pe.codigo IN (
+    'FROTAS_VISUALIZAR','FROTAS_GERENCIAR_VEICULOS','FROTAS_GERENCIAR_DOCUMENTOS',
+    'FROTAS_REALIZAR_INSPECAO','FROTAS_GERENCIAR_OS','FROTAS_GERENCIAR_SINISTROS',
+    'FROTAS_GERAR_RELATORIOS','RELATORIOS_VISUALIZAR','RELATORIOS_GERAR'
+)
+WHERE p.nome = 'Gestor Frotas'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO perfil_permissao (id_perfil, id_permissao)
+SELECT p.id_perfil, pe.id_permissao
+FROM perfil p
+JOIN permissao pe ON pe.codigo IN (
+    'FISCALIZACAO_VISUALIZAR','FISCALIZACAO_GERENCIAR_EQUIPES',
+    'FISCALIZACAO_GERENCIAR_SERVICO','FISCALIZACAO_GERENCIAR_OCORRENCIAS',
+    'FISCALIZACAO_DISTRIBUIR_OCORRENCIAS','FISCALIZACAO_GERAR_RELATORIOS',
+    'FISCALIZACAO_GERENCIAR_PONTUACAO','RELATORIOS_VISUALIZAR','RELATORIOS_GERAR'
+)
+WHERE p.nome = 'Gestor Fiscalizacao'
+ON CONFLICT DO NOTHING;
+
 COMMIT;

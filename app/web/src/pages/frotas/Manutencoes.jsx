@@ -58,7 +58,7 @@ export default function Manutenções() {
 
   useEffect(() => {
     api("/frotas/veiculos/opcoes").then(setVeículos).catch(() => {});
-    api("/usuários?porPagina=200").then((r) => setUsuários(r.itens)).catch(() => {});
+    api("/usuarios?porPagina=200").then((r) => setUsuários(r.itens)).catch(() => {});
   }, []);
 
   // Os KPIs do topo saem da propria listagem, sem filtro, para nao criar um
@@ -144,7 +144,7 @@ export default function Manutenções() {
     {
       chave: "ações", rotulo: "Ações",
       render: (o) => (
-        <Ações
+        <Acoes
           ações={[
             { rotulo: "Visualizar detalhes", aoClicar: () => navegar(`/frotas/manutencoes/${o.id_os}`) },
             { rotulo: "Ver veículo", aoClicar: () => navegar(`/frotas/veiculos/${o.id_veículo}`) },
