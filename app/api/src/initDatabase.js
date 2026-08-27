@@ -349,6 +349,7 @@ async function garantirGestores(cliente) {
     {
       login: "gestor.frotas",
       nome: "Gestor de Frotas",
+      cpf: "111.111.111-11",
       matricula: "GF0001",
       email: "gestor.frotas@sitra.local",
       cargo: "Gestor de Frotas",
@@ -358,6 +359,7 @@ async function garantirGestores(cliente) {
     {
       login: "gestor.fiscalizacao",
       nome: "Gestor de Fiscalizacao",
+      cpf: "222.222.222-22",
       matricula: "GFS0001",
       email: "gestor.fiscalizacao@sitra.local",
       cargo: "Gestor de Fiscalizacao",
@@ -386,10 +388,10 @@ async function garantirGestores(cliente) {
 
     const { rows: servidor } = await cliente.query(
       `INSERT INTO servidor (nome, cpf, data_nascimento, telefone, email, matricula, cargo_funcao, id_setor)
-       VALUES ($1, '000.000.000-00', '1990-01-01', '(00) 00000-0000', $2, $3, $4, $5)
+       VALUES ($1, $2, '1990-01-01', '(00) 00000-0000', $3, $4, $5, $6)
        ON CONFLICT (matricula) DO UPDATE SET nome = EXCLUDED.nome
        RETURNING id_servidor`,
-      [g.nome, g.email, g.matricula, g.cargo, setor[0].id_setor]
+      [g.nome, g.cpf, g.email, g.matricula, g.cargo, setor[0].id_setor]
     );
 
     const { rows: perfil } = await cliente.query(
