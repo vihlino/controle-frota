@@ -202,12 +202,12 @@ async function iniciarServidor() {
    * e retornara uma resposta generica para o cliente.
    */
 
-  app.use((err, _req, res, _next) => {
+  app.use((err, req, res, _next) => {
 
-    console.error(err);
+    console.error(`[500] ${req.method} ${req.path}`, err);
 
     res.status(500).json({
-      erro: "Erro interno no servidor",
+      erro: err.message || "Erro interno no servidor",
     });
 
   });

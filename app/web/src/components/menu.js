@@ -13,7 +13,6 @@ export const MENU = [
     itens: [
       { rotulo: "Veículos",    para: "/frotas/veiculos",    icone: "kpi-car" },
       { rotulo: "Motoristas",  para: "/frotas/motoristas",  icone: "fisc-servidores" },
-      { rotulo: "Servidores",  para: "/frotas/servidores",  icone: "fisc-servidores" },
       { rotulo: "Checklists",  para: "/frotas/checklists",  icone: "checklist" },
       { rotulo: "Inspeções",   para: "/frotas/inspecoes",   icone: "calendar" },
       { rotulo: "Manutenções", para: "/frotas/manutencoes", icone: "kpi-wrench" },
@@ -27,11 +26,12 @@ export const MENU = [
     permissao: "FISCALIZACAO_VISUALIZAR",
     itens: [
       { rotulo: "Serviço Diário", para: "/fiscalizacao/servico-diario", icone: "calendar" },
-      { rotulo: "Equipes",        para: "/fiscalizacao/equipes",        icone: "fisc-servidores" },
-      { rotulo: "Viaturas",       para: "/fiscalizacao/viaturas",       icone: "fisc-viatura" },
-      { rotulo: "Ocorrências",    para: "/fiscalizacao/ocorrencias",    icone: "fisc-ocorrencias" },
-      { rotulo: "Manutenções",    para: "/fiscalizacao/manutencoes",    icone: "kpi-wrench" },
-      { rotulo: "Checklists",     para: "/fiscalizacao/checklists",     icone: "checklist" },
+      { rotulo: "Motoristas",    para: "/fiscalizacao/motoristas",    icone: "fisc-servidores" },
+      { rotulo: "Equipes",       para: "/fiscalizacao/equipes",       icone: "fisc-servidores" },
+      { rotulo: "Viaturas",      para: "/fiscalizacao/viaturas",      icone: "fisc-viatura" },
+      { rotulo: "Ocorrências",   para: "/fiscalizacao/ocorrencias",   icone: "fisc-ocorrencias" },
+      { rotulo: "Manutenções",   para: "/fiscalizacao/manutencoes",   icone: "kpi-wrench" },
+      { rotulo: "Checklists",    para: "/fiscalizacao/checklists",    icone: "checklist" },
       {
         rotulo: "Pontuação",
         para: "/fiscalizacao/pontuacao",
@@ -39,7 +39,6 @@ export const MENU = [
         permissao: "FISCALIZACAO_GERENCIAR_PONTUACAO",
         cadeado: true,
       },
-      { rotulo: "Motoristas", para: "/fiscalizacao/motoristas", icone: "fisc-servidores" },
       { rotulo: "Relatórios", para: "/fiscalizacao/relatorios", icone: "chart-line" },
     ],
   },
