@@ -35,7 +35,7 @@ export default function Dashboard() {
       titulo: `${saudacao()}, ${primeiroNome}!`,
       legenda: dataPorExtenso(),
     });
-  }, [definirCabecalho, usuário]);
+  }, [definirCabecalho, usuario]);
 
   useEffect(() => {
     api("/dashboard")
