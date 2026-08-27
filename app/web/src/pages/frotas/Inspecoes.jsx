@@ -69,10 +69,10 @@ export default function Inspeções() {
         method: "POST",
         body: {
           ...formulario,
-          id_veículo: Number(formulario.id_veículo),
+          id_veiculo: Number(formulario.id_veículo),
           id_gestor: Number(formulario.id_gestor),
           data_programada: formulario.data_realizacao || null,
-          proxima_inspeção: proxima,
+          proxima_inspecao: proxima,
           status: "ABERTA",
         },
       });
@@ -110,12 +110,16 @@ export default function Inspeções() {
       ),
     },
     {
-      chave: "tipo", rotulo: "Frequencia", ordenavel: true,
-      render: (i) => <Selo texto={rotulo("tipoInspeção", i.tipo)} tom="azul" />,
+      chave: "tipo", rotulo: "Frequência", ordenavel: true,
+      render: (i) => {
+        const CORES = { SEMANAL: "azul", QUINZENAL: "laranja", MENSAL: "verde", PERSONALIZADA: "amarelo" };
+        const NOMES = { SEMANAL: "Semanal", QUINZENAL: "Quinzenal", MENSAL: "Mensal", PERSONALIZADA: "Personalizada", SEM_PERIODICIDADE: "Sem periodicidade" };
+        return <Selo texto={NOMES[i.tipo] || i.tipo} tom={CORES[i.tipo] || "azul"} />;
+      },
     },
     {
-      chave: "proxima_inspeção", rotulo: "Proxima inspeção", ordenavel: true,
-      render: (i) => data(i.proxima_inspeção),
+      chave: "proxima_inspecao", rotulo: "Próxima inspeção", ordenavel: true,
+      render: (i) => data(i.proxima_inspecao || i.proxima_inspeção),
     },
     { chave: "responsavel", rotulo: "Responsavel", ordenavel: true },
     {

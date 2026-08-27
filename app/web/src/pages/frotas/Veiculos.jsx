@@ -117,12 +117,9 @@ export default function Veículos() {
     { chave: "renavam", rotulo: "Renavam" },
     { chave: "chassi", rotulo: "Chassi" },
     { chave: "ano_modelo", rotulo: "Ano modelo", ordenavel: true },
-    { chave: "ano_fabricacao", rotulo: "Ano fabricacao" },
+    { chave: "ano_fabricacao", rotulo: "Ano fabricação" },
+    { chave: "vinculo", rotulo: "Vínculo", render: (v) => v.vinculo || "Próprio" },
     { chave: "setor", rotulo: "Setor", ordenavel: true },
-    {
-      chave: "quilometragem_atual", rotulo: "KM atual",
-      render: (v) => `${numero(v.quilometragem_atual)} km`,
-    },
     { chave: "status", rotulo: "Situação", ordenavel: true, render: (v) => <Selo valor={v.status} /> },
     {
       chave: "qrcode", rotulo: "QR Code",

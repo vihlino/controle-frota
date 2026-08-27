@@ -87,7 +87,7 @@ export default function Manutenções() {
         method: "POST",
         body: {
           ...formulario,
-          id_veículo: Number(formulario.id_veículo),
+          id_veiculo: Number(formulario.id_veículo),
           id_solicitante: usuario.id_usuario,
           origem: "FROTAS",
           status: "EM_ANALISE",

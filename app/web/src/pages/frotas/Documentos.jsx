@@ -94,7 +94,7 @@ export default function Documentos() {
     try {
       const corpo = {
         ...formulario,
-        id_veículo: Number(formulario.id_veículo),
+        id_veiculo: Number(formulario.id_veículo),
         id_responsavel: formulario.id_responsavel ? Number(formulario.id_responsavel) : null,
         bloqueia_veículo: !!formulario.bloqueia_veículo,
       };

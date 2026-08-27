@@ -83,7 +83,7 @@ export default function Sinistros() {
         method: "POST",
         body: {
           ...formulario,
-          id_veículo: Number(formulario.id_veículo),
+          id_veiculo: Number(formulario.id_veículo),
           id_servidor: Number(formulario.id_servidor),
           id_responsavel: usuario.id_usuario,
           houve_terceiros: !!formulario.houve_terceiros,
