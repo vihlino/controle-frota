@@ -15,8 +15,13 @@ import { useSessao } from "../lib/sessao.jsx";
 export default function Lateral({ recolhida, tema, alternarTema }) {
   const { podeVer } = useSessao();
 
-  // O menu so mostra o que o perfil pode abrir: nada de item que leva a uma
-  // tela de "sem acesso".
+  function rotuloDashboard() {
+    if (podeVer("FROTAS_VISUALIZAR") && !podeVer("FISCALIZACAO_VISUALIZAR") && !podeVer("ADMIN_VISUALIZAR")) return "Dashboard Frotas";
+    if (podeVer("FISCALIZACAO_VISUALIZAR") && !podeVer("FROTAS_VISUALIZAR") && !podeVer("ADMIN_VISUALIZAR")) return "Dashboard Fiscalização";
+    if (podeVer("ADMIN_VISUALIZAR")) return "Dashboard TI";
+    return "Dashboard";
+  }
+
   const blocos = MENU
     .filter((b) => !b.permissao || podeVer(b.permissao))
     .map((b) => ({
@@ -50,7 +55,7 @@ export default function Lateral({ recolhida, tema, alternarTema }) {
                 key={item.para}
                 to={item.para}
                 end={item.fim}
-                title={recolhida ? item.rotulo : undefined}
+                title={recolhida ? (item.para === "/dashboard" ? rotuloDashboard() : item.rotulo) : undefined}
                 className={({ isActive }) =>
                   `lateral__item ${isActive ? "lateral__item--ativo" : ""}`
                 }
@@ -58,8 +63,8 @@ export default function Lateral({ recolhida, tema, alternarTema }) {
                 <Icone nome={item.icone} tamanho={20} />
                 {!recolhida && (
                   <span className="lateral__rotulo">
-                    {item.rotulo}
-                                      </span>
+                    {item.para === "/dashboard" ? rotuloDashboard() : item.rotulo}
+                  </span>
                 )}
               </NavLink>
             ))}
