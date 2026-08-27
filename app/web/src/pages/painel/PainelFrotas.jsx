@@ -1,8 +1,3 @@
-/**
- * PainelFrotas.jsx - O painel de Frotas do Dashboard.
- * KPIs da frota, ultimos checklists, veículos em uso hoje, vencimentos
- * proximos e ordens de serviço em aberto.
- */
 import { Link } from "react-router-dom";
 import Cartao from "../../components/Cartao.jsx";
 import Icone from "../../components/Icone.jsx";
@@ -10,53 +5,57 @@ import Kpi from "../../components/Kpi.jsx";
 import Selo from "../../components/Selo.jsx";
 import { data, hora, numero, porcentagem } from "../../lib/formato.js";
 
-// A tela do mockup lista "Aguardando pecas/aprovacao", mas ordem_serviço so tem
-// EM_ANALISE e EM_MANUTENCAO em aberto. Mostramos o que o banco guarda.
 const ROTULOS_OS = {
-  EM_ANALISE: { titulo: "Em analise", descricao: "Aguardando avaliacao" },
-  EM_MANUTENCAO: { titulo: "Em manutenção", descricao: "Serviço em andamento" },
+  EM_ANALISE:    { titulo: "OS em aberto",       descricao: "Ordens de serviço abertas" },
+  EM_MANUTENCAO: { titulo: "Em execução",        descricao: "Serviços em andamento" },
+  AGUARDANDO_PECAS:    { titulo: "Aguardando peças",   descricao: "Aguardando chegada de peças" },
+  AGUARDANDO_APROVACAO:{ titulo: "Aguardando aprovação", descricao: "Aguardando aprovação" },
 };
 
 export default function PainelFrotas({ dados }) {
   const { kpis, ultimosChecklists, veiculosEmUso, vencimentos, ordensServico } = dados;
+  const difChecklists = kpis.checklistsHoje.valor - kpis.checklistsHoje.ontem;
 
   return (
     <>
       <div className="kpis">
-        <Kpi icone="kpi-car" rotulo="Total de veículos" valor={kpis.total} nota="100% da frota" />
-        <Kpi icone="kpi-car-front" rotulo="Disponiveis" valor={kpis.disponiveis.valor}
-             nota={porcentagem(kpis.disponiveis.percentual)} />
-        <Kpi icone="kpi-steering" rotulo="Em operação" valor={kpis.emOperacao.valor}
-             nota={porcentagem(kpis.emOperacao.percentual)} />
-        <Kpi icone="kpi-wrench" rotulo="Em manutenção" valor={kpis.emManutencao.valor}
-             nota={porcentagem(kpis.emManutencao.percentual)} />
-        <Kpi icone="alert-triangle" rotulo="Indisponiveis" valor={kpis.indisponiveis.valor}
-             nota={porcentagem(kpis.indisponiveis.percentual)} />
-        <Kpi icone="checklist" rotulo="Checklists de hoje" valor={kpis.checklistsHoje.valor}
-             nota={`${numero(kpis.checklistsHoje.ontem)} ontem`} />
+        <Kpi icone="kpi-car"       rotulo="Total de Veículos"  valor={kpis.total}
+             nota="100% da frota" />
+        <Kpi icone="kpi-car-front" rotulo="Disponível"         valor={kpis.disponiveis.valor}
+             nota={`${porcentagem(kpis.disponiveis.percentual)} da frota`} />
+        <Kpi icone="kpi-steering"  rotulo="Em Operação"        valor={kpis.emOperacao.valor}
+             nota={`${porcentagem(kpis.emOperacao.percentual)} da frota`} />
+        <Kpi icone="kpi-wrench"    rotulo="Em manutenção"      valor={kpis.emManutencao.valor}
+             nota={`${porcentagem(kpis.emManutencao.percentual)} da frota`} />
+        <Kpi icone="alert-triangle" rotulo="Indisponível"      valor={kpis.indisponiveis.valor}
+             nota={`${porcentagem(kpis.indisponiveis.percentual)} da frota`} />
+        <Kpi icone="checklist"     rotulo="Checklists de hoje" valor={kpis.checklistsHoje.valor}
+             nota={difChecklists >= 0
+               ? `↑ ${numero(Math.abs(difChecklists))} em relação a ontem`
+               : `↓ ${numero(Math.abs(difChecklists))} em relação a ontem`} />
       </div>
 
       <div className="grade-2">
-        <Cartao titulo="Ultimos checklists"
+        <Cartao titulo="Últimos checklists"
                 acao={<Link className="cartao__acao" to="/frotas/checklists">Ver todos</Link>}>
           <div className="rolagem-x">
             <table className="tabela">
               <thead>
                 <tr>
-                  <th>Data</th><th>Saida</th><th>Condutor</th><th>Veículo</th>
-                  <th>Placa</th><th>Percurso</th><th>KM rodado</th><th>Situação</th>
+                  <th>Enviado em</th><th>Data do Registro</th><th>Condutor</th>
+                  <th>Veículo</th><th>Placa</th><th>Percurso</th><th>Km Rodado</th><th>Situação</th>
                 </tr>
               </thead>
               <tbody>
                 {ultimosChecklists.map((c) => (
                   <tr key={c.id_checklist}>
-                    <td>{data(c.data_abertura)}</td>
                     <td>{hora(c.hora_saida)}</td>
+                    <td>{data(c.data_abertura)}</td>
                     <td>{c.condutor}</td>
                     <td>{`${c.marca} ${c.modelo}`}</td>
                     <td>{c.placa}</td>
-                    <td>{c.percurso || "-"}</td>
-                    <td>{c.km_rodado === null ? "-" : `${numero(c.km_rodado)} km`}</td>
+                    <td>{c.percurso || "—"}</td>
+                    <td>{c.km_rodado === null ? "—" : `${numero(c.km_rodado)} km`}</td>
                     <td><Selo valor={c.status} /></td>
                   </tr>
                 ))}
@@ -66,12 +65,14 @@ export default function PainelFrotas({ dados }) {
           </div>
         </Cartao>
 
-        <Cartao titulo="Veículos em uso hoje"
-                acao={<Link className="cartao__acao" to="/frotas/checklists">Ver todos</Link>}>
+        <Cartao titulo="Movimentações de hoje"
+                acao={<Link className="cartao__acao" to="/frotas/checklists">Ver todas</Link>}>
           <div className="rolagem-x">
             <table className="tabela">
               <thead>
-                <tr><th>Veículo</th><th>Motorista</th><th>Placa</th><th>Saida</th><th>Situação</th></tr>
+                <tr>
+                  <th>Veículo</th><th>Motorista</th><th>Placa</th><th>Retirada</th><th>Status</th>
+                </tr>
               </thead>
               <tbody>
                 {veiculosEmUso.map((m) => (
@@ -85,18 +86,20 @@ export default function PainelFrotas({ dados }) {
                 ))}
               </tbody>
             </table>
-            {veiculosEmUso.length === 0 && <div className="vazio">Nenhuma saida registrada hoje.</div>}
+            {veiculosEmUso.length === 0 && <div className="vazio">Nenhuma saída registrada hoje.</div>}
           </div>
         </Cartao>
       </div>
 
       <div className="grade-2">
-        <Cartao titulo="Proximos vencimentos"
+        <Cartao titulo="Próximos vencimentos"
                 acao={<Link className="cartao__acao" to="/frotas/documentos">Ver todos</Link>}>
           <div className="vencimentos">
             {vencimentos.map((f) => (
               <div className="vencimento" key={f.dias} data-faixa={f.dias}>
-                <div className="vencimento__faixa">Ate {f.dias} dias</div>
+                <div className="vencimento__faixa">
+                  {f.dias === 120 ? "Até 150 dias" : `Até ${f.dias} dias`}
+                </div>
                 <div className="vencimento__total">{numero(f.total)}</div>
                 <div className="vencimento__unidade">documentos</div>
                 {f.porTipo.map((t) => (
@@ -105,13 +108,18 @@ export default function PainelFrotas({ dados }) {
                     <strong>{numero(t.quantidade)}</strong>
                   </div>
                 ))}
+                {f.porTipo.length === 0 && (
+                  <div className="vencimento__linha" style={{ color: "var(--texto-leve)" }}>
+                    <span>Nenhum</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </Cartao>
 
         <Cartao titulo="Manutenções / OS em aberto"
-                acao={<Link className="cartao__acao" to="/frotas/manutencoes">Ver todas</Link>}>
+                acao={<Link className="cartao__acao" to="/frotas/manutencoes">Ver todas as OS</Link>}>
           <div className="lista-os">
             {ordensServico.map((os) => {
               const rotulo = ROTULOS_OS[os.status] || { titulo: os.status, descricao: "" };
@@ -131,25 +139,25 @@ export default function PainelFrotas({ dados }) {
         </Cartao>
       </div>
 
-      <Cartao titulo="Ações rapidas">
-        <div className="ações-rapidas">
+      <Cartao titulo="Ações rápidas">
+        <div className="acoes-rapidas">
           <Link className="acao-rapida" to="/frotas/veiculos">
-            <Icone nome="kpi-car" tamanho={20} /> Cadastrar veículo
+            <Icone nome="kpi-car" tamanho={20} /> + Cadastrar veículo
           </Link>
           <Link className="acao-rapida" to="/frotas/inspecoes">
-            <Icone nome="calendar" tamanho={20} /> Agendar inspeção
+            <Icone nome="calendar" tamanho={20} /> + Nova inspeção
           </Link>
           <Link className="acao-rapida" to="/frotas/manutencoes">
-            <Icone nome="kpi-wrench" tamanho={20} /> Agendar manutenção
+            <Icone nome="kpi-wrench" tamanho={20} /> + Nova OS
           </Link>
           <Link className="acao-rapida" to="/frotas/documentos">
-            <Icone nome="nav-gestao" tamanho={20} /> Novo documento
+            <Icone nome="nav-gestao" tamanho={20} /> + Adicionar documento
           </Link>
-          <Link className="acao-rapida" to="/frotas/sinistros">
-            <Icone nome="alert-triangle" tamanho={20} /> Registrar sinistro
+          <Link className="acao-rapida" to="/frotas/checklists">
+            <Icone nome="kpi-steering" tamanho={20} /> Movimentação
           </Link>
           <Link className="acao-rapida" to="/frotas/relatorios">
-            <Icone nome="chart-line" tamanho={20} /> Gerar relatório
+            <Icone nome="chart-line" tamanho={20} /> Ver veículos
           </Link>
         </div>
       </Cartao>

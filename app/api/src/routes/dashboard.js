@@ -85,7 +85,7 @@ async function painelFrotas() {
 }
 
 async function painelFiscalizacao() {
-  const [servico, ocorrencias, equipes, checklists, ultimasOcorrencias] = await Promise.all([
+  const [servico, ocorrencias, equipes, checklists, ultimasOcorrencias, servicosHoje, viaturas] = await Promise.all([
     query(`SELECT COUNT(*) FILTER (WHERE status = 'EM_ANDAMENTO')::int AS em_andamento,
                   COUNT(*)::int AS hoje
              FROM servico_diario WHERE data = CURRENT_DATE`),
@@ -101,16 +101,29 @@ async function painelFiscalizacao() {
     query(`SELECT o.id_ocorrencia, o.protocolo, o.tipo, o.endereco, o.hora, o.status
              FROM ocorrencia o WHERE o.data = CURRENT_DATE
             ORDER BY o.hora DESC LIMIT 5`),
+    query(`SELECT sd.id_servico_diario, sd.turno, sd.hora_inicio, sd.status,
+                  s.nome AS coordenador,
+                  (SELECT COUNT(*)::int FROM servico_equipe se
+                    WHERE se.id_servico_diario = sd.id_servico_diario) AS n_equipes
+             FROM servico_diario sd
+             JOIN servidor s ON s.id_servidor = sd.id_coordenador
+            WHERE sd.data = CURRENT_DATE
+            ORDER BY sd.hora_inicio LIMIT 6`),
+    query(`SELECT COUNT(*) FILTER (WHERE status = 'EM_USO')::int AS em_uso,
+                  COUNT(*)::int AS total
+             FROM veiculo`),
   ]);
 
   return {
     kpis: {
-      servicosEmAndamento: servico.rows[0].em_andamento,
+      equipesEmServico: equipes.rows[0].ativas,
+      viaturasEmUso: viaturas.rows[0].em_uso,
       equipes: equipes.rows[0],
       ocorrenciasHoje: ocorrencias.rows[0],
       checklistsHoje: checklists.rows[0].hoje,
     },
     ultimasOcorrencias: ultimasOcorrencias.rows,
+    servicosHoje: servicosHoje.rows,
   };
 }
 
