@@ -63,11 +63,11 @@ export default function ChecklistQr() {
       await api(`/qrcode/saida/${token}`, {
         method: "POST",
         body: {
-          matrícula: matrícula.trim(),
+          matricula: matrícula.trim(),
           odometro_saida: Number(saida.odometro_saida),
           percurso: saida.percurso,
           local_saida: saida.local_saida,
-          observações: saida.observações,
+          observacoes: saida.observações,
           equipamentos: EQUIPAMENTOS.map((código) => ({
             equipamento: código,
             conforme: equipamentos[código].conforme,
@@ -94,7 +94,7 @@ export default function ChecklistQr() {
         method: "POST",
         body: {
           odometro_chegada: Number(chegada.odometro_chegada),
-          observações: chegada.observações,
+          observacoes: chegada.observações,
         },
       });
       setConcluido("chegada");
