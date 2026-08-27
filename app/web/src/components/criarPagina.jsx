@@ -104,7 +104,18 @@ export default function criarPagina(config) {
       const base = Object.fromEntries(
         config.formulario.map((c) => [c.nome, c.padrao ?? ""])
       );
-      setFormulario(registro ? { ...base, ...registro } : base);
+      let reg = registro;
+      if (reg) {
+        const camposData = config.formulario.filter((c) => c.tipo === "data").map((c) => c.nome);
+        for (const nome of camposData) {
+          const v = reg[nome];
+          if (v) {
+            const d = new Date(v);
+            if (!isNaN(d)) reg = { ...reg, [nome]: d.toISOString().slice(0, 10) };
+          }
+        }
+      }
+      setFormulario(reg ? { ...base, ...reg } : base);
       setErroForm("");
       setEditando(registro ? registro[config.id] : "novo");
     }
