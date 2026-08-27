@@ -120,6 +120,15 @@ export default function criarPagina(config) {
       setEditando(registro ? registro[config.id] : "novo");
     }
 
+    /** Converte "dd/mm/yyyy" para "yyyy-mm-dd" se necessario. */
+    function normalizarData(v) {
+      if (typeof v === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(v)) {
+        const [d, m, y] = v.split("/");
+        return `${y}-${m}-${d}`;
+      }
+      return v;
+    }
+
     /** Envia o formulario: POST se for novo, PUT se for edicao. */
     async function salvar(e) {
       e.preventDefault(); // impede o navegador de recarregar a pagina
@@ -128,7 +137,16 @@ export default function criarPagina(config) {
       try {
         // aoSalvar e a chance de a tela converter tipos (texto -> numero) e
         // acrescentar campos que o formulario nao pergunta (id do usuário logado).
-        const corpo = config.aoSalvar ? config.aoSalvar(formulario, usuario) : formulario;
+        let corpo = config.aoSalvar ? config.aoSalvar(formulario, usuario) : formulario;
+
+        // Normaliza campos de data: converte dd/mm/yyyy -> yyyy-mm-dd caso o
+        // browser envie no formato de exibicao em vez do formato ISO.
+        const camposData = (config.formulario || [])
+          .filter((c) => c.tipo === "data")
+          .map((c) => c.nome);
+        for (const nome of camposData) {
+          if (corpo[nome]) corpo = { ...corpo, [nome]: normalizarData(corpo[nome]) };
+        }
 
         if (editando === "novo") {
           await api(`/${config.recurso}`, { method: "POST", body: corpo });
