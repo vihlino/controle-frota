@@ -9,13 +9,13 @@ import Selo from "../../components/Selo.jsx";
 import { hora, numero } from "../../lib/formato.js";
 
 export default function PainelFiscalização({ dados }) {
-  const { kpis, ultimasOcorrências } = dados;
+  const { kpis, ultimasOcorrencias } = dados;
 
   return (
     <>
       <div className="kpis">
         <Kpi icone="fisc-servidores" rotulo="Equipes em serviço"
-             valor={kpis.serviçosEmAndamento}
+             valor={kpis.servicosEmAndamento}
              nota={`${numero(kpis.equipes.ativas)} equipes ativas`} />
         <Kpi icone="fisc-viatura" rotulo="Checklists de viatura hoje"
              valor={kpis.checklistsHoje} nota="Enviados hoje" />
@@ -36,7 +36,7 @@ export default function PainelFiscalização({ dados }) {
               </tr>
             </thead>
             <tbody>
-              {ultimasOcorrências.map((o) => (
+              {ultimasOcorrencias.map((o) => (
                 <tr key={o.id_ocorrência}>
                   <td>{o.protocolo || "-"}</td>
                   <td>{o.tipo}</td>
@@ -47,7 +47,7 @@ export default function PainelFiscalização({ dados }) {
               ))}
             </tbody>
           </table>
-          {ultimasOcorrências.length === 0 && (
+          {ultimasOcorrencias.length === 0 && (
             <div className="vazio">Nenhuma ocorrência registrada hoje.</div>
           )}
         </div>

@@ -51,7 +51,7 @@ export default function Dashboard() {
 
   const paineis = [
     { chave: "frotas", rotulo: "Frotas", icone: "nav-frotas" },
-    { chave: "fiscalização", rotulo: "Fiscalização", icone: "nav-fiscalização" },
+    { chave: "fiscalizacao", rotulo: "Fiscalização", icone: "nav-fiscalização" },
     { chave: "ti", rotulo: "TI e Sistema", icone: "nav-administracao" },
   ].filter((p) => dados[p.chave]);
 
@@ -84,7 +84,7 @@ export default function Dashboard() {
       )}
 
       {aba === "frotas" && <PainelFrotas dados={dados.frotas} />}
-      {aba === "fiscalização" && <PainelFiscalizacao dados={dados.fiscalização} />}
+      {aba === "fiscalizacao" && <PainelFiscalizacao dados={dados.fiscalizacao} />}
       {aba === "ti" && <PainelTi dados={dados.ti} />}
     </>
   );

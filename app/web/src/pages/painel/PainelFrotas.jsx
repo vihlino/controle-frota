@@ -18,7 +18,7 @@ const ROTULOS_OS = {
 };
 
 export default function PainelFrotas({ dados }) {
-  const { kpis, ultimosChecklists, veículosEmUso, vencimentos, ordensServiço } = dados;
+  const { kpis, ultimosChecklists, veiculosEmUso, vencimentos, ordensServico } = dados;
 
   return (
     <>
@@ -26,10 +26,10 @@ export default function PainelFrotas({ dados }) {
         <Kpi icone="kpi-car" rotulo="Total de veículos" valor={kpis.total} nota="100% da frota" />
         <Kpi icone="kpi-car-front" rotulo="Disponiveis" valor={kpis.disponiveis.valor}
              nota={porcentagem(kpis.disponiveis.percentual)} />
-        <Kpi icone="kpi-steering" rotulo="Em operação" valor={kpis.emOperação.valor}
-             nota={porcentagem(kpis.emOperação.percentual)} />
-        <Kpi icone="kpi-wrench" rotulo="Em manutenção" valor={kpis.emManutenção.valor}
-             nota={porcentagem(kpis.emManutenção.percentual)} />
+        <Kpi icone="kpi-steering" rotulo="Em operação" valor={kpis.emOperacao.valor}
+             nota={porcentagem(kpis.emOperacao.percentual)} />
+        <Kpi icone="kpi-wrench" rotulo="Em manutenção" valor={kpis.emManutencao.valor}
+             nota={porcentagem(kpis.emManutencao.percentual)} />
         <Kpi icone="alert-triangle" rotulo="Indisponiveis" valor={kpis.indisponiveis.valor}
              nota={porcentagem(kpis.indisponiveis.percentual)} />
         <Kpi icone="checklist" rotulo="Checklists de hoje" valor={kpis.checklistsHoje.valor}
@@ -74,7 +74,7 @@ export default function PainelFrotas({ dados }) {
                 <tr><th>Veículo</th><th>Motorista</th><th>Placa</th><th>Saida</th><th>Situação</th></tr>
               </thead>
               <tbody>
-                {veículosEmUso.map((m) => (
+                {veiculosEmUso.map((m) => (
                   <tr key={m.id_checklist}>
                     <td>{`${m.marca} ${m.modelo}`}</td>
                     <td>{m.motorista}</td>
@@ -85,7 +85,7 @@ export default function PainelFrotas({ dados }) {
                 ))}
               </tbody>
             </table>
-            {veículosEmUso.length === 0 && <div className="vazio">Nenhuma saida registrada hoje.</div>}
+            {veiculosEmUso.length === 0 && <div className="vazio">Nenhuma saida registrada hoje.</div>}
           </div>
         </Cartao>
       </div>
@@ -113,7 +113,7 @@ export default function PainelFrotas({ dados }) {
         <Cartao titulo="Manutenções / OS em aberto"
                 acao={<Link className="cartao__acao" to="/frotas/manutencoes">Ver todas</Link>}>
           <div className="lista-os">
-            {ordensServiço.map((os) => {
+            {ordensServico.map((os) => {
               const rotulo = ROTULOS_OS[os.status] || { titulo: os.status, descricao: "" };
               return (
                 <div className="lista-os__item" key={os.status}>
@@ -126,7 +126,7 @@ export default function PainelFrotas({ dados }) {
                 </div>
               );
             })}
-            {ordensServiço.length === 0 && <div className="vazio">Nenhuma OS em aberto.</div>}
+            {ordensServico.length === 0 && <div className="vazio">Nenhuma OS em aberto.</div>}
           </div>
         </Cartao>
       </div>

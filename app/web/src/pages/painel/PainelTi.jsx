@@ -19,13 +19,13 @@ const ROTULO_EVENTO = {
 };
 
 export default function PainelTi({ dados }) {
-  const { kpis, módulos, acessosRecentes } = dados;
+  const { kpis, modulos, acessosRecentes } = dados;
 
   return (
     <>
       <div className="kpis">
-        <Kpi icone="user" rotulo="Usuários ativos" valor={kpis.usuários.ativos}
-             nota={`${numero(kpis.usuários.total)} cadastrados`} tom="azul" />
+        <Kpi icone="user" rotulo="Usuários ativos" valor={kpis.usuarios.ativos}
+             nota={`${numero(kpis.usuarios.total)} cadastrados`} tom="azul" />
         <Kpi icone="fisc-servidores" rotulo="Servidores cadastrados" valor={kpis.servidores}
              nota="Base de pessoas" tom="verde" />
         <Kpi icone="nav-gestao" rotulo="Setores ativos" valor={kpis.setores}
@@ -37,7 +37,7 @@ export default function PainelTi({ dados }) {
       <div className="grade-2">
         <Cartao titulo="Registros por módulo">
           <div className="lista-os">
-            {módulos.map((m) => (
+            {modulos.map((m) => (
               <div className="lista-os__item" key={m.módulo}>
                 <div>
                   <div className="lista-os__titulo">{m.módulo}</div>
