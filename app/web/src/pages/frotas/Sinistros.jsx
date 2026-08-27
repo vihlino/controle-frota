@@ -161,7 +161,7 @@ export default function Sinistros() {
       descricao="Gerencie e acompanhe todos os sinistros registrados na frota."
       acao={
         podeGerenciar && (
-          <button className="botao botao--primario" onClick={() => setRegistrando(true)}>
+          <button className="botao botao--primario" onClick={() => navegar("/frotas/sinistros/novo")}>
             <Icone nome="alert-triangle" tamanho={16} /> Registrar sinistro
           </button>
         )

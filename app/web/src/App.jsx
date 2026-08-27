@@ -22,6 +22,10 @@ import Documentos from "./pages/frotas/Documentos.jsx";
 import Sinistros from "./pages/frotas/Sinistros.jsx";
 import Relatorios from "./pages/frotas/Relatorios.jsx";
 import RelatorioVer from "./pages/frotas/RelatorioVer.jsx";
+import NovaInspecao from "./pages/frotas/NovaInspecao.jsx";
+import AgendarManutencao from "./pages/frotas/AgendarManutencao.jsx";
+import NovoDocumento from "./pages/frotas/NovoDocumento.jsx";
+import NovoSinistro from "./pages/frotas/NovoSinistro.jsx";
 
 import ServicoDiario from "./pages/fiscalizacao/ServicoDiario.jsx";
 import Equipes from "./pages/fiscalizacao/Equipes.jsx";
@@ -86,10 +90,14 @@ export default function App() {
         <Route path="/frotas/checklists" element={<ComPermissao codigo={FROTAS}><Checklists /></ComPermissao>} />
         <Route path="/frotas/checklists/:id" element={<ComPermissao codigo={FROTAS}><ChecklistDetalhe /></ComPermissao>} />
         <Route path="/frotas/inspecoes" element={<ComPermissao codigo={FROTAS}><Inspecoes /></ComPermissao>} />
+        <Route path="/frotas/inspecoes/nova" element={<ComPermissao codigo={FROTAS}><NovaInspecao /></ComPermissao>} />
         <Route path="/frotas/inspecoes/:id" element={<ComPermissao codigo={FROTAS}><InspecaoDetalhe /></ComPermissao>} />
         <Route path="/frotas/manutencoes" element={<ComPermissao codigo={FROTAS}><Manutencoes /></ComPermissao>} />
+        <Route path="/frotas/manutencoes/agendar" element={<ComPermissao codigo={FROTAS}><AgendarManutencao /></ComPermissao>} />
         <Route path="/frotas/documentos" element={<ComPermissao codigo={FROTAS}><Documentos /></ComPermissao>} />
+        <Route path="/frotas/documentos/novo" element={<ComPermissao codigo={FROTAS}><NovoDocumento /></ComPermissao>} />
         <Route path="/frotas/sinistros" element={<ComPermissao codigo={FROTAS}><Sinistros /></ComPermissao>} />
+        <Route path="/frotas/sinistros/novo" element={<ComPermissao codigo={FROTAS}><NovoSinistro /></ComPermissao>} />
         <Route path="/frotas/motoristas" element={<ComPermissao codigo={FROTAS}><Servidores /></ComPermissao>} />
         <Route path="/frotas/servidores" element={<ComPermissao codigo={FROTAS}><Servidores /></ComPermissao>} />
         <Route path="/frotas/relatorios" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><Relatorios /></ComPermissao>} />

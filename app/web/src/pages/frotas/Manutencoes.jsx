@@ -161,7 +161,7 @@ export default function Manutenções() {
       descricao="Acompanhe e gerencie as manutenções da frota."
       acao={
         podeGerenciar && (
-          <button className="botao botao--primario" onClick={() => setAgendando(true)}>
+          <button className="botao botao--primario" onClick={() => navegar("/frotas/manutencoes/agendar")}>
             <Icone nome="kpi-wrench" tamanho={16} /> Agendar manutenção
           </button>
         )

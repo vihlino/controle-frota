@@ -184,7 +184,7 @@ export default function Documentos() {
       descricao="Gerencie todos os documentos da frota em um unico lugar."
       acao={
         podeGerenciar && (
-          <button className="botao botao--primario" onClick={abrirNovo}>
+          <button className="botao botao--primario" onClick={() => navegar("/frotas/documentos/novo")}>
             <Icone nome="minus" tamanho={16} /> Novo documento
           </button>
         )

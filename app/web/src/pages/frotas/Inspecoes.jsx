@@ -165,7 +165,7 @@ export default function Inspeções() {
       descricao="Acompanhe as inspeções periodicas agendadas para os veículos da frota."
       acao={
         podeGerenciar && (
-          <button className="botao botao--primario" onClick={() => setAgendando(true)}>
+          <button className="botao botao--primario" onClick={() => navegar("/frotas/inspecoes/nova")}>
             <Icone nome="calendar" tamanho={16} /> Agendar inspeção
           </button>
         )
