@@ -105,3 +105,44 @@ ALTER TABLE checklist_frotas_equipamento
     CHECK (equipamento IN ('MACACO', 'ESTEPE', 'TRIANGULO', 'CHAVE_RODA'));
 
 COMMIT;
+
+-- ============================================================
+-- Atualiza a view vw_perfil_usuario para incluir permissoes.
+-- A versao original (001) nao tinha essa coluna; o codigo da
+-- API espera um array JSONB com { codigo } de cada permissao
+-- do perfil do usuario.
+-- ============================================================
+BEGIN;
+
+CREATE OR REPLACE VIEW vw_perfil_usuario AS
+SELECT
+    u.id_usuario,
+    u.login,
+    u.status AS usuario_ativo,
+    u.ultimo_acesso,
+    s.id_servidor,
+    s.nome,
+    s.email,
+    s.telefone,
+    s.matricula,
+    s.cargo_funcao,
+    st.nome AS setor,
+    p.nome AS perfil,
+    COALESCE(
+        jsonb_agg(
+            DISTINCT jsonb_build_object('codigo', pm.codigo)
+        ) FILTER (WHERE pm.id_permissao IS NOT NULL),
+        '[]'::jsonb
+    ) AS permissoes
+FROM usuario u
+JOIN servidor s  ON s.id_servidor = u.id_servidor
+JOIN setor st    ON st.id_setor   = s.id_setor
+JOIN perfil p    ON p.id_perfil   = u.id_perfil
+LEFT JOIN perfil_permissao pp ON pp.id_perfil    = p.id_perfil
+LEFT JOIN permissao pm        ON pm.id_permissao = pp.id_permissao
+GROUP BY
+    u.id_usuario, u.login, u.status, u.ultimo_acesso,
+    s.id_servidor, s.nome, s.email, s.telefone, s.matricula, s.cargo_funcao,
+    st.nome, p.nome;
+
+COMMIT;

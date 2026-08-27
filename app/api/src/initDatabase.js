@@ -116,6 +116,13 @@ async function inicializarEstrutura(cliente) {
 
     console.log("Banco SITRA ja possui a estrutura principal.");
 
+    // Mesmo com a estrutura existente, sempre reaplicamos o 002
+    // porque ele e idempotente (IF NOT EXISTS, CREATE OR REPLACE VIEW)
+    // e pode ter falhado em uma inicializacao anterior.
+    const sqlTelas = await fs.readFile(caminhoSqlTelas, "utf8");
+    console.log("Reaplicando 002_sitra_telas.sql (idempotente)...");
+    await cliente.query(sqlTelas);
+
     return;
 
   }
