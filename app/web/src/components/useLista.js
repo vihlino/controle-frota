@@ -3,8 +3,8 @@
  *
  * O QUE E UM HOOK
  * ---------------
- * No React, um hook e uma funcao que guarda estado e comportamento para ser
- * reaproveitada entre telas. Toda funcao que comeca com "use" e um hook.
+ * No React, um hook e uma função que guarda estado e comportamento para ser
+ * reaproveitada entre telas. Toda função que comeca com "use" e um hook.
  *
  * O QUE ESTE AQUI RESOLVE
  * -----------------------
@@ -39,7 +39,7 @@ export function useLista(recurso, filtrosIniciais = {}) {
   // Contador que serve so para forcar uma nova busca: mudar o numero faz o
   // useEffect abaixo rodar de novo.
   const [recarga, setRecarga] = useState(0);
-  // useRef guarda um valor que sobrevive entre renderizacoes SEM causar nova
+  // useRef guarda um valor que sobrevive entre renderizações SEM causar nova
   // renderizacao quando muda. Aqui ele guarda os filtros originais para o
   // botao "Limpar" saber para onde voltar.
   const iniciais = useRef(filtrosIniciais);
@@ -51,7 +51,7 @@ export function useLista(recurso, filtrosIniciais = {}) {
    */
   useEffect(() => {
     // Monta a query string da URL a partir do estado atual.
-    const parametros = new URLSearchParams({
+    const parâmetros = new URLSearchParams({
       pagina: String(pagina),
       porPagina: String(porPagina),
     });
@@ -59,12 +59,12 @@ export function useLista(recurso, filtrosIniciais = {}) {
       // Filtro vazio nao vai para a URL - senao a API receberia "setor=" e
       // tentaria filtrar por setor nenhum.
       if (valor !== "" && valor !== null && valor !== undefined) {
-        parametros.set(chave, String(valor).trim());
+        parâmetros.set(chave, String(valor).trim());
       }
     }
     if (ordem.campo) {
-      parametros.set("ordenarPor", ordem.campo);
-      parametros.set("direcao", ordem.direcao);
+      parâmetros.set("ordenarPor", ordem.campo);
+      parâmetros.set("direcao", ordem.direcao);
     }
 
     setCarregando(true);
@@ -74,7 +74,7 @@ export function useLista(recurso, filtrosIniciais = {}) {
     // GO, GOL). Com a espera, so a ultima sobrevive - as anteriores sao
     // canceladas pelo clearTimeout na limpeza abaixo.
     const temporizador = setTimeout(() => {
-      api(`/${recurso}?${parametros}`)
+      api(`/${recurso}?${parâmetros}`)
         .then((r) => {
           setResultado(r);
           setErro("");
@@ -83,7 +83,7 @@ export function useLista(recurso, filtrosIniciais = {}) {
         .finally(() => setCarregando(false));
     }, 300);
 
-    // Funcao de limpeza: o React a chama antes de rodar o efeito de novo (ou
+    // Função de limpeza: o React a chama antes de rodar o efeito de novo (ou
     // quando a tela e fechada). E ela que cancela a busca anterior.
     return () => clearTimeout(temporizador);
   }, [recurso, filtros, ordem, pagina, porPagina, recarga]);

@@ -22,7 +22,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * Cache no nivel do modulo (fora do componente, entao compartilhado por todos).
+ * Cache no nivel do módulo (fora do componente, entao compartilhado por todos).
  *
  * Guarda a PROMESSA da leitura, nao o texto. Assim, se dez icones iguais
  * aparecerem ao mesmo tempo na tela, todos esperam a mesma unica requisicao,
@@ -73,7 +73,7 @@ export default function Icone({ nome, tamanho = 20, className = "" }) {
   });
 
   useEffect(() => {
-    // Trava contra atualizar um componente que ja saiu da tela: se o usuario
+    // Trava contra atualizar um componente que ja saiu da tela: se o usuário
     // trocar de pagina antes do fetch terminar, `ativo` vira false e o setSvg
     // nao roda. Sem isso, o React avisa sobre vazamento de memoria.
     let ativo = true;
@@ -95,7 +95,7 @@ export default function Icone({ nome, tamanho = 20, className = "" }) {
       // dangerouslySetInnerHTML injeta HTML puro. O nome assusta de proposito,
       // porque injetar HTML de fonte desconhecida abre porta para XSS. Aqui e
       // seguro: o conteudo vem de arquivos nossos, da nossa propria pasta
-      // public/, nunca de dado digitado por usuario.
+      // public/, nunca de dado digitado por usuário.
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   );

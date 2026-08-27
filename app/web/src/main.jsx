@@ -5,7 +5,7 @@
  *
  *   StrictMode      avisos extras do React durante o desenvolvimento
  *   BrowserRouter   habilita a navegacao por endereco
- *   ProvedorSessao  disponibiliza usuario e permissoes para tudo abaixo
+ *   ProvedorSessao  disponibiliza usuário e permissões para tudo abaixo
  *   App             o mapa de rotas
  *
  * Tambem aplica o tema salvo (claro ou escuro) ANTES de desenhar, para a tela

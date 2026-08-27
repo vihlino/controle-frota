@@ -1,5 +1,5 @@
 /**
- * Equipes.jsx - As equipes da fiscalizacao.
+ * Equipes.jsx - As equipes da fiscalização.
  */
 import criarPagina from "../../components/criarPagina.jsx";
 import Selo from "../../components/Selo.jsx";
@@ -8,7 +8,7 @@ import { numero } from "../../lib/formato.js";
 const TIPOS = [
   { valor: "OSTENSIVA", rotulo: "Ostensiva" },
   { valor: "APOIO", rotulo: "Apoio" },
-  { valor: "OPERACAO", rotulo: "Operacao" },
+  { valor: "OPERACAO", rotulo: "Operação" },
 ];
 
 export default criarPagina({
@@ -16,8 +16,8 @@ export default criarPagina({
   id: "id_equipe",
   singular: "equipe",
   titulo: "Equipes",
-  descricao: "Equipes da fiscalizacao e seus integrantes.",
-  trilha: [{ rotulo: "Fiscalizacao" }, { rotulo: "Equipes" }],
+  descricao: "Equipes da fiscalização e seus integrantes.",
+  trilha: [{ rotulo: "Fiscalização" }, { rotulo: "Equipes" }],
   unidade: "equipes",
   vazio: "Nenhuma equipe cadastrada.",
   rotuloAcao: "Nova equipe",
@@ -30,9 +30,9 @@ export default criarPagina({
     { chave: "numero", rotulo: "Numero", ordenavel: true },
     { chave: "tipo", rotulo: "Tipo", ordenavel: true },
     { chave: "integrantes", rotulo: "Integrantes", render: (e) => numero(e.integrantes) },
-    { chave: "observacoes", rotulo: "Observacoes", render: (e) => e.observacoes || "-" },
+    { chave: "observações", rotulo: "Observações", render: (e) => e.observações || "-" },
     {
-      chave: "status", rotulo: "Situacao", ordenavel: true,
+      chave: "status", rotulo: "Situação", ordenavel: true,
       render: (e) => (
         <Selo texto={e.status ? "Ativa" : "Inativa"} tom={e.status ? "verde" : "vermelho"} />
       ),
@@ -41,14 +41,14 @@ export default criarPagina({
   filtros: [
     { nome: "tipo", rotulo: "Tipo", tipo: "selecao", opcoes: TIPOS, vazio: "Todos" },
     {
-      nome: "status", rotulo: "Situacao", tipo: "selecao", vazio: "Todas",
+      nome: "status", rotulo: "Situação", tipo: "selecao", vazio: "Todas",
       opcoes: [{ valor: "true", rotulo: "Ativa" }, { valor: "false", rotulo: "Inativa" }],
     },
   ],
   formulario: [
     { nome: "numero", rotulo: "Numero da equipe *", obrigatorio: true },
     { nome: "tipo", rotulo: "Tipo *", tipo: "selecao", opcoes: TIPOS, obrigatorio: true, padrao: "OSTENSIVA" },
-    { nome: "observacoes", rotulo: "Observacoes", tipo: "area", largo: true },
+    { nome: "observações", rotulo: "Observações", tipo: "area", largo: true },
   ],
   aoSalvar: (f) => ({ ...f, status: true }),
 });

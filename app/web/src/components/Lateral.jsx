@@ -1,7 +1,7 @@
 /**
  * Lateral.jsx - A barra de menu preta.
  *
- * Monta o menu a partir de menu.js, escondendo o que o perfil do usuario nao
+ * Monta o menu a partir de menu.js, escondendo o que o perfil do usuário nao
  * pode abrir - grupo inteiro sem nenhum item visivel tambem some.
  *
  * Isso e comodidade visual, nao seguranca: a protecao de verdade esta nas
@@ -18,10 +18,10 @@ export default function Lateral({ recolhida, tema, alternarTema }) {
   // O menu so mostra o que o perfil pode abrir: nada de item que leva a uma
   // tela de "sem acesso".
   const blocos = MENU
-    .filter((b) => !b.permissao || podeVer(b.permissao))
+    .filter((b) => !b.permissão || podeVer(b.permissão))
     .map((b) => ({
       ...b,
-      itens: b.itens.filter((i) => !i.permissao || podeVer(i.permissao)),
+      itens: b.itens.filter((i) => !i.permissão || podeVer(i.permissão)),
     }))
     .filter((b) => b.itens.length);
 
@@ -35,7 +35,7 @@ export default function Lateral({ recolhida, tema, alternarTema }) {
             <div className="lateral__sub">
               Sistema Integrado de
               <br />
-              Gestao Publica
+              Gestão Publica
             </div>
           </div>
         )}
@@ -59,8 +59,7 @@ export default function Lateral({ recolhida, tema, alternarTema }) {
                 {!recolhida && (
                   <span className="lateral__rotulo">
                     {item.rotulo}
-                    {item.cadeado && <span className="lateral__cadeado" title="Tela restrita">*</span>}
-                  </span>
+                                      </span>
                 )}
               </NavLink>
             ))}

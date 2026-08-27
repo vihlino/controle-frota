@@ -67,19 +67,3 @@
   --topo-altura: 76px;
 }
 
-:root[data-tema="escuro"] {
-  --fundo: #0f1113;
-  --superficie: #17191c;
-  --superficie-2: #1d2024;
-  --borda: #2a2e33;
-  --borda-forte: #3a3f45;
-  --texto: #f2f4f6;
-  --texto-2: #a7adb4;
-  --texto-3: #7c828a;
-  --amarelo-suave: #3a2f0c;
-  --verde-suave: #102a1a;
-  --vermelho-suave: #331416;
-  --laranja-suave: #331e0e;
-  --azul-suave: #14203a;
-  --sombra: 0 1px 2px rgba(0, 0, 0, 0.4);
-}

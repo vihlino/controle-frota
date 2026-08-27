@@ -1,7 +1,7 @@
 /**
- * ServicoDiario.jsx - A escala diaria da fiscalizacao.
+ * ServiçoDiário.jsx - A escala diaria da fiscalização.
  * Cada linha e um turno, com o coordenador responsavel, e mostra quantas
- * equipes e quantas ocorrencias aquele servico teve.
+ * equipes e quantas ocorrências aquele serviço teve.
  */
 import { useEffect, useState } from "react";
 import PaginaLista from "../../components/PaginaLista.jsx";
@@ -25,7 +25,7 @@ const SITUACOES = [
   { valor: "ENCERRADO", rotulo: "Encerrado" },
 ];
 
-export default function ServicoDiario() {
+export default function ServiçoDiário() {
   const { podeVer, usuario } = useSessao();
   const lista = useLista("fiscalizacao/servico-diario", {
     busca: "", status: "", turno: "", dataDe: "", dataAte: "",
@@ -79,27 +79,27 @@ export default function ServicoDiario() {
     { chave: "hora_inicio", rotulo: "Inicio", render: (s) => hora(s.hora_inicio) },
     { chave: "hora_encerramento", rotulo: "Encerramento", render: (s) => hora(s.hora_encerramento) },
     { chave: "equipes", rotulo: "Equipes", render: (s) => numero(s.equipes) },
-    { chave: "ocorrencias", rotulo: "Ocorrencias", render: (s) => numero(s.ocorrencias) },
-    { chave: "status", rotulo: "Situacao", ordenavel: true, render: (s) => <Selo valor={s.status} /> },
+    { chave: "ocorrências", rotulo: "Ocorrências", render: (s) => numero(s.ocorrências) },
+    { chave: "status", rotulo: "Situação", ordenavel: true, render: (s) => <Selo valor={s.status} /> },
   ];
 
   return (
     <PaginaLista
-      trilha={[{ rotulo: "Fiscalizacao" }, { rotulo: "Servico Diario" }]}
-      titulo="Servico Diario"
-      descricao="Escalas diarias da fiscalizacao, com equipes e ocorrencias do turno."
+      trilha={[{ rotulo: "Fiscalização" }, { rotulo: "Serviço Diário" }]}
+      titulo="Serviço Diário"
+      descricao="Escalas diarias da fiscalização, com equipes e ocorrências do turno."
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={() => setCriando(true)}>
-            <Icone nome="calendar" tamanho={16} /> Novo servico diario
+            <Icone nome="calendar" tamanho={16} /> Novo serviço diário
           </button>
         )
       }
       lista={lista}
       colunas={colunas}
-      chaveDe={(s) => s.id_servico_diario}
-      unidade="servicos"
-      vazio="Nenhum servico diario registrado."
+      chaveDe={(s) => s.id_serviço_diário}
+      unidade="serviços"
+      vazio="Nenhum serviço diário registrado."
       filtros={
         <>
           <Texto rotulo="Buscar" id="busca" placeholder="Coordenador ou turno"
@@ -108,7 +108,7 @@ export default function ServicoDiario() {
           <Selecao rotulo="Turno" id="turno" vazio="Todos" opcoes={TURNOS}
                    value={lista.filtros.turno}
                    onChange={(e) => lista.alterarFiltro("turno", e.target.value)} />
-          <Selecao rotulo="Situacao" id="status" vazio="Todas" opcoes={SITUACOES}
+          <Selecao rotulo="Situação" id="status" vazio="Todas" opcoes={SITUACOES}
                    value={lista.filtros.status}
                    onChange={(e) => lista.alterarFiltro("status", e.target.value)} />
           <Data rotulo="De" id="dataDe" value={lista.filtros.dataDe}
@@ -120,19 +120,19 @@ export default function ServicoDiario() {
     >
       {criando && (
         <Modal
-          titulo="Novo servico diario"
+          titulo="Novo serviço diário"
           aoFechar={() => setCriando(false)}
           rodape={
             <>
               <button className="botao" onClick={() => setCriando(false)}>Cancelar</button>
-              <button className="botao botao--primario" form="form-servico" disabled={salvando}>
-                {salvando ? "Salvando..." : "Criar servico"}
+              <button className="botao botao--primario" form="form-serviço" disabled={salvando}>
+                {salvando ? "Salvando..." : "Criar serviço"}
               </button>
             </>
           }
         >
           {erroForm && <div className="login__erro">{erroForm}</div>}
-          <form id="form-servico" className="formulario-grade" onSubmit={salvar}>
+          <form id="form-serviço" className="formulario-grade" onSubmit={salvar}>
             <Data rotulo="Data *" id="data" required {...campo("data")} />
             <Selecao rotulo="Turno *" id="turno" required opcoes={TURNOS} {...campo("turno")} />
             <Selecao rotulo="Coordenador *" id="id_coordenador" required vazio="Selecione"

@@ -1,16 +1,16 @@
 /**
- * Sinistros.jsx - Ocorrencias envolvendo veiculos da frota.
+ * Sinistros.jsx - Ocorrências envolvendo veículos da frota.
  *
  * Registra tipo, local, condutor, envolvimento de terceiros e numero do B.O.
- * Depois do registro, a situacao do veiculo pode ser mudada na tela de
- * Veiculos, se ele ficar indisponivel.
+ * Depois do registro, a situação do veículo pode ser mudada na tela de
+ * Veículos, se ele ficar indisponivel.
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
-import Acoes from "../../components/Acoes.jsx";
+import Ações from "../../components/Ações.jsx";
 import Modal from "../../components/Modal.jsx";
 import { Texto, Selecao, Data, Area } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
@@ -37,17 +37,17 @@ const TOM_TIPO = {
 };
 
 const VAZIO = {
-  id_veiculo: "", id_servidor: "", data: "", hora: "", local: "", tipo: "COLISAO",
-  descricao: "", bo: "", houve_terceiros: false, status: "ABERTO", observacoes: "",
+  id_veículo: "", id_servidor: "", data: "", hora: "", local: "", tipo: "COLISAO",
+  descricao: "", bo: "", houve_terceiros: false, status: "ABERTO", observações: "",
 };
 
 export default function Sinistros() {
   const navegar = useNavigate();
   const { podeVer, usuario } = useSessao();
   const lista = useLista("frotas/sinistros", {
-    busca: "", veiculo: "", status: "", tipo: "", dataDe: "", dataAte: "",
+    busca: "", veículo: "", status: "", tipo: "", dataDe: "", dataAte: "",
   });
-  const [veiculos, setVeiculos] = useState([]);
+  const [veículos, setVeículos] = useState([]);
   const [servidores, setServidores] = useState([]);
   const [resumo, setResumo] = useState(null);
   const [registrando, setRegistrando] = useState(false);
@@ -58,7 +58,7 @@ export default function Sinistros() {
   const podeGerenciar = podeVer("FROTAS_GERENCIAR_SINISTROS");
 
   useEffect(() => {
-    api("/frotas/veiculos/opcoes").then(setVeiculos).catch(() => {});
+    api("/frotas/veiculos/opcoes").then(setVeículos).catch(() => {});
     api("/admin/servidores/opcoes").then(setServidores).catch(() => {});
   }, []);
 
@@ -83,7 +83,7 @@ export default function Sinistros() {
         method: "POST",
         body: {
           ...formulario,
-          id_veiculo: Number(formulario.id_veiculo),
+          id_veículo: Number(formulario.id_veículo),
           id_servidor: Number(formulario.id_servidor),
           id_responsavel: usuario.id_usuario,
           houve_terceiros: !!formulario.houve_terceiros,
@@ -116,7 +116,7 @@ export default function Sinistros() {
       ),
     },
     {
-      chave: "placa", rotulo: "Veiculo", ordenavel: true,
+      chave: "placa", rotulo: "Veículo", ordenavel: true,
       render: (s) => (
         <span className="celula-dupla">
           <strong>{s.placa}</strong>
@@ -140,14 +140,14 @@ export default function Sinistros() {
     },
     { chave: "houve_terceiros", rotulo: "Houve terceiros?", render: (s) => simNao(s.houve_terceiros) },
     { chave: "bo", rotulo: "B.O.", render: (s) => s.bo || "-" },
-    { chave: "status", rotulo: "Situacao", ordenavel: true, render: (s) => <Selo valor={s.status} /> },
+    { chave: "status", rotulo: "Situação", ordenavel: true, render: (s) => <Selo valor={s.status} /> },
     {
-      chave: "acoes", rotulo: "Acoes",
+      chave: "ações", rotulo: "Ações",
       render: (s) => (
-        <Acoes
-          acoes={[
+        <Ações
+          ações={[
             { rotulo: "Visualizar detalhes", aoClicar: () => navegar(`/frotas/sinistros/${s.id_sinistro}`) },
-            { rotulo: "Ver veiculo", aoClicar: () => navegar(`/frotas/veiculos/${s.id_veiculo}`) },
+            { rotulo: "Ver veículo", aoClicar: () => navegar(`/frotas/veiculos/${s.id_veículo}`) },
           ]}
         />
       ),
@@ -184,14 +184,14 @@ export default function Sinistros() {
           <Texto rotulo="Buscar" id="busca" placeholder="Placa, local, numero ou B.O."
                  value={lista.filtros.busca}
                  onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
-          <Selecao rotulo="Veiculo" id="veiculo" vazio="Todos os veiculos"
-                   opcoes={veiculos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.modelo}` }))}
-                   value={lista.filtros.veiculo}
-                   onChange={(e) => lista.alterarFiltro("veiculo", e.target.value)} />
+          <Selecao rotulo="Veículo" id="veículo" vazio="Todos os veículos"
+                   opcoes={veículos.map((v) => ({ valor: v.id_veículo, rotulo: `${v.placa} - ${v.modelo}` }))}
+                   value={lista.filtros.veículo}
+                   onChange={(e) => lista.alterarFiltro("veículo", e.target.value)} />
           <Selecao rotulo="Tipo de sinistro" id="tipo" vazio="Todos" opcoes={TIPOS}
                    value={lista.filtros.tipo}
                    onChange={(e) => lista.alterarFiltro("tipo", e.target.value)} />
-          <Selecao rotulo="Situacao" id="status" vazio="Todas" opcoes={SITUACOES}
+          <Selecao rotulo="Situação" id="status" vazio="Todas" opcoes={SITUACOES}
                    value={lista.filtros.status}
                    onChange={(e) => lista.alterarFiltro("status", e.target.value)} />
           <Data rotulo="De" id="dataDe" value={lista.filtros.dataDe}
@@ -204,7 +204,7 @@ export default function Sinistros() {
       {registrando && (
         <Modal
           titulo="Registrar sinistro"
-          legenda="Quando necessario, mude a situacao do veiculo depois do registro."
+          legenda="Quando necessario, mude a situação do veículo depois do registro."
           largura={720}
           aoFechar={() => setRegistrando(false)}
           rodape={
@@ -218,11 +218,11 @@ export default function Sinistros() {
         >
           {erroForm && <div className="login__erro">{erroForm}</div>}
           <form id="form-sinistro" className="formulario-grade" onSubmit={salvar}>
-            <Selecao rotulo="Veiculo *" id="id_veiculo" required vazio="Selecione"
-                     opcoes={veiculos.map((v) => ({
-                       valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
+            <Selecao rotulo="Veículo *" id="id_veículo" required vazio="Selecione"
+                     opcoes={veículos.map((v) => ({
+                       valor: v.id_veículo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
                      }))}
-                     {...campo("id_veiculo")} />
+                     {...campo("id_veículo")} />
             <Selecao rotulo="Condutor *" id="id_servidor" required vazio="Selecione"
                      opcoes={servidores.map((s) => ({ valor: s.id_servidor, rotulo: s.nome }))}
                      {...campo("id_servidor")} />
@@ -230,7 +230,7 @@ export default function Sinistros() {
             <Data rotulo="Data *" id="data" required {...campo("data")} />
             <Texto rotulo="Hora *" id="hora" type="time" required {...campo("hora")} />
             <Texto rotulo="Numero do B.O." id="bo" {...campo("bo")} />
-            <Selecao rotulo="Situacao" id="status" opcoes={SITUACOES} {...campo("status")} />
+            <Selecao rotulo="Situação" id="status" opcoes={SITUACOES} {...campo("status")} />
             <Texto rotulo="Local *" id="local" required largo
                    placeholder="Ex.: Av. Brasil, 1250 - Centro" {...campo("local")} />
             <div className="campo campo--marcavel" data-largo="sim">
@@ -247,7 +247,7 @@ export default function Sinistros() {
             </div>
             <Area rotulo="Descricao do sinistro *" id="descricao" largo required
                   {...campo("descricao")} />
-            <Area rotulo="Observacoes" id="observacoes" largo {...campo("observacoes")} />
+            <Area rotulo="Observações" id="observações" largo {...campo("observações")} />
           </form>
         </Modal>
       )}

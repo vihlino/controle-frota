@@ -1,24 +1,24 @@
 /**
- * ManutencoesFisc.jsx - As ordens de servico das viaturas.
- * Mesma base das manutencoes de Frotas, vista pelo lado da Fiscalizacao.
+ * ManutençõesFisc.jsx - As ordens de serviço das viaturas.
+ * Mesma base das manutenções de Frotas, vista pelo lado da Fiscalização.
  */
 import criarPagina from "../../components/criarPagina.jsx";
 import Selo from "../../components/Selo.jsx";
 import { data, dinheiro, rotulo } from "../../lib/formato.js";
 
-// Mesma base de ordens de servico das Frotas, vista pelo lado da Fiscalizacao.
+// Mesma base de ordens de serviço das Frotas, vista pelo lado da Fiscalização.
 export default criarPagina({
   recurso: "frotas/manutencoes",
   id: "id_os",
-  titulo: "Manutencoes da Fiscalizacao",
-  descricao: "Ordens de servico das viaturas usadas em fiscalizacao.",
-  trilha: [{ rotulo: "Fiscalizacao" }, { rotulo: "Manutencoes" }],
-  unidade: "manutencoes",
-  vazio: "Nenhuma manutencao encontrada.",
+  titulo: "Manutenções da Fiscalização",
+  descricao: "Ordens de serviço das viaturas usadas em fiscalização.",
+  trilha: [{ rotulo: "Fiscalização" }, { rotulo: "Manutenções" }],
+  unidade: "manutenções",
+  vazio: "Nenhuma manutenção encontrada.",
   mapaOpcoes: {
-    veiculos: (v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.modelo}` }),
+    veículos: (v) => ({ valor: v.id_veículo, rotulo: `${v.placa} - ${v.modelo}` }),
   },
-  opcoes: { veiculos: "/frotas/veiculos/opcoes" },
+  opcoes: { veículos: "/frotas/veiculos/opcoes" },
   colunas: [
     { chave: "numero", rotulo: "No da OS", render: (o) => o.numero || "-" },
     {
@@ -27,19 +27,19 @@ export default criarPagina({
     },
     { chave: "placa", rotulo: "Viatura", ordenavel: true },
     { chave: "tipo", rotulo: "Tipo", render: (o) => rotulo("tipoOs", o.tipo) },
-    { chave: "descricao", rotulo: "Servico", render: (o) => o.descricao || o.servico_realizado || "-" },
+    { chave: "descricao", rotulo: "Serviço", render: (o) => o.descricao || o.serviço_realizado || "-" },
     { chave: "oficina", rotulo: "Oficina", render: (o) => o.oficina || "-" },
     { chave: "custo", rotulo: "Custo", ordenavel: true, render: (o) => dinheiro(o.custo) },
-    { chave: "status", rotulo: "Situacao", ordenavel: true, render: (o) => <Selo valor={o.status} /> },
+    { chave: "status", rotulo: "Situação", ordenavel: true, render: (o) => <Selo valor={o.status} /> },
   ],
   filtros: [
-    { nome: "busca", rotulo: "Buscar", dica: "Placa, servico ou oficina" },
-    { nome: "veiculo", rotulo: "Viatura", tipo: "selecao", opcoes: "veiculos", vazio: "Todas" },
+    { nome: "busca", rotulo: "Buscar", dica: "Placa, serviço ou oficina" },
+    { nome: "veículo", rotulo: "Viatura", tipo: "selecao", opcoes: "veículos", vazio: "Todas" },
     {
-      nome: "status", rotulo: "Situacao", tipo: "selecao", vazio: "Todas",
+      nome: "status", rotulo: "Situação", tipo: "selecao", vazio: "Todas",
       opcoes: [
         { valor: "EM_ANALISE", rotulo: "Em analise" },
-        { valor: "EM_MANUTENCAO", rotulo: "Em manutencao" },
+        { valor: "EM_MANUTENCAO", rotulo: "Em manutenção" },
         { valor: "RESOLVIDA", rotulo: "Resolvida" },
         { valor: "CANCELADA", rotulo: "Cancelada" },
       ],

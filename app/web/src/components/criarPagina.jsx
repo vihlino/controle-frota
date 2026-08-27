@@ -2,8 +2,8 @@
  * criarPagina.jsx - Fabrica de telas de listagem.
  *
  * E o equivalente, no front, do que api/src/crud.js faz no servidor: em vez de
- * escrever a mesma tela 15 vezes, cada uma declara uma configuracao e esta
- * funcao devolve o componente React pronto.
+ * escrever a mesma tela 15 vezes, cada uma declara uma configuração e esta
+ * função devolve o componente React pronto.
  *
  * EXEMPLO (pages/admin/Setores.jsx, resumido):
  *
@@ -18,21 +18,21 @@
  *
  * QUANDO NAO USAR
  * ---------------
- * Telas com comportamento proprio sao escritas a mao: Veiculos (menu de acoes
- * com QR Code e historico), Checklists (coluna de equipamentos), Relatorios
- * (fluxo de geracao), Usuarios (senha separada) e Perfis (matriz de permissoes).
+ * Telas com comportamento proprio sao escritas a mao: Veículos (menu de ações
+ * com QR Code e historico), Checklists (coluna de equipamentos), Relatórios
+ * (fluxo de geracao), Usuários (senha separada) e Perfis (matriz de permissões).
  */
 import { useEffect, useState } from "react";
 import PaginaLista from "./PaginaLista.jsx";
 import Icone from "./Icone.jsx";
 import Modal from "./Modal.jsx";
-import Acoes from "./Acoes.jsx";
+import Ações from "./Ações.jsx";
 import { Texto, Selecao, Data, Area } from "./Campos.jsx";
 import { useLista } from "./useLista.js";
 import { api } from "../lib/api.js";
 import { useSessao } from "../lib/sessao.jsx";
 
-// Traduz o "tipo" declarado na configuracao para o componente de campo.
+// Traduz o "tipo" declarado na configuração para o componente de campo.
 const CAMPOS = { texto: Texto, selecao: Selecao, data: Data, area: Area };
 
 /**
@@ -49,7 +49,7 @@ const CAMPOS = { texto: Texto, selecao: Selecao, data: Data, area: Area };
  * @param {Array}  config.filtros      Campos da barra de filtros.
  * @param {Array}  [config.formulario] Campos do cadastro. Sem isto, a tela fica
  *                                     somente leitura (sem botao de novo, sem
- *                                     coluna de acoes).
+ *                                     coluna de ações).
  * @param {object} [config.opcoes]     {chave: "/rota/da/api"} - listas que
  *                                     alimentam os <select>.
  * @param {object} config.mapaOpcoes   {chave: (item) => ({valor, rotulo})} -
@@ -58,7 +58,7 @@ const CAMPOS = { texto: Texto, selecao: Selecao, data: Data, area: Area };
  * @param {Function} [config.aoSalvar] (formulario, usuario) => corpo a enviar.
  *                                     Use para converter tipos e acrescentar
  *                                     campos que a tela nao pergunta.
- * @param {string} [config.permissaoGerenciar]  Sem ela, o usuario so ve.
+ * @param {string} [config.permissaoGerenciar]  Sem ela, o usuário so ve.
  * @param {boolean} [config.permiteExcluir]
  * @returns {Function} O componente React da tela.
  */
@@ -82,7 +82,7 @@ export default function criarPagina(config) {
     const podeGerenciar = !config.permissaoGerenciar || podeVer(config.permissaoGerenciar);
     const temFormulario = !!config.formulario;
 
-    // Carrega as listas que alimentam os <select> declarados na configuracao.
+    // Carrega as listas que alimentam os <select> declarados na configuração.
     // Roda uma vez so: essas listas mudam pouco.
     useEffect(() => {
       for (const [chave, caminho] of Object.entries(config.opcoes || {})) {
@@ -100,7 +100,7 @@ export default function criarPagina(config) {
     function abrir(registro) {
       // Comeca com todos os campos vazios (ou com o padrao declarado), para o
       // React nao reclamar de campo que muda de "nao controlado" para
-      // "controlado" quando o usuario digita.
+      // "controlado" quando o usuário digita.
       const base = Object.fromEntries(
         config.formulario.map((c) => [c.nome, c.padrao ?? ""])
       );
@@ -116,7 +116,7 @@ export default function criarPagina(config) {
       setErroForm("");
       try {
         // aoSalvar e a chance de a tela converter tipos (texto -> numero) e
-        // acrescentar campos que o formulario nao pergunta (id do usuario logado).
+        // acrescentar campos que o formulario nao pergunta (id do usuário logado).
         const corpo = config.aoSalvar ? config.aoSalvar(formulario, usuario) : formulario;
 
         if (editando === "novo") {
@@ -127,7 +127,7 @@ export default function criarPagina(config) {
         setEditando(null);
         lista.recarregar(); // atualiza a tabela com o que acabou de mudar
       } catch (e) {
-        // O erro aparece dentro do modal, com o que o usuario digitou ainda
+        // O erro aparece dentro do modal, com o que o usuário digitou ainda
         // preenchido - refazer tudo por causa de um campo seria irritante.
         setErroForm(e.message);
       } finally {
@@ -148,16 +148,16 @@ export default function criarPagina(config) {
       }
     }
 
-    // A coluna de acoes so existe quando a tela tem cadastro E o usuario tem
-    // permissao para gerenciar.
+    // A coluna de ações so existe quando a tela tem cadastro E o usuário tem
+    // permissão para gerenciar.
     const colunas = [...config.colunas];
     if (temFormulario && podeGerenciar) {
       colunas.push({
-        chave: "acoes",
-        rotulo: "Acoes",
+        chave: "ações",
+        rotulo: "Ações",
         render: (registro) => (
-          <Acoes
-            acoes={[
+          <Ações
+            ações={[
               { rotulo: "Editar", aoClicar: () => abrir(registro) },
               ...(config.permiteExcluir
                 ? [{ rotulo: "Excluir", perigo: true, aoClicar: () => excluir(registro) }]
@@ -179,7 +179,7 @@ export default function criarPagina(config) {
       const Componente = CAMPOS[c.tipo] || Texto;
 
       // As opcoes de um select podem vir de duas formas: uma lista fixa
-      // escrita na configuracao, ou o nome de uma lista carregada da API.
+      // escrita na configuração, ou o nome de uma lista carregada da API.
       const listaOpcoes = c.opcoes
         ? typeof c.opcoes === "string"
           ? (opcoes[c.opcoes] || []).map(config.mapaOpcoes[c.opcoes])

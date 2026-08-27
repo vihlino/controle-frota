@@ -14,8 +14,8 @@ import { dataHora, numero } from "../../lib/formato.js";
 
 const ORIGENS = [
   { valor: "acessos", rotulo: "Logs de Acesso" },
-  { valor: "acoes", rotulo: "Logs de Acoes" },
-  { valor: "alteracoes", rotulo: "Alteracoes de Registros" },
+  { valor: "ações", rotulo: "Logs de Ações" },
+  { valor: "alterações", rotulo: "Alterações de Registros" },
 ];
 
 // Monta um CSV no proprio navegador a partir do que a API devolve, sem
@@ -49,7 +49,7 @@ export default function ExportarLogs() {
     });
   }, [definirCabecalho]);
 
-  function parametros(porPagina) {
+  function parâmetros(porPagina) {
     const p = new URLSearchParams({ porPagina: String(porPagina) });
     if (periodo.dataDe) p.set("dataDe", periodo.dataDe);
     if (periodo.dataAte) p.set("dataAte", periodo.dataAte);
@@ -57,7 +57,7 @@ export default function ExportarLogs() {
   }
 
   useEffect(() => {
-    api(`/auditoria/${origem}?${parametros(1)}`)
+    api(`/auditoria/${origem}?${parâmetros(1)}`)
       .then((r) => setPrevia(r.total))
       .catch((e) => setErro(e.message));
   }, [origem, periodo]);
@@ -66,10 +66,10 @@ export default function ExportarLogs() {
     setExportando(true);
     setErro("");
     try {
-      const r = await api(`/auditoria/${origem}?${parametros(5000)}`);
+      const r = await api(`/auditoria/${origem}?${parâmetros(5000)}`);
       const csv = paraCsv(r.itens);
       if (!csv) {
-        setErro("Nao ha registros para exportar nesse periodo.");
+        setErro("Não há registros para exportar nesse periodo.");
         return;
       }
       // O BOM faz o Excel abrir os acentos corretamente.

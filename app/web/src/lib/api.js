@@ -1,7 +1,7 @@
 /**
  * api.js - O unico lugar do front que fala com o servidor.
  *
- * Toda tela usa a funcao api() daqui. Concentrar isso num arquivo so resolve
+ * Toda tela usa a função api() daqui. Concentrar isso num arquivo so resolve
  * de uma vez: o token de autenticacao, o cabecalho JSON, o tratamento de erro
  * e o que fazer quando a sessao expira.
  */
@@ -31,10 +31,10 @@ export function gravarToken(token) {
 }
 
 /**
- * Erro vindo da API, carregando o codigo HTTP junto.
+ * Erro vindo da API, carregando o código HTTP junto.
  *
  * Existe para a tela poder diferenciar os casos quando precisa (403 = sem
- * permissao, 409 = conflito, 404 = nao encontrado). Na maioria das vezes basta
+ * permissão, 409 = conflito, 404 = não encontrado). Na maioria das vezes basta
  * mostrar e.message, que ja vem em portugues do servidor.
  */
 export class ErroApi extends Error {
@@ -50,7 +50,7 @@ export class ErroApi extends Error {
  * @param {string} caminho    Rota sem o prefixo /api. Ex.: "/frotas/veiculos"
  * @param {object} [opcoes]
  * @param {string} [opcoes.method]  "GET" (padrao), "POST", "PUT", "DELETE"
- * @param {object} [opcoes.body]    Objeto JavaScript - a funcao converte para
+ * @param {object} [opcoes.body]    Objeto JavaScript - a função converte para
  *                                  JSON sozinha, nao passe string.
  * @returns {Promise<any>} O JSON da resposta (ou null quando a resposta e 204).
  * @throws {ErroApi} Quando o servidor responde com erro.
@@ -63,7 +63,7 @@ export class ErroApi extends Error {
  * Sobre o endereco: o caminho fica relativo ("/api/..."), sem servidor nenhum
  * escrito. Em desenvolvimento o Vite repassa para localhost:3333; em producao
  * o front e a API ficam no mesmo dominio. Assim nao existe URL de servidor
- * espalhada pelo codigo nem problema de CORS.
+ * espalhada pelo código nem problema de CORS.
  */
 // Em producao (Netlify), VITE_API_URL aponta para a URL do Render.
 // Em desenvolvimento, fica vazio e o proxy do Vite cuida do /api.
@@ -99,7 +99,7 @@ export async function api(caminho, opcoes = {}) {
     if (resposta.status === 401 && !caminho.startsWith("/sessao/login")) {
       gravarToken(null);
     }
-    throw new ErroApi(dados.erro || "Nao foi possivel completar a operacao.", resposta.status);
+    throw new ErroApi(dados.erro || "Não foi possivel completar a operação.", resposta.status);
   }
 
   return dados;

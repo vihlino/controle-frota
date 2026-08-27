@@ -4,7 +4,7 @@
  * Desenha, nesta ordem: trilha de navegacao, titulo, botao de acao, cartoes de
  * KPI (opcionais), barra de filtros, tabela e rodape com paginacao.
  *
- * Nao tem logica de dados: recebe pronto o objeto vindo do useLista. Assim o
+ * Não tem logica de dados: recebe pronto o objeto vindo do useLista. Assim o
  * "como aparece" fica aqui e o "de onde vem" fica la.
  */
 import { useEffect } from "react";
@@ -63,7 +63,7 @@ export default function PaginaLista({
       {filtros && (
         <div className="cartao filtros">
           {filtros}
-          <div className="filtros__acoes">
+          <div className="filtros__ações">
             <button className="botao" onClick={limpar}>
               <Icone nome="minus" tamanho={15} /> Limpar
             </button>

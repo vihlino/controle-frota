@@ -1,6 +1,6 @@
 /**
  * PainelTi.jsx - O painel de TI e Sistema do Dashboard.
- * Usuarios, servidores, setores, acessos do dia e os ultimos acessos -
+ * Usuários, servidores, setores, acessos do dia e os ultimos acessos -
  * a visao de quem administra o SITRA.
  */
 import { Link } from "react-router-dom";
@@ -19,13 +19,13 @@ const ROTULO_EVENTO = {
 };
 
 export default function PainelTi({ dados }) {
-  const { kpis, modulos, acessosRecentes } = dados;
+  const { kpis, módulos, acessosRecentes } = dados;
 
   return (
     <>
       <div className="kpis">
-        <Kpi icone="user" rotulo="Usuarios ativos" valor={kpis.usuarios.ativos}
-             nota={`${numero(kpis.usuarios.total)} cadastrados`} tom="azul" />
+        <Kpi icone="user" rotulo="Usuários ativos" valor={kpis.usuários.ativos}
+             nota={`${numero(kpis.usuários.total)} cadastrados`} tom="azul" />
         <Kpi icone="fisc-servidores" rotulo="Servidores cadastrados" valor={kpis.servidores}
              nota="Base de pessoas" tom="verde" />
         <Kpi icone="nav-gestao" rotulo="Setores ativos" valor={kpis.setores}
@@ -35,12 +35,12 @@ export default function PainelTi({ dados }) {
       </div>
 
       <div className="grade-2">
-        <Cartao titulo="Registros por modulo">
+        <Cartao titulo="Registros por módulo">
           <div className="lista-os">
-            {modulos.map((m) => (
-              <div className="lista-os__item" key={m.modulo}>
+            {módulos.map((m) => (
+              <div className="lista-os__item" key={m.módulo}>
                 <div>
-                  <div className="lista-os__titulo">{m.modulo}</div>
+                  <div className="lista-os__titulo">{m.módulo}</div>
                   <div className="lista-os__desc">Registros no banco</div>
                 </div>
                 <span className="lista-os__valor lista-os__valor--neutro">
@@ -56,12 +56,12 @@ export default function PainelTi({ dados }) {
           <div className="rolagem-x">
             <table className="tabela">
               <thead>
-                <tr><th>Usuario</th><th>Perfil</th><th>IP</th><th>Evento</th><th>Data e hora</th></tr>
+                <tr><th>Usuário</th><th>Perfil</th><th>IP</th><th>Evento</th><th>Data e hora</th></tr>
               </thead>
               <tbody>
                 {acessosRecentes.map((a, i) => (
                   <tr key={i}>
-                    <td>{a.usuario || "-"}</td>
+                    <td>{a.usuário || "-"}</td>
                     <td>{a.perfil || "-"}</td>
                     <td>{a.ip || "-"}</td>
                     <td>

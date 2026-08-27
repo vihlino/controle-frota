@@ -1,12 +1,12 @@
 /**
- * Relatorios.jsx - Reaproveita a tela de relatorios das Frotas.
+ * Relatórios.jsx - Reaproveita a tela de relatórios das Frotas.
  *
- * Frotas e Fiscalizacao usam a MESMA tela. A diferenca esta nos tipos de
- * relatorio disponiveis, que vem dos modelos do backend - nao ha motivo para
+ * Frotas e Fiscalização usam a MESMA tela. A diferenca esta nos tipos de
+ * relatório disponiveis, que vem dos modelos do backend - não há motivo para
  * duplicar a tela so por causa do menu de origem.
  */
-import RelatoriosFrotas from "./frotas/Relatorios.jsx";
+import RelatóriosFrotas from "./frotas/Relatórios.jsx";
 
-// Fiscalizacao e Frotas usam a mesma tela de relatorios: a diferenca fica nos
-// tipos de relatorio disponiveis, que vem do proprio modelo no backend.
-export default RelatoriosFrotas;
+// Fiscalização e Frotas usam a mesma tela de relatórios: a diferenca fica nos
+// tipos de relatório disponiveis, que vem do proprio modelo no backend.
+export default RelatóriosFrotas;

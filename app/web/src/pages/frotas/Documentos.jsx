@@ -1,17 +1,17 @@
 /**
- * Documentos.jsx - Documentos dos veiculos e seus vencimentos.
+ * Documentos.jsx - Documentos dos veículos e seus vencimentos.
  *
  * Cada linha mostra quantos dias faltam para vencer, com cor: verde acima de
  * 30 dias, laranja dentro dos 30 e vermelho quando ja venceu.
  *
- * Um documento pode ser marcado para BLOQUEAR o veiculo quando vencer.
+ * Um documento pode ser marcado para BLOQUEAR o veículo quando vencer.
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
-import Acoes from "../../components/Acoes.jsx";
+import Ações from "../../components/Ações.jsx";
 import Modal from "../../components/Modal.jsx";
 import { Texto, Selecao, Data, Area } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
@@ -25,12 +25,12 @@ const SITUACOES = [
   { valor: "VENCIDO", rotulo: "Vencido" },
   { valor: "INATIVO", rotulo: "Inativo" },
 ];
-const CATEGORIAS = ["Licenciamento", "Seguro", "Imposto", "Inspecao", "Manual", "Outro"];
+const CATEGORIAS = ["Licenciamento", "Seguro", "Imposto", "Inspeção", "Manual", "Outro"];
 
 const VAZIO = {
-  id_veiculo: "", tipo_documento: "", numero_documento: "", categoria: "Licenciamento",
+  id_veículo: "", tipo_documento: "", numero_documento: "", categoria: "Licenciamento",
   data_emissao: "", data_validade: "", status: "VALIDO", id_responsavel: "",
-  bloqueia_veiculo: false, observacoes: "",
+  bloqueia_veículo: false, observações: "",
 };
 
 // Traduz os dias restantes na frase que aparece embaixo da data.
@@ -45,11 +45,11 @@ function prazo(dias) {
 export default function Documentos() {
   const navegar = useNavigate();
   const { podeVer } = useSessao();
-  const [parametros] = useSearchParams();
+  const [parâmetros] = useSearchParams();
   const lista = useLista("frotas/documentos", {
-    busca: "", veiculo: parametros.get("veiculo") || "", status: "", categoria: "",
+    busca: "", veículo: parâmetros.get("veículo") || "", status: "", categoria: "",
   });
-  const [veiculos, setVeiculos] = useState([]);
+  const [veículos, setVeículos] = useState([]);
   const [servidores, setServidores] = useState([]);
   const [resumo, setResumo] = useState(null);
   const [editando, setEditando] = useState(null);
@@ -60,7 +60,7 @@ export default function Documentos() {
   const podeGerenciar = podeVer("FROTAS_GERENCIAR_DOCUMENTOS");
 
   useEffect(() => {
-    api("/frotas/veiculos/opcoes").then(setVeiculos).catch(() => {});
+    api("/frotas/veiculos/opcoes").then(setVeículos).catch(() => {});
     api("/admin/servidores/opcoes").then(setServidores).catch(() => {});
   }, []);
 
@@ -94,9 +94,9 @@ export default function Documentos() {
     try {
       const corpo = {
         ...formulario,
-        id_veiculo: Number(formulario.id_veiculo),
+        id_veículo: Number(formulario.id_veículo),
         id_responsavel: formulario.id_responsavel ? Number(formulario.id_responsavel) : null,
-        bloqueia_veiculo: !!formulario.bloqueia_veiculo,
+        bloqueia_veículo: !!formulario.bloqueia_veículo,
       };
       if (editando === "novo") await api("/frotas/documentos", { method: "POST", body: corpo });
       else await api(`/frotas/documentos/${editando}`, { method: "PUT", body: corpo });
@@ -110,7 +110,7 @@ export default function Documentos() {
   }
 
   async function excluir(d) {
-    if (!confirm(`Excluir o documento ${d.tipo_documento} do veiculo ${d.placa}?`)) return;
+    if (!confirm(`Excluir o documento ${d.tipo_documento} do veículo ${d.placa}?`)) return;
     try {
       await api(`/frotas/documentos/${d.id_documento}`, { method: "DELETE" });
       lista.recarregar();
@@ -131,7 +131,7 @@ export default function Documentos() {
       render: (d) => (d.categoria ? <Selo texto={d.categoria} tom="azul" /> : "-"),
     },
     {
-      chave: "placa", rotulo: "Veiculo", ordenavel: true,
+      chave: "placa", rotulo: "Veículo", ordenavel: true,
       render: (d) => (
         <span className="celula-dupla">
           <strong>{d.placa}</strong>
@@ -154,17 +154,17 @@ export default function Documentos() {
       },
     },
     { chave: "responsavel", rotulo: "Responsavel", render: (d) => d.responsavel || "-" },
-    { chave: "status", rotulo: "Situacao", ordenavel: true, render: (d) => <Selo valor={d.status} /> },
+    { chave: "status", rotulo: "Situação", ordenavel: true, render: (d) => <Selo valor={d.status} /> },
     {
-      chave: "bloqueia_veiculo", rotulo: "Bloqueia",
-      render: (d) => (d.bloqueia_veiculo ? <Selo texto="Bloqueia" tom="vermelho" /> : "-"),
+      chave: "bloqueia_veículo", rotulo: "Bloqueia",
+      render: (d) => (d.bloqueia_veículo ? <Selo texto="Bloqueia" tom="vermelho" /> : "-"),
     },
     {
-      chave: "acoes", rotulo: "Acoes",
+      chave: "ações", rotulo: "Ações",
       render: (d) => (
-        <Acoes
-          acoes={[
-            { rotulo: "Ver veiculo", aoClicar: () => navegar(`/frotas/veiculos/${d.id_veiculo}`) },
+        <Ações
+          ações={[
+            { rotulo: "Ver veículo", aoClicar: () => navegar(`/frotas/veiculos/${d.id_veículo}`) },
             ...(podeGerenciar
               ? [
                   { rotulo: "Editar documento", aoClicar: () => abrirEdicao(d) },
@@ -207,15 +207,15 @@ export default function Documentos() {
           <Texto rotulo="Buscar" id="busca" placeholder="Placa, tipo ou numero"
                  value={lista.filtros.busca}
                  onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
-          <Selecao rotulo="Veiculo" id="veiculo" vazio="Todos os veiculos"
-                   opcoes={veiculos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.modelo}` }))}
-                   value={lista.filtros.veiculo}
-                   onChange={(e) => lista.alterarFiltro("veiculo", e.target.value)} />
+          <Selecao rotulo="Veículo" id="veículo" vazio="Todos os veículos"
+                   opcoes={veículos.map((v) => ({ valor: v.id_veículo, rotulo: `${v.placa} - ${v.modelo}` }))}
+                   value={lista.filtros.veículo}
+                   onChange={(e) => lista.alterarFiltro("veículo", e.target.value)} />
           <Selecao rotulo="Categoria" id="categoria" vazio="Todas as categorias"
                    opcoes={CATEGORIAS.map((c) => ({ valor: c, rotulo: c }))}
                    value={lista.filtros.categoria}
                    onChange={(e) => lista.alterarFiltro("categoria", e.target.value)} />
-          <Selecao rotulo="Situacao" id="status" vazio="Todas" opcoes={SITUACOES}
+          <Selecao rotulo="Situação" id="status" vazio="Todas" opcoes={SITUACOES}
                    value={lista.filtros.status}
                    onChange={(e) => lista.alterarFiltro("status", e.target.value)} />
         </>
@@ -237,11 +237,11 @@ export default function Documentos() {
         >
           {erroForm && <div className="login__erro">{erroForm}</div>}
           <form id="form-doc" className="formulario-grade" onSubmit={salvar}>
-            <Selecao rotulo="Veiculo *" id="id_veiculo" required vazio="Selecione"
-                     opcoes={veiculos.map((v) => ({
-                       valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
+            <Selecao rotulo="Veículo *" id="id_veículo" required vazio="Selecione"
+                     opcoes={veículos.map((v) => ({
+                       valor: v.id_veículo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
                      }))}
-                     {...campo("id_veiculo")} />
+                     {...campo("id_veículo")} />
             <Texto rotulo="Tipo de documento *" id="tipo_documento" required
                    placeholder="Ex.: CRLV" {...campo("tipo_documento")} />
             <Selecao rotulo="Categoria" id="categoria"
@@ -253,20 +253,20 @@ export default function Documentos() {
             <Selecao rotulo="Responsavel" id="id_responsavel" vazio="Sem responsavel"
                      opcoes={servidores.map((s) => ({ valor: s.id_servidor, rotulo: s.nome }))}
                      {...campo("id_responsavel")} />
-            <Selecao rotulo="Situacao" id="status" opcoes={SITUACOES} {...campo("status")} />
+            <Selecao rotulo="Situação" id="status" opcoes={SITUACOES} {...campo("status")} />
             <div className="campo campo--marcavel" data-largo="sim">
               <label>
                 <input
                   type="checkbox"
-                  checked={!!formulario.bloqueia_veiculo}
+                  checked={!!formulario.bloqueia_veículo}
                   onChange={(e) =>
-                    setFormulario((f) => ({ ...f, bloqueia_veiculo: e.target.checked }))
+                    setFormulario((f) => ({ ...f, bloqueia_veículo: e.target.checked }))
                   }
                 />
-                Este documento bloqueia o uso do veiculo quando estiver vencido
+                Este documento bloqueia o uso do veículo quando estiver vencido
               </label>
             </div>
-            <Area rotulo="Observacoes" id="observacoes" largo {...campo("observacoes")} />
+            <Area rotulo="Observações" id="observações" largo {...campo("observações")} />
           </form>
         </Modal>
       )}

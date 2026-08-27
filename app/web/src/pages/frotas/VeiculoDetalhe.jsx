@@ -1,8 +1,8 @@
 /**
- * VeiculoDetalhe.jsx - A ficha completa de um veiculo.
+ * VeículoDetalhe.jsx - A ficha completa de um veículo.
  *
- * Junta tres consultas: os dados do veiculo, um resumo em numeros e a linha do
- * tempo com checklists, inspecoes, manutencoes e sinistros misturados em ordem
+ * Junta tres consultas: os dados do veículo, um resumo em numeros e a linha do
+ * tempo com checklists, inspeções, manutenções e sinistros misturados em ordem
  * cronologica.
  */
 import { useEffect, useState } from "react";
@@ -17,48 +17,48 @@ import { data, dinheiro, numero } from "../../lib/formato.js";
 
 const ROTULO_ORIGEM = {
   CHECKLIST: { texto: "Checklist", tom: "azul", icone: "checklist" },
-  INSPECAO: { texto: "Inspecao", tom: "amarelo", icone: "calendar" },
-  MANUTENCAO: { texto: "Manutencao", tom: "laranja", icone: "kpi-wrench" },
+  INSPECAO: { texto: "Inspeção", tom: "amarelo", icone: "calendar" },
+  MANUTENCAO: { texto: "Manutenção", tom: "laranja", icone: "kpi-wrench" },
   SINISTRO: { texto: "Sinistro", tom: "vermelho", icone: "alert-triangle" },
 };
 
-export default function VeiculoDetalhe() {
+export default function VeículoDetalhe() {
   const { id } = useParams();
   const navegar = useNavigate();
   const { definirCabecalho } = useOutletContext();
-  const [veiculo, setVeiculo] = useState(null);
+  const [veículo, setVeículo] = useState(null);
   const [resumo, setResumo] = useState(null);
   const [historico, setHistorico] = useState([]);
   const [erro, setErro] = useState("");
 
   useEffect(() => {
-    definirCabecalho({ titulo: "Detalhes do veiculo", legenda: "Ficha completa e historico." });
+    definirCabecalho({ titulo: "Detalhes do veículo", legenda: "Ficha completa e historico." });
   }, [definirCabecalho]);
 
   useEffect(() => {
-    api(`/frotas/veiculos/${id}`).then(setVeiculo).catch((e) => setErro(e.message));
+    api(`/frotas/veiculos/${id}`).then(setVeículo).catch((e) => setErro(e.message));
     api(`/frotas/veiculos/${id}/resumo`).then(setResumo).catch(() => {});
     api(`/frotas/veiculos/${id}/historico`).then(setHistorico).catch(() => {});
   }, [id]);
 
   if (erro) return <Cartao><div className="vazio">{erro}</div></Cartao>;
-  if (!veiculo) return <div className="carregando">Carregando o veiculo...</div>;
+  if (!veículo) return <div className="carregando">Carregando o veículo...</div>;
 
   const ficha = [
-    ["Placa", veiculo.placa],
-    ["Marca", veiculo.marca],
-    ["Modelo", veiculo.modelo],
-    ["Renavam", veiculo.renavam || "-"],
-    ["Chassi", veiculo.chassi || "-"],
-    ["Ano de fabricacao", veiculo.ano_fabricacao],
-    ["Ano modelo", veiculo.ano_modelo],
-    ["Cor", veiculo.cor],
-    ["Tipo de veiculo", veiculo.tipo_veiculo],
-    ["Combustivel", veiculo.tipo_combustivel],
-    ["Capacidade", veiculo.capacidade || "-"],
-    ["Setor", veiculo.setor],
-    ["Quilometragem atual", `${numero(veiculo.quilometragem_atual)} km`],
-    ["QR Code", veiculo.qr_codigo || "Ainda nao gerado"],
+    ["Placa", veículo.placa],
+    ["Marca", veículo.marca],
+    ["Modelo", veículo.modelo],
+    ["Renavam", veículo.renavam || "-"],
+    ["Chassi", veículo.chassi || "-"],
+    ["Ano de fabricacao", veículo.ano_fabricacao],
+    ["Ano modelo", veículo.ano_modelo],
+    ["Cor", veículo.cor],
+    ["Tipo de veículo", veículo.tipo_veículo],
+    ["Combustivel", veículo.tipo_combustivel],
+    ["Capacidade", veículo.capacidade || "-"],
+    ["Setor", veículo.setor],
+    ["Quilometragem atual", `${numero(veículo.quilometragem_atual)} km`],
+    ["QR Code", veículo.qr_código || "Ainda nao gerado"],
   ];
 
   return (
@@ -68,18 +68,18 @@ export default function VeiculoDetalhe() {
           <Trilha
             itens={[
               { rotulo: "Frotas" },
-              { rotulo: "Veiculos", para: "/frotas/veiculos" },
-              { rotulo: veiculo.placa },
+              { rotulo: "Veículos", para: "/frotas/veiculos" },
+              { rotulo: veículo.placa },
             ]}
           />
           <h1>
-            {veiculo.marca} {veiculo.modelo}
+            {veículo.marca} {veículo.modelo}
           </h1>
           <p>
-            Placa {veiculo.placa} - {veiculo.setor} - <Selo valor={veiculo.status} />
+            Placa {veículo.placa} - {veículo.setor} - <Selo valor={veículo.status} />
           </p>
         </div>
-        <div className="cabecalho-pagina__acoes">
+        <div className="cabecalho-pagina__ações">
           <button className="botao" onClick={() => navegar("/frotas/veiculos")}>Voltar</button>
           <Link className="botao botao--primario" to={`/frotas/veiculos/${id}/qrcode`}>
             <Icone nome="checklist" tamanho={15} /> QR Code
@@ -91,17 +91,17 @@ export default function VeiculoDetalhe() {
         <div className="kpis">
           <Kpi icone="checklist" rotulo="Checklists" valor={resumo.checklists}
                nota="Registros de uso" tom="azul" />
-          <Kpi icone="calendar" rotulo="Inspecoes" valor={resumo.inspecoes}
+          <Kpi icone="calendar" rotulo="Inspeções" valor={resumo.inspeções}
                nota="Realizadas" tom="amarelo" />
           <Kpi icone="kpi-wrench" rotulo="OS em aberto" valor={resumo.os_abertas}
-               nota={dinheiro(resumo.custo_manutencao)} tom="laranja" />
+               nota={dinheiro(resumo.custo_manutenção)} tom="laranja" />
           <Kpi icone="alert-triangle" rotulo="Sinistros" valor={resumo.sinistros}
                nota={`${numero(resumo.documentos_vencidos)} doc. vencidos`} tom="vermelho" />
         </div>
       )}
 
       <div className="grade-2">
-        <Cartao titulo="Ficha do veiculo">
+        <Cartao titulo="Ficha do veículo">
           <dl className="lista-dados">
             {ficha.map(([r, v]) => (
               <div className="lista-dados__linha" key={r}>
@@ -112,7 +112,7 @@ export default function VeiculoDetalhe() {
           </dl>
         </Cartao>
 
-        <Cartao titulo="Historico do veiculo">
+        <Cartao titulo="Historico do veículo">
           <ol className="linha-tempo linha-tempo--rolagem">
             {historico.map((h, i) => {
               const origem = ROTULO_ORIGEM[h.origem] || { texto: h.origem, tom: "azul" };
@@ -131,28 +131,28 @@ export default function VeiculoDetalhe() {
             })}
           </ol>
           {historico.length === 0 && (
-            <div className="vazio">Este veiculo ainda nao tem movimentacao registrada.</div>
+            <div className="vazio">Este veículo ainda não tem movimentacao registrada.</div>
           )}
         </Cartao>
       </div>
 
-      <Cartao titulo="Observacoes">
-        <p className="texto-corrido">{veiculo.observacoes || "Nenhuma observacao registrada."}</p>
+      <Cartao titulo="Observações">
+        <p className="texto-corrido">{veículo.observações || "Nenhuma observacao registrada."}</p>
       </Cartao>
 
-      <Cartao titulo="Atalhos deste veiculo">
-        <div className="acoes-rapidas">
-          <Link className="acao-rapida" to={`/frotas/checklists?veiculo=${id}`}>
+      <Cartao titulo="Atalhos deste veículo">
+        <div className="ações-rapidas">
+          <Link className="acao-rapida" to={`/frotas/checklists?veículo=${id}`}>
             <Icone nome="checklist" tamanho={20} /> Checklists
           </Link>
-          <Link className="acao-rapida" to={`/frotas/documentos?veiculo=${id}`}>
+          <Link className="acao-rapida" to={`/frotas/documentos?veículo=${id}`}>
             <Icone nome="nav-gestao" tamanho={20} /> Documentos
           </Link>
           <Link className="acao-rapida" to="/frotas/inspecoes">
-            <Icone nome="calendar" tamanho={20} /> Inspecoes
+            <Icone nome="calendar" tamanho={20} /> Inspeções
           </Link>
           <Link className="acao-rapida" to="/frotas/manutencoes">
-            <Icone nome="kpi-wrench" tamanho={20} /> Manutencoes
+            <Icone nome="kpi-wrench" tamanho={20} /> Manutenções
           </Link>
         </div>
       </Cartao>

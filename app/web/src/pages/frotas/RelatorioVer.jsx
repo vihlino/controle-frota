@@ -1,8 +1,8 @@
 /**
- * RelatorioVer.jsx - O relatorio como documento oficial.
+ * RelatórioVer.jsx - O relatório como documento oficial.
  *
  * Nao e uma tela de cards: e um documento, com cabecalho da CMTT, identificacao
- * do relatorio, a tabela com os registros reais, area de assinatura e rodape
+ * do relatório, a tabela com os registros reais, area de assinatura e rodape
  * oficial. O CSS de impressao esconde menu e topo, entao imprimir gera o PDF.
  *
  * O conteudo vem do snapshot congelado na geracao, nao de consulta nova. O
@@ -20,7 +20,7 @@ import { api } from "../../lib/api.js";
 import { data, dataHora, dinheiro, hora, numero, simNao } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
 
-// O relatorio nao e uma tela de cards: e um documento oficial, com cabecalho,
+// O relatório nao e uma tela de cards: e um documento oficial, com cabecalho,
 // tabela dos registros reais e rodape da CMTT.
 function celula(valor, tipo) {
   if (valor === null || valor === undefined || valor === "") return "-";
@@ -34,12 +34,12 @@ function celula(valor, tipo) {
   }
 }
 
-export default function RelatorioVer() {
+export default function RelatórioVer() {
   const { id } = useParams();
   const navegar = useNavigate();
   const { definirCabecalho } = useOutletContext();
   const { podeVer } = useSessao();
-  const [relatorio, setRelatorio] = useState(null);
+  const [relatório, setRelatório] = useState(null);
   const [erro, setErro] = useState("");
   const [atestando, setAtestando] = useState(false);
   const [observacao, setObservacao] = useState("");
@@ -48,11 +48,11 @@ export default function RelatorioVer() {
   const podeAtestar = podeVer("RELATORIOS_ATESTAR");
 
   useEffect(() => {
-    definirCabecalho({ titulo: "Relatorio", legenda: "Documento oficial gerado pelo SITRA" });
+    definirCabecalho({ titulo: "Relatório", legenda: "Documento oficial gerado pelo SITRA" });
   }, [definirCabecalho]);
 
   function carregar() {
-    api(`/relatorios/${id}`).then(setRelatorio).catch((e) => setErro(e.message));
+    api(`/relatórios/${id}`).then(setRelatório).catch((e) => setErro(e.message));
   }
   useEffect(carregar, [id]);
 
@@ -60,7 +60,7 @@ export default function RelatorioVer() {
     e.preventDefault();
     setSalvando(true);
     try {
-      await api(`/relatorios/${id}/atestar`, { method: "POST", body: { observacao } });
+      await api(`/relatórios/${id}/atestar`, { method: "POST", body: { observacao } });
       setAtestando(false);
       setObservacao("");
       carregar();
@@ -72,10 +72,10 @@ export default function RelatorioVer() {
   }
 
   if (erro) return <Cartao><div className="vazio">{erro}</div></Cartao>;
-  if (!relatorio) return <div className="carregando">Carregando o relatorio...</div>;
+  if (!relatório) return <div className="carregando">Carregando o relatório...</div>;
 
-  const conteudo = relatorio.conteudo_snapshot || { colunas: [], linhas: [] };
-  const ateste = relatorio.atestacoes?.find((a) => a.status === "ATESTADO");
+  const conteudo = relatório.conteudo_snapshot || { colunas: [], linhas: [] };
+  const ateste = relatório.atestações?.find((a) => a.status === "ATESTADO");
 
   return (
     <>
@@ -84,33 +84,33 @@ export default function RelatorioVer() {
           <Trilha
             itens={[
               { rotulo: "Frotas" },
-              { rotulo: "Relatorios", para: "/frotas/relatorios" },
-              { rotulo: relatorio.nome },
+              { rotulo: "Relatórios", para: "/frotas/relatorios" },
+              { rotulo: relatório.nome },
             ]}
           />
-          <h1>{relatorio.nome}</h1>
+          <h1>{relatório.nome}</h1>
           <p>
-            Periodo de {data(relatorio.periodo_inicio)} a {data(relatorio.periodo_fim)} -{" "}
+            Periodo de {data(relatório.periodo_inicio)} a {data(relatório.periodo_fim)} -{" "}
             {numero(conteudo.linhas.length)} registros
           </p>
         </div>
-        <div className="cabecalho-pagina__acoes">
+        <div className="cabecalho-pagina__ações">
           <button className="botao" onClick={() => navegar("/frotas/relatorios")}>Voltar</button>
           <button className="botao" onClick={() => window.print()}>
             <Icone nome="arrow-up" tamanho={15} /> Imprimir / PDF
           </button>
-          {podeAtestar && relatorio.status !== "ATESTADO" && relatorio.status !== "CANCELADO" && (
+          {podeAtestar && relatório.status !== "ATESTADO" && relatório.status !== "CANCELADO" && (
             <button className="botao botao--primario" onClick={() => setAtestando(true)}>
-              Atestar relatorio
+              Atestar relatório
             </button>
           )}
         </div>
       </div>
 
-      {relatorio.integro === false && (
+      {relatório.integro === false && (
         <div className="login__erro esconder-impressao">
-          Atencao: o conteudo salvo deste relatorio nao confere com o selo gerado na
-          criacao. Procure a administracao do sistema.
+          Atencao: o conteudo salvo deste relatório nao confere com o selo gerado na
+          criacao. Procure a administração do sistema.
         </div>
       )}
 
@@ -123,29 +123,29 @@ export default function RelatorioVer() {
           </div>
           <div className="documento__selo">
             <Selo
-              texto={relatorio.status === "ATESTADO" ? "Atestado" : "Aguardando ateste"}
-              tom={relatorio.status === "ATESTADO" ? "verde" : "amarelo"}
+              texto={relatório.status === "ATESTADO" ? "Atestado" : "Aguardando ateste"}
+              tom={relatório.status === "ATESTADO" ? "verde" : "amarelo"}
             />
           </div>
         </header>
 
         <div className="documento__titulo">
-          <h2>{relatorio.nome}</h2>
+          <h2>{relatório.nome}</h2>
           <dl className="documento__identificacao">
             <div>
               <dt>Periodo</dt>
-              <dd>{data(relatorio.periodo_inicio)} a {data(relatorio.periodo_fim)}</dd>
+              <dd>{data(relatório.periodo_inicio)} a {data(relatório.periodo_fim)}</dd>
             </div>
-            <div><dt>Gerado em</dt><dd>{dataHora(relatorio.data_geracao)}</dd></div>
+            <div><dt>Gerado em</dt><dd>{dataHora(relatório.data_geracao)}</dd></div>
             <div>
               <dt>Gerado por</dt>
-              <dd>{relatorio.gerado_por_nome} - {relatorio.gerado_por_cargo}</dd>
+              <dd>{relatório.gerado_por_nome} - {relatório.gerado_por_cargo}</dd>
             </div>
-            <div><dt>Setor</dt><dd>{relatorio.gerado_por_setor}</dd></div>
+            <div><dt>Setor</dt><dd>{relatório.gerado_por_setor}</dd></div>
             <div><dt>Registros</dt><dd>{numero(conteudo.linhas.length)}</dd></div>
             <div>
-              <dt>Codigo de verificacao</dt>
-              <dd className="documento__hash">{relatorio.hash_conteudo?.slice(0, 16)}</dd>
+              <dt>Código de verificacao</dt>
+              <dd className="documento__hash">{relatório.hash_conteudo?.slice(0, 16)}</dd>
             </div>
           </dl>
         </div>
@@ -178,10 +178,10 @@ export default function RelatorioVer() {
           <div className="documento__assinatura">
             {ateste ? (
               <>
-                <p className="documento__ateste">Relatorio atestado por</p>
+                <p className="documento__ateste">Relatório atestado por</p>
                 <p className="documento__assinante">{ateste.nome}</p>
                 <p className="documento__cargo">{ateste.cargo}</p>
-                <p className="documento__quando">Em {dataHora(ateste.data_atestacao)}</p>
+                <p className="documento__quando">Em {dataHora(ateste.data_atestação)}</p>
                 {ateste.observacao && (
                   <p className="documento__observacao">{ateste.observacao}</p>
                 )}
@@ -205,7 +205,7 @@ export default function RelatorioVer() {
 
       {atestando && (
         <Modal
-          titulo="Atestar relatorio"
+          titulo="Atestar relatório"
           legenda="Seu nome, cargo, data e hora ficam registrados no sistema."
           aoFechar={() => setAtestando(false)}
           rodape={
@@ -220,7 +220,7 @@ export default function RelatorioVer() {
           <form id="form-ateste" onSubmit={atestar}>
             <p className="modal__aviso">
               Ao atestar, voce confirma que conferiu os {numero(conteudo.linhas.length)}{" "}
-              registros deste relatorio. O ateste nao pode ser desfeito pela tela.
+              registros deste relatório. O ateste nao pode ser desfeito pela tela.
             </p>
             <Area rotulo="Observacao (opcional)" id="observacao" value={observacao}
                   onChange={(e) => setObservacao(e.target.value)} />

@@ -41,25 +41,25 @@ export default function Login() {
           <img src="/icons/logo-sitra.svg" alt="" />
           <div>
             <div className="login__logo-nome">SITRA</div>
-            <div className="login__logo-sub">Sistema Integrado de Gestao Publica</div>
+            <div className="login__logo-sub">Sistema Integrado de Gestão Publica</div>
           </div>
         </div>
         <p className="login__frase">
-          Frota, fiscalizacao e relatorios da CMTT em um so lugar, com registro de
+          Frota, fiscalização e relatórios da CMTT em um so lugar, com registro de
           tudo o que acontece.
         </p>
-        <div className="login__modulos">
-          <span className="login__modulo">
+        <div className="login__módulos">
+          <span className="login__módulo">
             <Icone nome="nav-frotas" tamanho={18} /> Frotas
           </span>
-          <span className="login__modulo">
-            <Icone nome="nav-fiscalizacao" tamanho={18} /> Fiscalizacao
+          <span className="login__módulo">
+            <Icone nome="nav-fiscalização" tamanho={18} /> Fiscalização
           </span>
-          <span className="login__modulo">
-            <Icone nome="chart-line" tamanho={18} /> Relatorios
+          <span className="login__módulo">
+            <Icone nome="chart-line" tamanho={18} /> Relatórios
           </span>
-          <span className="login__modulo">
-            <Icone nome="nav-administracao" tamanho={18} /> Administracao
+          <span className="login__módulo">
+            <Icone nome="nav-administracao" tamanho={18} /> Administração
           </span>
         </div>
       </div>
@@ -68,7 +68,7 @@ export default function Login() {
         <form className="login__formulario" onSubmit={aoEnviar}>
           <div>
             <h1 className="login__titulo">Acessar o sistema</h1>
-            <p className="login__legenda">Use o login institucional cadastrado pela administracao.</p>
+            <p className="login__legenda">Use o login institucional cadastrado pela administração.</p>
           </div>
 
           {erro && <div className="login__erro">{erro}</div>}
@@ -102,7 +102,7 @@ export default function Login() {
           </button>
 
           <p className="login__rodape">
-            Esqueceu a senha? Procure a administracao do sistema.
+            Esqueceu a senha? Procure a administração do sistema.
           </p>
         </form>
       </div>

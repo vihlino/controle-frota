@@ -1,9 +1,9 @@
 /**
- * Inspecoes.jsx - As inspecoes periodicas dos veiculos.
+ * Inspeções.jsx - As inspeções periodicas dos veículos.
  *
- * O botao e "Agendar inspecao" (e nao "Nova"), porque e disso que se trata.
+ * O botao e "Agendar inspeção" (e nao "Nova"), porque e disso que se trata.
  *
- * Ao agendar, a data da proxima inspecao ja sai calculada pela frequencia
+ * Ao agendar, a data da proxima inspeção ja sai calculada pela frequencia
  * escolhida: semanal +7 dias, quinzenal +15, mensal +30.
  */
 import { useEffect, useState } from "react";
@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
-import Acoes from "../../components/Acoes.jsx";
+import Ações from "../../components/Ações.jsx";
 import Modal from "../../components/Modal.jsx";
 import { Texto, Selecao, Data, Area } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
@@ -28,18 +28,18 @@ const FREQUENCIAS = [
 ];
 const DIAS_POR_FREQUENCIA = { SEMANAL: 7, QUINZENAL: 15, MENSAL: 30 };
 
-export default function Inspecoes() {
+export default function Inspeções() {
   const navegar = useNavigate();
   const { podeVer } = useSessao();
   const lista = useLista("frotas/inspecoes", {
-    busca: "", veiculo: "", tipo: "", status: "", dataDe: "", dataAte: "",
+    busca: "", veículo: "", tipo: "", status: "", dataDe: "", dataAte: "",
   });
-  const [veiculos, setVeiculos] = useState([]);
-  const [usuarios, setUsuarios] = useState([]);
+  const [veículos, setVeículos] = useState([]);
+  const [usuários, setUsuários] = useState([]);
   const [agendando, setAgendando] = useState(false);
   const [formulario, setFormulario] = useState({
-    id_veiculo: "", id_gestor: "", tipo: "MENSAL", data_realizacao: "",
-    hora_inicio: "08:00", local: "", observacoes: "",
+    id_veículo: "", id_gestor: "", tipo: "MENSAL", data_realizacao: "",
+    hora_inicio: "08:00", local: "", observações: "",
   });
   const [erroForm, setErroForm] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -47,8 +47,8 @@ export default function Inspecoes() {
   const podeGerenciar = podeVer("FROTAS_REALIZAR_INSPECAO");
 
   useEffect(() => {
-    api("/frotas/veiculos/opcoes").then(setVeiculos).catch(() => {});
-    api("/usuarios?porPagina=200").then((r) => setUsuarios(r.itens)).catch(() => {});
+    api("/frotas/veiculos/opcoes").then(setVeículos).catch(() => {});
+    api("/usuários?porPagina=200").then((r) => setUsuários(r.itens)).catch(() => {});
   }, []);
 
   async function agendar(e) {
@@ -56,7 +56,7 @@ export default function Inspecoes() {
     setSalvando(true);
     setErroForm("");
     try {
-      // A proxima inspecao ja sai calculada pela frequencia escolhida.
+      // A proxima inspeção ja sai calculada pela frequencia escolhida.
       const dias = DIAS_POR_FREQUENCIA[formulario.tipo];
       let proxima = null;
       if (dias && formulario.data_realizacao) {
@@ -69,10 +69,10 @@ export default function Inspecoes() {
         method: "POST",
         body: {
           ...formulario,
-          id_veiculo: Number(formulario.id_veiculo),
+          id_veículo: Number(formulario.id_veículo),
           id_gestor: Number(formulario.id_gestor),
           data_programada: formulario.data_realizacao || null,
-          proxima_inspecao: proxima,
+          proxima_inspeção: proxima,
           status: "ABERTA",
         },
       });
@@ -91,13 +91,13 @@ export default function Inspecoes() {
   });
 
   const colunas = [
-    { chave: "numero", rotulo: "No da inspecao", render: (i) => i.numero || "-" },
+    { chave: "numero", rotulo: "No da inspeção", render: (i) => i.numero || "-" },
     {
-      chave: "data_realizacao", rotulo: "Data da inspecao", ordenavel: true,
+      chave: "data_realizacao", rotulo: "Data da inspeção", ordenavel: true,
       render: (i) => data(i.data_realizacao),
     },
     {
-      chave: "placa", rotulo: "Veiculo", ordenavel: true,
+      chave: "placa", rotulo: "Veículo", ordenavel: true,
       render: (i) => (
         <span className="celula-dupla">
           <strong>{i.placa}</strong>
@@ -107,15 +107,15 @@ export default function Inspecoes() {
     },
     {
       chave: "tipo", rotulo: "Frequencia", ordenavel: true,
-      render: (i) => <Selo texto={rotulo("tipoInspecao", i.tipo)} tom="azul" />,
+      render: (i) => <Selo texto={rotulo("tipoInspeção", i.tipo)} tom="azul" />,
     },
     {
-      chave: "proxima_inspecao", rotulo: "Proxima inspecao", ordenavel: true,
-      render: (i) => data(i.proxima_inspecao),
+      chave: "proxima_inspeção", rotulo: "Proxima inspeção", ordenavel: true,
+      render: (i) => data(i.proxima_inspeção),
     },
     { chave: "responsavel", rotulo: "Responsavel", ordenavel: true },
     {
-      chave: "status", rotulo: "Situacao", ordenavel: true,
+      chave: "status", rotulo: "Situação", ordenavel: true,
       render: (i) => (
         <Selo
           texto={i.status === "ABERTA" ? "Pendente" : "Concluida"}
@@ -140,17 +140,17 @@ export default function Inspecoes() {
       render: (i) => (i.itens_com_ressalva ? numero(i.itens_com_ressalva) : "-"),
     },
     {
-      chave: "acoes", rotulo: "Acoes",
+      chave: "ações", rotulo: "Ações",
       render: (i) => (
-        <Acoes
-          acoes={[
+        <Ações
+          ações={[
             {
               rotulo: "Visualizar detalhes",
-              aoClicar: () => navegar(`/frotas/inspecoes/${i.id_inspecao}`),
+              aoClicar: () => navegar(`/frotas/inspecoes/${i.id_inspeção}`),
             },
             {
-              rotulo: "Ver veiculo",
-              aoClicar: () => navegar(`/frotas/veiculos/${i.id_veiculo}`),
+              rotulo: "Ver veículo",
+              aoClicar: () => navegar(`/frotas/veiculos/${i.id_veículo}`),
             },
           ]}
         />
@@ -160,34 +160,34 @@ export default function Inspecoes() {
 
   return (
     <PaginaLista
-      trilha={[{ rotulo: "Frotas" }, { rotulo: "Inspecoes" }]}
-      titulo="Inspecoes"
-      descricao="Acompanhe as inspecoes periodicas agendadas para os veiculos da frota."
+      trilha={[{ rotulo: "Frotas" }, { rotulo: "Inspeções" }]}
+      titulo="Inspeções"
+      descricao="Acompanhe as inspeções periodicas agendadas para os veículos da frota."
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={() => setAgendando(true)}>
-            <Icone nome="calendar" tamanho={16} /> Agendar inspecao
+            <Icone nome="calendar" tamanho={16} /> Agendar inspeção
           </button>
         )
       }
       lista={lista}
       colunas={colunas}
-      chaveDe={(i) => i.id_inspecao}
-      unidade="inspecoes"
-      vazio="Nenhuma inspecao encontrada com esses filtros."
+      chaveDe={(i) => i.id_inspeção}
+      unidade="inspeções"
+      vazio="Nenhuma inspeção encontrada com esses filtros."
       filtros={
         <>
           <Texto rotulo="Buscar" id="busca" placeholder="Placa, responsavel ou numero"
                  value={lista.filtros.busca}
                  onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
-          <Selecao rotulo="Veiculo" id="veiculo" vazio="Todos"
-                   opcoes={veiculos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.modelo}` }))}
-                   value={lista.filtros.veiculo}
-                   onChange={(e) => lista.alterarFiltro("veiculo", e.target.value)} />
+          <Selecao rotulo="Veículo" id="veículo" vazio="Todos"
+                   opcoes={veículos.map((v) => ({ valor: v.id_veículo, rotulo: `${v.placa} - ${v.modelo}` }))}
+                   value={lista.filtros.veículo}
+                   onChange={(e) => lista.alterarFiltro("veículo", e.target.value)} />
           <Selecao rotulo="Frequencia" id="tipo" vazio="Todas" opcoes={FREQUENCIAS}
                    value={lista.filtros.tipo}
                    onChange={(e) => lista.alterarFiltro("tipo", e.target.value)} />
-          <Selecao rotulo="Situacao" id="status" vazio="Todas"
+          <Selecao rotulo="Situação" id="status" vazio="Todas"
                    opcoes={[
                      { valor: "ABERTA", rotulo: "Pendente" },
                      { valor: "FINALIZADA", rotulo: "Concluida" },
@@ -203,36 +203,36 @@ export default function Inspecoes() {
     >
       {agendando && (
         <Modal
-          titulo="Agendar inspecao"
-          legenda="A proxima inspecao e calculada automaticamente pela frequencia."
+          titulo="Agendar inspeção"
+          legenda="A proxima inspeção e calculada automaticamente pela frequencia."
           aoFechar={() => setAgendando(false)}
           rodape={
             <>
               <button className="botao" onClick={() => setAgendando(false)}>Cancelar</button>
-              <button className="botao botao--primario" form="form-inspecao" disabled={salvando}>
-                {salvando ? "Agendando..." : "Agendar inspecao"}
+              <button className="botao botao--primario" form="form-inspeção" disabled={salvando}>
+                {salvando ? "Agendando..." : "Agendar inspeção"}
               </button>
             </>
           }
         >
           {erroForm && <div className="login__erro">{erroForm}</div>}
-          <form id="form-inspecao" className="formulario-grade" onSubmit={agendar}>
-            <Selecao rotulo="Veiculo *" id="id_veiculo" required vazio="Selecione"
-                     opcoes={veiculos.map((v) => ({
-                       valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
+          <form id="form-inspeção" className="formulario-grade" onSubmit={agendar}>
+            <Selecao rotulo="Veículo *" id="id_veículo" required vazio="Selecione"
+                     opcoes={veículos.map((v) => ({
+                       valor: v.id_veículo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
                      }))}
-                     {...campo("id_veiculo")} />
+                     {...campo("id_veículo")} />
             <Selecao rotulo="Responsavel *" id="id_gestor" required vazio="Selecione"
-                     opcoes={usuarios.map((u) => ({ valor: u.id_usuario, rotulo: u.nome }))}
+                     opcoes={usuários.map((u) => ({ valor: u.id_usuario, rotulo: u.nome }))}
                      {...campo("id_gestor")} />
             <Selecao rotulo="Frequencia *" id="tipo" required opcoes={FREQUENCIAS}
                      {...campo("tipo")} />
-            <Data rotulo="Data da inspecao *" id="data_realizacao" required
+            <Data rotulo="Data da inspeção *" id="data_realizacao" required
                   {...campo("data_realizacao")} />
             <Texto rotulo="Hora" id="hora_inicio" type="time" {...campo("hora_inicio")} />
             <Texto rotulo="Local" id="local" placeholder="Ex.: Garagem Central"
                    {...campo("local")} />
-            <Area rotulo="Observacoes" id="observacoes" largo {...campo("observacoes")} />
+            <Area rotulo="Observações" id="observações" largo {...campo("observações")} />
           </form>
         </Modal>
       )}

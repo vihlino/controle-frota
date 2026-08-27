@@ -2,7 +2,7 @@
  * Checklists.jsx - Os registros de saida e chegada da frota.
  *
  * NAO tem botao de "novo checklist", de proposito: o registro sempre nasce da
- * leitura do QR Code do veiculo.
+ * leitura do QR Code do veículo.
  *
  * A coluna de equipamentos mostra as quatro iniciais de forma compacta; o item
  * que o condutor marcou como ausente fica vermelho.
@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Selo from "../../components/Selo.jsx";
-import Acoes from "../../components/Acoes.jsx";
+import Ações from "../../components/Ações.jsx";
 import { Texto, Selecao, Data } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
@@ -25,19 +25,19 @@ function Equipamentos({ itens }) {
   const porNome = Object.fromEntries((itens || []).map((e) => [e.equipamento, e]));
   return (
     <span className="equipamentos">
-      {ORDEM_EQUIPAMENTOS.map((codigo) => {
-        const item = porNome[codigo];
+      {ORDEM_EQUIPAMENTOS.map((código) => {
+        const item = porNome[código];
         const ausente = item && !item.conforme;
         return (
           <abbr
-            key={codigo}
+            key={código}
             className="equipamentos__item"
             data-ausente={ausente ? "sim" : undefined}
-            title={`${rotulo("equipamento", codigo)}: ${
+            title={`${rotulo("equipamento", código)}: ${
               !item ? "nao informado" : item.conforme ? "presente" : "ausente"
             }`}
           >
-            {rotulo("equipamento", codigo)[0]}
+            {rotulo("equipamento", código)[0]}
           </abbr>
         );
       })}
@@ -47,14 +47,14 @@ function Equipamentos({ itens }) {
 
 export default function Checklists() {
   const navegar = useNavigate();
-  const [parametros] = useSearchParams();
+  const [parâmetros] = useSearchParams();
   const lista = useLista("frotas/checklists", {
-    busca: "", veiculo: parametros.get("veiculo") || "", status: "", dataDe: "", dataAte: "",
+    busca: "", veículo: parâmetros.get("veículo") || "", status: "", dataDe: "", dataAte: "",
   });
-  const [veiculos, setVeiculos] = useState([]);
+  const [veículos, setVeículos] = useState([]);
 
   useEffect(() => {
-    api("/frotas/veiculos/opcoes").then(setVeiculos).catch(() => {});
+    api("/frotas/veiculos/opcoes").then(setVeículos).catch(() => {});
   }, []);
 
   const colunas = [
@@ -62,9 +62,9 @@ export default function Checklists() {
       chave: "data_abertura", rotulo: "Data do registro", ordenavel: true,
       render: (c) => data(c.data_abertura),
     },
-    { chave: "placa", rotulo: "Placa do veiculo", ordenavel: true },
+    { chave: "placa", rotulo: "Placa do veículo", ordenavel: true },
     {
-      chave: "veiculo", rotulo: "Veiculo",
+      chave: "veículo", rotulo: "Veículo",
       render: (c) => `${c.marca} ${c.modelo}`,
     },
     { chave: "condutor", rotulo: "Condutor", ordenavel: true },
@@ -98,19 +98,19 @@ export default function Checklists() {
       chave: "equipamentos", rotulo: "Equipamentos",
       render: (c) => <Equipamentos itens={c.equipamentos} />,
     },
-    { chave: "status", rotulo: "Situacao", render: (c) => <Selo valor={c.status} /> },
+    { chave: "status", rotulo: "Situação", render: (c) => <Selo valor={c.status} /> },
     {
-      chave: "acoes", rotulo: "Acoes",
+      chave: "ações", rotulo: "Ações",
       render: (c) => (
-        <Acoes
-          acoes={[
+        <Ações
+          ações={[
             {
               rotulo: "Visualizar detalhes",
               aoClicar: () => navegar(`/frotas/checklists/${c.id_checklist}`),
             },
             {
-              rotulo: "Ver veiculo",
-              aoClicar: () => navegar(`/frotas/veiculos/${c.id_veiculo}`),
+              rotulo: "Ver veículo",
+              aoClicar: () => navegar(`/frotas/veiculos/${c.id_veículo}`),
             },
           ]}
         />
@@ -122,7 +122,7 @@ export default function Checklists() {
     <PaginaLista
       trilha={[{ rotulo: "Frotas" }, { rotulo: "Checklists" }]}
       titulo="Checklists"
-      descricao="Checklists enviados pela frota. Novos registros nascem da leitura do QR Code do veiculo."
+      descricao="Checklists enviados pela frota. Novos registros nascem da leitura do QR Code do veículo."
       lista={lista}
       colunas={colunas}
       chaveDe={(c) => c.id_checklist}
@@ -136,13 +136,13 @@ export default function Checklists() {
             onChange={(e) => lista.alterarFiltro("busca", e.target.value)}
           />
           <Selecao
-            rotulo="Veiculo" id="veiculo" vazio="Todos"
-            opcoes={veiculos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.modelo}` }))}
-            value={lista.filtros.veiculo}
-            onChange={(e) => lista.alterarFiltro("veiculo", e.target.value)}
+            rotulo="Veículo" id="veículo" vazio="Todos"
+            opcoes={veículos.map((v) => ({ valor: v.id_veículo, rotulo: `${v.placa} - ${v.modelo}` }))}
+            value={lista.filtros.veículo}
+            onChange={(e) => lista.alterarFiltro("veículo", e.target.value)}
           />
           <Selecao
-            rotulo="Situacao" id="status" vazio="Todas"
+            rotulo="Situação" id="status" vazio="Todas"
             opcoes={[
               { valor: "ABERTO", rotulo: "Em aberto" },
               { valor: "FINALIZADO", rotulo: "Finalizado" },

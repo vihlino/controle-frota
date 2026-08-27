@@ -1,10 +1,10 @@
 /**
- * Veiculos.jsx - O cadastro da frota, nucleo do modulo.
+ * Veículos.jsx - O cadastro da frota, nucleo do módulo.
  *
- * Escrita a mao (e nao pela fabrica criarPagina) por causa do menu de acoes,
- * que leva para detalhes, historico, documentos e QR Code do veiculo.
+ * Escrita a mao (e nao pela fabrica criarPagina) por causa do menu de ações,
+ * que leva para detalhes, historico, documentos e QR Code do veículo.
  *
- * As situacoes seguem as cores definidas: Regular (verde), Em manutencao
+ * As situações seguem as cores definidas: Regular (verde), Em manutenção
  * (amarelo), Indisponivel (vermelho).
  */
 import { useEffect, useState } from "react";
@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
-import Acoes from "../../components/Acoes.jsx";
+import Ações from "../../components/Ações.jsx";
 import Modal from "../../components/Modal.jsx";
 import { Texto, Selecao, Area } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
@@ -23,7 +23,7 @@ import { useSessao } from "../../lib/sessao.jsx";
 const SITUACOES = [
   { valor: "DISPONIVEL", rotulo: "Regular" },
   { valor: "EM_USO", rotulo: "Em uso" },
-  { valor: "EM_MANUTENCAO", rotulo: "Em manutencao" },
+  { valor: "EM_MANUTENCAO", rotulo: "Em manutenção" },
   { valor: "INATIVO", rotulo: "Indisponivel" },
 ];
 const TIPOS = ["AUTOMOVEL", "CAMINHONETE", "FURGAO", "MOTOCICLETA", "CAMINHAO", "ONIBUS", "MAQUINA"];
@@ -31,12 +31,12 @@ const COMBUSTIVEIS = ["FLEX", "GASOLINA", "ETANOL", "DIESEL", "GNV", "ELETRICO",
 
 const VAZIO = {
   placa: "", marca: "", modelo: "", ano_fabricacao: "", ano_modelo: "", cor: "",
-  tipo_veiculo: "AUTOMOVEL", renavam: "", chassi: "", tipo_combustivel: "FLEX",
-  capacidade: "", quilometragem_atual: 0, id_setor: "", observacoes: "",
+  tipo_veículo: "AUTOMOVEL", renavam: "", chassi: "", tipo_combustivel: "FLEX",
+  capacidade: "", quilometragem_atual: 0, id_setor: "", observações: "",
   status: "DISPONIVEL",
 };
 
-export default function Veiculos() {
+export default function Veículos() {
   const navegar = useNavigate();
   const { podeVer } = useSessao();
   const lista = useLista("frotas/veiculos", { busca: "", setor: "", status: "" });
@@ -61,7 +61,7 @@ export default function Veiculos() {
   function abrirEdicao(v) {
     setFormulario({ ...VAZIO, ...v, id_setor: v.id_setor });
     setErroForm("");
-    setEditando(v.id_veiculo);
+    setEditando(v.id_veículo);
   }
 
   async function salvar(e) {
@@ -91,9 +91,9 @@ export default function Veiculos() {
   }
 
   async function excluir(v) {
-    if (!confirm(`Excluir o veiculo ${v.placa}? Esta acao nao pode ser desfeita.`)) return;
+    if (!confirm(`Excluir o veículo ${v.placa}? Esta acao nao pode ser desfeita.`)) return;
     try {
-      await api(`/frotas/veiculos/${v.id_veiculo}`, { method: "DELETE" });
+      await api(`/frotas/veiculos/${v.id_veículo}`, { method: "DELETE" });
       lista.recarregar();
     } catch (e) {
       alert(e.message);
@@ -118,31 +118,31 @@ export default function Veiculos() {
       chave: "quilometragem_atual", rotulo: "KM atual",
       render: (v) => `${numero(v.quilometragem_atual)} km`,
     },
-    { chave: "status", rotulo: "Situacao", ordenavel: true, render: (v) => <Selo valor={v.status} /> },
+    { chave: "status", rotulo: "Situação", ordenavel: true, render: (v) => <Selo valor={v.status} /> },
     {
       chave: "qrcode", rotulo: "QR Code",
       render: (v) => (
         <button
           className="botao-icone"
-          title="QR Code do veiculo"
-          onClick={() => navegar(`/frotas/veiculos/${v.id_veiculo}/qrcode`)}
+          title="QR Code do veículo"
+          onClick={() => navegar(`/frotas/veiculos/${v.id_veículo}/qrcode`)}
         >
           <Icone nome="checklist" tamanho={18} />
         </button>
       ),
     },
     {
-      chave: "acoes", rotulo: "Acoes",
+      chave: "ações", rotulo: "Ações",
       render: (v) => (
-        <Acoes
-          acoes={[
-            { rotulo: "Visualizar detalhes", aoClicar: () => navegar(`/frotas/veiculos/${v.id_veiculo}`) },
-            ...(podeGerenciar ? [{ rotulo: "Editar veiculo", aoClicar: () => abrirEdicao(v) }] : []),
-            { rotulo: "Historico", aoClicar: () => navegar(`/frotas/checklists?veiculo=${v.id_veiculo}`) },
-            { rotulo: "Documentos", aoClicar: () => navegar(`/frotas/documentos?veiculo=${v.id_veiculo}`) },
-            { rotulo: "QR Code", aoClicar: () => navegar(`/frotas/veiculos/${v.id_veiculo}/qrcode`) },
+        <Ações
+          ações={[
+            { rotulo: "Visualizar detalhes", aoClicar: () => navegar(`/frotas/veiculos/${v.id_veículo}`) },
+            ...(podeGerenciar ? [{ rotulo: "Editar veículo", aoClicar: () => abrirEdicao(v) }] : []),
+            { rotulo: "Historico", aoClicar: () => navegar(`/frotas/checklists?veículo=${v.id_veículo}`) },
+            { rotulo: "Documentos", aoClicar: () => navegar(`/frotas/documentos?veículo=${v.id_veículo}`) },
+            { rotulo: "QR Code", aoClicar: () => navegar(`/frotas/veiculos/${v.id_veículo}/qrcode`) },
             ...(podeGerenciar
-              ? [{ rotulo: "Excluir veiculo", perigo: true, aoClicar: () => excluir(v) }]
+              ? [{ rotulo: "Excluir veículo", perigo: true, aoClicar: () => excluir(v) }]
               : []),
           ]}
         />
@@ -152,21 +152,21 @@ export default function Veiculos() {
 
   return (
     <PaginaLista
-      trilha={[{ rotulo: "Frotas" }, { rotulo: "Veiculos" }]}
-      titulo="Veiculos"
-      descricao="Gerencie os veiculos da frota."
+      trilha={[{ rotulo: "Frotas" }, { rotulo: "Veículos" }]}
+      titulo="Veículos"
+      descricao="Gerencie os veículos da frota."
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={abrirNovo}>
-            <Icone nome="minus" tamanho={16} /> Novo veiculo
+            <Icone nome="minus" tamanho={16} /> Novo veículo
           </button>
         )
       }
       lista={lista}
       colunas={colunas}
-      chaveDe={(v) => v.id_veiculo}
-      unidade="veiculos"
-      vazio="Nenhum veiculo encontrado com esses filtros."
+      chaveDe={(v) => v.id_veículo}
+      unidade="veículos"
+      vazio="Nenhum veículo encontrado com esses filtros."
       filtros={
         <>
           <Texto
@@ -182,7 +182,7 @@ export default function Veiculos() {
             onChange={(e) => lista.alterarFiltro("setor", e.target.value)}
           />
           <Selecao
-            rotulo="Situacao" id="situacao" vazio="Todas"
+            rotulo="Situação" id="situação" vazio="Todas"
             opcoes={SITUACOES}
             value={lista.filtros.status}
             onChange={(e) => lista.alterarFiltro("status", e.target.value)}
@@ -192,21 +192,21 @@ export default function Veiculos() {
     >
       {editando && (
         <Modal
-          titulo={editando === "novo" ? "Novo veiculo" : "Editar veiculo"}
+          titulo={editando === "novo" ? "Novo veículo" : "Editar veículo"}
           legenda="Os campos marcados sao obrigatorios."
           largura={760}
           aoFechar={() => setEditando(null)}
           rodape={
             <>
               <button className="botao" onClick={() => setEditando(null)}>Cancelar</button>
-              <button className="botao botao--primario" form="form-veiculo" disabled={salvando}>
-                {salvando ? "Salvando..." : "Salvar veiculo"}
+              <button className="botao botao--primario" form="form-veículo" disabled={salvando}>
+                {salvando ? "Salvando..." : "Salvar veículo"}
               </button>
             </>
           }
         >
           {erroForm && <div className="login__erro">{erroForm}</div>}
-          <form id="form-veiculo" className="formulario-grade" onSubmit={salvar}>
+          <form id="form-veículo" className="formulario-grade" onSubmit={salvar}>
             <Texto rotulo="Placa *" id="placa" required maxLength={10} {...campo("placa")} />
             <Texto rotulo="Marca *" id="marca" required {...campo("marca")} />
             <Texto rotulo="Modelo *" id="modelo" required {...campo("modelo")} />
@@ -217,8 +217,8 @@ export default function Veiculos() {
             <Texto rotulo="Ano modelo *" id="ano_modelo" type="number"
                    min="1900" max="2100" required {...campo("ano_modelo")} />
             <Texto rotulo="Cor *" id="cor" required {...campo("cor")} />
-            <Selecao rotulo="Tipo de veiculo *" id="tipo_veiculo" required
-                     opcoes={TIPOS.map((t) => ({ valor: t, rotulo: t }))} {...campo("tipo_veiculo")} />
+            <Selecao rotulo="Tipo de veículo *" id="tipo_veículo" required
+                     opcoes={TIPOS.map((t) => ({ valor: t, rotulo: t }))} {...campo("tipo_veículo")} />
             <Selecao rotulo="Combustivel *" id="tipo_combustivel" required
                      opcoes={COMBUSTIVEIS.map((c) => ({ valor: c, rotulo: c }))}
                      {...campo("tipo_combustivel")} />
@@ -229,8 +229,8 @@ export default function Veiculos() {
             <Selecao rotulo="Setor *" id="id_setor" required vazio="Selecione"
                      opcoes={setores.map((s) => ({ valor: s.id_setor, rotulo: s.nome }))}
                      {...campo("id_setor")} />
-            <Selecao rotulo="Situacao" id="status" opcoes={SITUACOES} {...campo("status")} />
-            <Area rotulo="Observacoes" id="observacoes" largo {...campo("observacoes")} />
+            <Selecao rotulo="Situação" id="status" opcoes={SITUACOES} {...campo("status")} />
+            <Area rotulo="Observações" id="observações" largo {...campo("observações")} />
           </form>
         </Modal>
       )}

@@ -2,7 +2,7 @@
  * EmConstrucao.jsx - Pagina para rotas que ainda nao existem.
  *
  * Rede de seguranca: se um item do menu apontar para uma rota que ninguem
- * criou, o usuario ve um aviso claro em vez de uma tela em branco.
+ * criou, o usuário ve um aviso claro em vez de uma tela em branco.
  */
 import { useEffect } from "react";
 import { useLocation, useOutletContext } from "react-router-dom";
@@ -32,7 +32,7 @@ export default function EmConstrucao() {
       <div className="vazio">
         <Icone nome="alert-triangle" tamanho={30} />
         <p>
-          <strong>{rotulo}</strong> ainda nao foi construida.
+          <strong>{rotulo}</strong> ainda não foi construida.
         </p>
         <p>A base (login, layout e o padrao de tela) ja esta pronta para receber ela.</p>
       </div>

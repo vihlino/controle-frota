@@ -2,11 +2,11 @@
  * ChecklistQr.jsx - O checklist que o QR Code abre no celular.
  *
  * Tela PUBLICA, feita para telefone. E a unica do sistema que funciona sem
- * login: a credencial e o token do QR Code, e a matricula identifica o condutor.
+ * login: a credencial e o token do QR Code, e a matrícula identifica o condutor.
  *
  * A tela decide sozinha o que mostrar:
- *   - veiculo sem checklist aberto  -> formulario de SAIDA
- *   - veiculo com checklist aberto  -> formulario de CHEGADA
+ *   - veículo sem checklist aberto  -> formulario de SAIDA
+ *   - veículo com checklist aberto  -> formulario de CHEGADA
  *
  * Por isso o mesmo adesivo serve para os dois momentos: o condutor le o QR ao
  * sair e le de novo ao voltar.
@@ -17,8 +17,8 @@ import Icone from "../components/Icone.jsx";
 import { api } from "../lib/api.js";
 import { numero, rotulo } from "../lib/formato.js";
 
-// Tela que o QR Code do veiculo abre no celular. Publica de proposito: a
-// credencial e o token do QR Code somado a matricula do condutor.
+// Tela que o QR Code do veículo abre no celular. Publica de proposito: a
+// credencial e o token do QR Code somado a matrícula do condutor.
 const EQUIPAMENTOS = ["MACACO", "ESTEPE", "TRIANGULO", "CHAVE_RODA"];
 
 export default function ChecklistQr() {
@@ -28,19 +28,19 @@ export default function ChecklistQr() {
   const [enviando, setEnviando] = useState(false);
   const [concluido, setConcluido] = useState("");
 
-  const [matricula, setMatricula] = useState("");
+  const [matrícula, setMatrícula] = useState("");
   const [condutor, setCondutor] = useState(null);
-  const [saida, setSaida] = useState({ odometro_saida: "", percurso: "", local_saida: "", observacoes: "" });
+  const [saida, setSaida] = useState({ odometro_saida: "", percurso: "", local_saida: "", observações: "" });
   const [equipamentos, setEquipamentos] = useState(
     Object.fromEntries(EQUIPAMENTOS.map((e) => [e, { conforme: true, observacao: "" }]))
   );
-  const [chegada, setChegada] = useState({ odometro_chegada: "", observacoes: "" });
+  const [chegada, setChegada] = useState({ odometro_chegada: "", observações: "" });
 
   useEffect(() => {
     api(`/qrcode/ler/${token}`)
       .then((r) => {
         setDados(r);
-        setSaida((s) => ({ ...s, odometro_saida: String(r.veiculo.quilometragem_atual) }));
+        setSaida((s) => ({ ...s, odometro_saida: String(r.veículo.quilometragem_atual) }));
       })
       .catch((e) => setErro(e.message));
   }, [token]);
@@ -48,7 +48,7 @@ export default function ChecklistQr() {
   async function buscarCondutor() {
     setErro("");
     try {
-      setCondutor(await api(`/qrcode/condutor/${matricula.trim()}`));
+      setCondutor(await api(`/qrcode/condutor/${matrícula.trim()}`));
     } catch (e) {
       setCondutor(null);
       setErro(e.message);
@@ -63,17 +63,17 @@ export default function ChecklistQr() {
       await api(`/qrcode/saida/${token}`, {
         method: "POST",
         body: {
-          matricula: matricula.trim(),
+          matrícula: matrícula.trim(),
           odometro_saida: Number(saida.odometro_saida),
           percurso: saida.percurso,
           local_saida: saida.local_saida,
-          observacoes: saida.observacoes,
-          equipamentos: EQUIPAMENTOS.map((codigo) => ({
-            equipamento: codigo,
-            conforme: equipamentos[codigo].conforme,
-            observacao: equipamentos[codigo].conforme
+          observações: saida.observações,
+          equipamentos: EQUIPAMENTOS.map((código) => ({
+            equipamento: código,
+            conforme: equipamentos[código].conforme,
+            observacao: equipamentos[código].conforme
               ? null
-              : equipamentos[codigo].observacao || "Item ausente na conferencia.",
+              : equipamentos[código].observacao || "Item ausente na conferencia.",
           })),
         },
       });
@@ -94,7 +94,7 @@ export default function ChecklistQr() {
         method: "POST",
         body: {
           odometro_chegada: Number(chegada.odometro_chegada),
-          observacoes: chegada.observacoes,
+          observações: chegada.observações,
         },
       });
       setConcluido("chegada");
@@ -112,9 +112,9 @@ export default function ChecklistQr() {
       </div>
     );
   }
-  if (!dados) return <div className="carregando">Carregando o veiculo...</div>;
+  if (!dados) return <div className="carregando">Carregando o veículo...</div>;
 
-  const { veiculo, checklistAberto } = dados;
+  const { veículo, checklistAberto } = dados;
 
   if (concluido) {
     return (
@@ -123,7 +123,7 @@ export default function ChecklistQr() {
           <img src="/icons/logo-sitra.svg" alt="" />
           <div>
             <strong>SITRA</strong>
-            <span>Sistema Integrado de Gestao Publica</span>
+            <span>Sistema Integrado de Gestão Publica</span>
           </div>
         </header>
         <div className="qr-tela__sucesso">
@@ -134,21 +134,21 @@ export default function ChecklistQr() {
               ? "Boa viagem. Ao retornar, leia o QR Code de novo para registrar a chegada."
               : "Checklist concluido. Obrigado."}
           </p>
-          <p className="qr-tela__veiculo">
-            {veiculo.marca} {veiculo.modelo} - {veiculo.placa}
+          <p className="qr-tela__veículo">
+            {veículo.marca} {veículo.modelo} - {veículo.placa}
           </p>
         </div>
       </div>
     );
   }
 
-  const dadosVeiculo = [
-    ["Veiculo", `${veiculo.marca} ${veiculo.modelo}`],
-    ["Placa", veiculo.placa],
-    ["Ano / Modelo", `${veiculo.ano_fabricacao} / ${veiculo.ano_modelo}`],
-    ["Cor", veiculo.cor],
-    ["Setor", veiculo.setor],
-    ["Renavam", veiculo.renavam || "-"],
+  const dadosVeículo = [
+    ["Veículo", `${veículo.marca} ${veículo.modelo}`],
+    ["Placa", veículo.placa],
+    ["Ano / Modelo", `${veículo.ano_fabricacao} / ${veículo.ano_modelo}`],
+    ["Cor", veículo.cor],
+    ["Setor", veículo.setor],
+    ["Renavam", veículo.renavam || "-"],
   ];
 
   return (
@@ -156,7 +156,7 @@ export default function ChecklistQr() {
       <header className="qr-tela__topo">
         <img src="/icons/logo-sitra.svg" alt="" />
         <div>
-          <strong>Checklist do Veiculo</strong>
+          <strong>Checklist do Veículo</strong>
           <span>Aberto via QR Code</span>
         </div>
       </header>
@@ -165,14 +165,14 @@ export default function ChecklistQr() {
         <Icone nome="checklist" tamanho={20} />
         <div>
           <strong>QR Code reconhecido</strong>
-          <p>Confira os dados do veiculo e preencha o checklist.</p>
+          <p>Confira os dados do veículo e preencha o checklist.</p>
         </div>
       </div>
 
       <section className="qr-cartao">
-        <h2 className="qr-cartao__titulo">Dados do veiculo</h2>
+        <h2 className="qr-cartao__titulo">Dados do veículo</h2>
         <dl className="qr-dados">
-          {dadosVeiculo.map(([r, v]) => (
+          {dadosVeículo.map(([r, v]) => (
             <div key={r}>
               <dt>{r}</dt>
               <dd>{v}</dd>
@@ -186,10 +186,10 @@ export default function ChecklistQr() {
       {checklistAberto ? (
         <form className="qr-cartao" onSubmit={registrarChegada}>
           <h2 className="qr-cartao__titulo">
-            <span className="qr-passo">2</span> Chegada do veiculo
+            <span className="qr-passo">2</span> Chegada do veículo
           </h2>
           <p className="qr-cartao__nota">
-            Este veiculo saiu com {checklistAberto.condutor} em{" "}
+            Este veículo saiu com {checklistAberto.condutor} em{" "}
             {numero(checklistAberto.odometro_saida)} km. Informe o KM de chegada para
             fechar o checklist.
           </p>
@@ -204,10 +204,10 @@ export default function ChecklistQr() {
             />
           </div>
           <div className="campo">
-            <label htmlFor="obs-chegada">Observacoes da chegada</label>
+            <label htmlFor="obs-chegada">Observações da chegada</label>
             <textarea
-              id="obs-chegada" rows={3} value={chegada.observacoes}
-              onChange={(e) => setChegada((c) => ({ ...c, observacoes: e.target.value }))}
+              id="obs-chegada" rows={3} value={chegada.observações}
+              onChange={(e) => setChegada((c) => ({ ...c, observações: e.target.value }))}
             />
           </div>
 
@@ -219,16 +219,16 @@ export default function ChecklistQr() {
         <form onSubmit={registrarSaida}>
           <section className="qr-cartao">
             <h2 className="qr-cartao__titulo">
-              <span className="qr-passo">1</span> Saida do veiculo
+              <span className="qr-passo">1</span> Saida do veículo
             </h2>
 
             <div className="campo">
-              <label htmlFor="matricula">Matricula do condutor *</label>
-              <div className="qr-matricula">
+              <label htmlFor="matrícula">Matrícula do condutor *</label>
+              <div className="qr-matrícula">
                 <input
-                  id="matricula" required value={matricula}
-                  onChange={(e) => setMatricula(e.target.value)}
-                  onBlur={() => matricula.trim() && buscarCondutor()}
+                  id="matrícula" required value={matrícula}
+                  onChange={(e) => setMatrícula(e.target.value)}
+                  onBlur={() => matrícula.trim() && buscarCondutor()}
                   placeholder="Ex.: 12548"
                 />
                 <button type="button" className="botao" onClick={buscarCondutor}>Buscar</button>
@@ -248,12 +248,12 @@ export default function ChecklistQr() {
             <div className="campo">
               <label htmlFor="km-saida">KM de saida *</label>
               <input
-                id="km-saida" type="number" required min={veiculo.quilometragem_atual}
+                id="km-saida" type="number" required min={veículo.quilometragem_atual}
                 value={saida.odometro_saida}
                 onChange={(e) => setSaida((s) => ({ ...s, odometro_saida: e.target.value }))}
               />
               <span className="campo__ajuda">
-                Ultimo KM registrado: {numero(veiculo.quilometragem_atual)} km
+                Ultimo KM registrado: {numero(veículo.quilometragem_atual)} km
               </span>
             </div>
 
@@ -269,16 +269,16 @@ export default function ChecklistQr() {
               <label htmlFor="percurso">Percurso / atividade *</label>
               <textarea
                 id="percurso" rows={2} required value={saida.percurso}
-                placeholder="Ex.: Fiscalizacao de transito - Regiao Central"
+                placeholder="Ex.: Fiscalização de transito - Regiao Central"
                 onChange={(e) => setSaida((s) => ({ ...s, percurso: e.target.value }))}
               />
             </div>
 
             <div className="campo">
-              <label htmlFor="obs-saida">Observacoes (saida)</label>
+              <label htmlFor="obs-saida">Observações (saida)</label>
               <textarea
-                id="obs-saida" rows={2} value={saida.observacoes}
-                onChange={(e) => setSaida((s) => ({ ...s, observacoes: e.target.value }))}
+                id="obs-saida" rows={2} value={saida.observações}
+                onChange={(e) => setSaida((s) => ({ ...s, observações: e.target.value }))}
               />
             </div>
           </section>
@@ -288,20 +288,20 @@ export default function ChecklistQr() {
               <span className="qr-passo">2</span> Equipamentos obrigatorios
             </h2>
             <p className="qr-cartao__nota">
-              Confira os itens abaixo antes de sair com o veiculo.
+              Confira os itens abaixo antes de sair com o veículo.
             </p>
 
             <div className="qr-equipamentos">
-              {EQUIPAMENTOS.map((codigo) => {
-                const item = equipamentos[codigo];
+              {EQUIPAMENTOS.map((código) => {
+                const item = equipamentos[código];
                 return (
-                  <div className="qr-equipamento" key={codigo} data-ausente={!item.conforme}>
-                    <strong>{rotulo("equipamento", codigo)}</strong>
+                  <div className="qr-equipamento" key={código} data-ausente={!item.conforme}>
+                    <strong>{rotulo("equipamento", código)}</strong>
                     <div className="qr-equipamento__botoes">
                       <button
                         type="button" data-ativo={item.conforme}
                         onClick={() =>
-                          setEquipamentos((e) => ({ ...e, [codigo]: { ...item, conforme: true } }))
+                          setEquipamentos((e) => ({ ...e, [código]: { ...item, conforme: true } }))
                         }
                       >
                         Presente
@@ -309,7 +309,7 @@ export default function ChecklistQr() {
                       <button
                         type="button" data-ativo={!item.conforme} data-perigo="sim"
                         onClick={() =>
-                          setEquipamentos((e) => ({ ...e, [codigo]: { ...item, conforme: false } }))
+                          setEquipamentos((e) => ({ ...e, [código]: { ...item, conforme: false } }))
                         }
                       >
                         Ausente
@@ -321,7 +321,7 @@ export default function ChecklistQr() {
                         value={item.observacao}
                         onChange={(ev) =>
                           setEquipamentos((e) => ({
-                            ...e, [codigo]: { ...item, observacao: ev.target.value },
+                            ...e, [código]: { ...item, observacao: ev.target.value },
                           }))
                         }
                       />
@@ -334,7 +334,7 @@ export default function ChecklistQr() {
 
           <div className="qr-rodape">
             <p>
-              Depois de devolver o veiculo, leia o QR Code de novo para registrar a
+              Depois de devolver o veículo, leia o QR Code de novo para registrar a
               chegada e fechar o checklist.
             </p>
             <button className="botao botao--primario qr-botao" disabled={enviando}>

@@ -2,11 +2,11 @@
  * formato.js - Formatacao e traducao para a tela.
  *
  * Concentra tudo que transforma dado do banco em texto para o usuario: datas,
- * horas, numeros, dinheiro e os rotulos dos codigos (EM_USO -> "Em uso").
+ * horas, numeros, dinheiro e os rotulos dos códigos (EM_USO -> "Em uso").
  *
  * CUIDADO COM DATAS: nunca use new Date("2026-08-26") para formatar. O
  * JavaScript trata isso como UTC e, no fuso do Brasil, o dia volta um. Por isso
- * a funcao data() fatia o texto em vez de converter.
+ * a função data() fatia o texto em vez de converter.
  */
 // Datas do Postgres chegam como "2026-08-21" ou ISO completo. Nao use
 // new Date("2026-08-21") direto: o JS trata como UTC e o dia volta um.
@@ -42,7 +42,7 @@ export function porcentagem(valor) {
 const ROTULOS_STATUS = {
   DISPONIVEL: { texto: "Disponivel", tom: "verde" },
   EM_USO: { texto: "Em uso", tom: "azul" },
-  EM_MANUTENCAO: { texto: "Em manutencao", tom: "amarelo" },
+  EM_MANUTENCAO: { texto: "Em manutenção", tom: "amarelo" },
   INATIVO: { texto: "Indisponivel", tom: "vermelho" },
   ABERTO: { texto: "Em aberto", tom: "azul" },
   FINALIZADO: { texto: "Finalizado", tom: "verde" },
@@ -88,9 +88,9 @@ export function simNao(valor) {
   return valor ? "Sim" : "Nao";
 }
 
-// Rotulos legiveis para os codigos gravados no banco.
+// Rotulos legiveis para os códigos gravados no banco.
 export const ROTULOS = {
-  tipoInspecao: {
+  tipoInspeção: {
     SEMANAL: "Semanal", QUINZENAL: "Quinzenal", MENSAL: "Mensal",
     PERSONALIZADA: "Personalizada", SEM_PERIODICIDADE: "Sem periodicidade",
   },

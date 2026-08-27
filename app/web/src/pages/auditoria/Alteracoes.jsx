@@ -1,5 +1,5 @@
 /**
- * Alteracoes.jsx - O que mudou em cada registro.
+ * Alterações.jsx - O que mudou em cada registro.
  * Compara o antes e o depois gravados na auditoria e mostra SO os campos que
  * realmente mudaram, com o valor antigo riscado em vermelho e o novo em verde.
  */
@@ -30,7 +30,7 @@ function Diferenca({ antes, depois }) {
           <tbody>
             {mudados.map((chave) => (
               <tr key={chave}>
-                <td><code className="codigo">{chave}</code></td>
+                <td><code className="código">{chave}</code></td>
                 <td className="diferenca__antes">{String(antes[chave] ?? "-")}</td>
                 <td className="diferenca__depois">{String(depois[chave] ?? "-")}</td>
               </tr>
@@ -43,17 +43,17 @@ function Diferenca({ antes, depois }) {
 }
 
 export default criarPagina({
-  recurso: "auditoria/alteracoes",
+  recurso: "auditoria/alterações",
   id: "id_auditoria",
-  titulo: "Alteracoes de Registros",
+  titulo: "Alterações de Registros",
   descricao: "O que mudou em cada registro, com o valor anterior e o novo.",
-  trilha: [{ rotulo: "Auditoria" }, { rotulo: "Alteracoes de Registros" }],
-  unidade: "alteracoes",
+  trilha: [{ rotulo: "Auditoria" }, { rotulo: "Alterações de Registros" }],
+  unidade: "alterações",
   vazio: "Nenhuma alteracao registrada no periodo.",
   mapaOpcoes: {},
   colunas: [
     { chave: "data_hora", rotulo: "Data e hora", ordenavel: true, render: (a) => dataHora(a.data_hora) },
-    { chave: "usuario_nome", rotulo: "Usuario" },
+    { chave: "usuário_nome", rotulo: "Usuário" },
     { chave: "entidade", rotulo: "Registro", ordenavel: true },
     { chave: "id_registro", rotulo: "No do registro" },
     { chave: "acao", rotulo: "Acao" },
@@ -63,7 +63,7 @@ export default criarPagina({
     },
   ],
   filtros: [
-    { nome: "busca", rotulo: "Buscar", dica: "Registro ou usuario" },
+    { nome: "busca", rotulo: "Buscar", dica: "Registro ou usuário" },
     { nome: "dataDe", rotulo: "De", tipo: "data" },
     { nome: "dataAte", rotulo: "Ate", tipo: "data" },
   ],

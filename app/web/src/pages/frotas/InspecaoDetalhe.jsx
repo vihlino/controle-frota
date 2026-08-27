@@ -1,8 +1,8 @@
 /**
- * InspecaoDetalhe.jsx - Uma inspecao por inteiro.
+ * InspeçãoDetalhe.jsx - Uma inspeção por inteiro.
  *
  * Mostra os itens verificados em tres colunas - Conforme, Atencao e Nao
- * conforme - alem das observacoes e do historico.
+ * conforme - alem das observações e do historico.
  */
 import { useEffect, useState } from "react";
 import { useOutletContext, useParams, useNavigate } from "react-router-dom";
@@ -19,58 +19,58 @@ function Marca({ ativo, tom }) {
   return <span className="marca" data-tom={tom}>*</span>;
 }
 
-export default function InspecaoDetalhe() {
+export default function InspeçãoDetalhe() {
   const { id } = useParams();
   const navegar = useNavigate();
   const { definirCabecalho } = useOutletContext();
-  const [inspecao, setInspecao] = useState(null);
+  const [inspeção, setInspeção] = useState(null);
   const [itens, setItens] = useState([]);
   const [erro, setErro] = useState("");
 
   useEffect(() => {
     definirCabecalho({
-      titulo: "Detalhes da inspecao",
+      titulo: "Detalhes da inspeção",
       legenda: "Itens verificados, resultado e historico.",
     });
   }, [definirCabecalho]);
 
   useEffect(() => {
-    api(`/frotas/inspecoes/${id}`).then(setInspecao).catch((e) => setErro(e.message));
+    api(`/frotas/inspecoes/${id}`).then(setInspeção).catch((e) => setErro(e.message));
     api(`/frotas/inspecoes/${id}/itens`).then(setItens).catch(() => {});
   }, [id]);
 
   if (erro) return <Cartao><div className="vazio">{erro}</div></Cartao>;
-  if (!inspecao) return <div className="carregando">Carregando a inspecao...</div>;
+  if (!inspeção) return <div className="carregando">Carregando a inspeção...</div>;
 
   const cabecalho = [
-    { rotulo: "Veiculo", valor: inspecao.placa, nota: `${inspecao.marca} ${inspecao.modelo}`, icone: "kpi-car" },
-    { rotulo: "Frequencia", valor: rotulo("tipoInspecao", inspecao.tipo), icone: "calendar" },
+    { rotulo: "Veículo", valor: inspeção.placa, nota: `${inspeção.marca} ${inspeção.modelo}`, icone: "kpi-car" },
+    { rotulo: "Frequencia", valor: rotulo("tipoInspeção", inspeção.tipo), icone: "calendar" },
     {
-      rotulo: "Data da inspecao", valor: data(inspecao.data_realizacao),
-      nota: hora(inspecao.hora_inicio), icone: "calendar",
+      rotulo: "Data da inspeção", valor: data(inspeção.data_realizacao),
+      nota: hora(inspeção.hora_inicio), icone: "calendar",
     },
-    { rotulo: "Responsavel", valor: inspecao.responsavel, icone: "user" },
+    { rotulo: "Responsavel", valor: inspeção.responsavel, icone: "user" },
     {
-      rotulo: "Situacao",
-      valor: inspecao.status === "ABERTA" ? "Pendente" : "Concluida",
+      rotulo: "Situação",
+      valor: inspeção.status === "ABERTA" ? "Pendente" : "Concluida",
       icone: "checklist",
     },
     {
       rotulo: "Resultado",
-      valor: !inspecao.resultado
+      valor: !inspeção.resultado
         ? "-"
-        : inspecao.resultado === "CONFORME" ? "Aprovado" : "Reprovado",
+        : inspeção.resultado === "CONFORME" ? "Aprovado" : "Reprovado",
       icone: "chart-line",
     },
   ];
 
   const secundarios = [
-    ["Proxima inspecao", data(inspecao.proxima_inspecao)],
-    ["Quilometragem no momento", inspecao.quilometragem ? `${numero(inspecao.quilometragem)} km` : "-"],
-    ["Local da inspecao", inspecao.local || "-"],
-    ["Hora de finalizacao", hora(inspecao.hora_finalizacao)],
-    ["No da inspecao", inspecao.numero || "-"],
-    ["Itens com ressalva", numero(inspecao.itens_com_ressalva || 0)],
+    ["Proxima inspeção", data(inspeção.proxima_inspeção)],
+    ["Quilometragem no momento", inspeção.quilometragem ? `${numero(inspeção.quilometragem)} km` : "-"],
+    ["Local da inspeção", inspeção.local || "-"],
+    ["Hora de finalizacao", hora(inspeção.hora_finalizacao)],
+    ["No da inspeção", inspeção.numero || "-"],
+    ["Itens com ressalva", numero(inspeção.itens_com_ressalva || 0)],
   ];
 
   return (
@@ -80,16 +80,16 @@ export default function InspecaoDetalhe() {
           <Trilha
             itens={[
               { rotulo: "Frotas" },
-              { rotulo: "Inspecoes", para: "/frotas/inspecoes" },
-              { rotulo: "Detalhes da inspecao" },
+              { rotulo: "Inspeções", para: "/frotas/inspecoes" },
+              { rotulo: "Detalhes da inspeção" },
             ]}
           />
-          <h1>Detalhes da inspecao</h1>
-          <p>{inspecao.numero || `Inspecao do veiculo ${inspecao.placa}`}</p>
+          <h1>Detalhes da inspeção</h1>
+          <p>{inspeção.numero || `Inspeção do veículo ${inspeção.placa}`}</p>
         </div>
-        <div className="cabecalho-pagina__acoes">
+        <div className="cabecalho-pagina__ações">
           <button className="botao" onClick={() => navegar("/frotas/inspecoes")}>
-            Voltar para inspecoes
+            Voltar para inspeções
           </button>
           <button className="botao" onClick={() => window.print()}>
             <Icone nome="arrow-up" tamanho={15} /> Imprimir / PDF
@@ -110,7 +110,7 @@ export default function InspecaoDetalhe() {
         ))}
       </div>
 
-      <Cartao titulo="Informacoes complementares">
+      <Cartao titulo="Informações complementares">
         <dl className="lista-dados lista-dados--grade">
           {secundarios.map(([r, v]) => (
             <div className="lista-dados__linha" key={r}>
@@ -135,7 +135,7 @@ export default function InspecaoDetalhe() {
             </thead>
             <tbody>
               {itens.map((i) => (
-                <tr key={i.id_inspecao_item}>
+                <tr key={i.id_inspeção_item}>
                   <td>{i.item}</td>
                   <td className="coluna-marca">
                     <Marca ativo={i.resultado === "NORMAL"} tom="verde" />
@@ -152,45 +152,45 @@ export default function InspecaoDetalhe() {
             </tbody>
           </table>
           {itens.length === 0 && (
-            <div className="vazio">Nenhum item registrado nesta inspecao.</div>
+            <div className="vazio">Nenhum item registrado nesta inspeção.</div>
           )}
         </div>
       </Cartao>
 
       <div className="grade-2">
-        <Cartao titulo="Observacoes gerais">
+        <Cartao titulo="Observações gerais">
           <p className="texto-corrido">
-            {inspecao.observacoes || "Nenhuma observacao registrada."}
+            {inspeção.observações || "Nenhuma observacao registrada."}
           </p>
         </Cartao>
 
-        <Cartao titulo="Historico da inspecao">
+        <Cartao titulo="Historico da inspeção">
           <ol className="linha-tempo">
             <li>
               <span className="linha-tempo__ponto" data-tom="verde" />
               <div>
-                <strong>Inspecao criada</strong>
-                <span>{data(inspecao.data_realizacao)} {hora(inspecao.hora_inicio)}</span>
+                <strong>Inspeção criada</strong>
+                <span>{data(inspeção.data_realizacao)} {hora(inspeção.hora_inicio)}</span>
               </div>
             </li>
-            {inspecao.status === "FINALIZADA" && (
+            {inspeção.status === "FINALIZADA" && (
               <li>
                 <span className="linha-tempo__ponto" data-tom="verde" />
                 <div>
-                  <strong>Inspecao concluida</strong>
+                  <strong>Inspeção concluida</strong>
                   <span>
-                    {data(inspecao.data_finalizacao)} {hora(inspecao.hora_finalizacao)} -{" "}
-                    {inspecao.responsavel}
+                    {data(inspeção.data_finalizacao)} {hora(inspeção.hora_finalizacao)} -{" "}
+                    {inspeção.responsavel}
                   </span>
                 </div>
               </li>
             )}
-            {inspecao.proxima_inspecao && (
+            {inspeção.proxima_inspeção && (
               <li>
                 <span className="linha-tempo__ponto" data-tom="amarelo" />
                 <div>
-                  <strong>Proxima inspecao prevista</strong>
-                  <span>{data(inspecao.proxima_inspecao)}</span>
+                  <strong>Proxima inspeção prevista</strong>
+                  <span>{data(inspeção.proxima_inspeção)}</span>
                 </div>
               </li>
             )}

@@ -64,16 +64,16 @@ export default function ChecklistDetalhe() {
               { rotulo: `Checklist ${checklist.placa}` },
             ]}
           />
-          <h1>Checklist do veiculo {checklist.placa}</h1>
+          <h1>Checklist do veículo {checklist.placa}</h1>
           <p>
-            {checklist.marca} {checklist.modelo} - Condutor {checklist.condutor} (matricula{" "}
-            {checklist.matricula}) - <Selo valor={checklist.status} />
+            {checklist.marca} {checklist.modelo} - Condutor {checklist.condutor} (matrícula{" "}
+            {checklist.matrícula}) - <Selo valor={checklist.status} />
           </p>
         </div>
-        <div className="cabecalho-pagina__acoes">
+        <div className="cabecalho-pagina__ações">
           <button className="botao" onClick={() => navegar("/frotas/checklists")}>Voltar</button>
-          <Link className="botao" to={`/frotas/veiculos/${checklist.id_veiculo}`}>
-            Ver veiculo
+          <Link className="botao" to={`/frotas/veiculos/${checklist.id_veículo}`}>
+            Ver veículo
           </Link>
           <button className="botao" onClick={() => window.print()}>
             <Icone nome="arrow-up" tamanho={15} /> Imprimir
@@ -82,7 +82,7 @@ export default function ChecklistDetalhe() {
       </div>
 
       <div className="grade-2">
-        <Cartao titulo="Saida do veiculo">
+        <Cartao titulo="Saida do veículo">
           <dl className="lista-dados">
             {saida.map(([r, v]) => (
               <div className="lista-dados__linha" key={r}>
@@ -93,11 +93,11 @@ export default function ChecklistDetalhe() {
           </dl>
         </Cartao>
 
-        <Cartao titulo="Chegada do veiculo">
+        <Cartao titulo="Chegada do veículo">
           {checklist.status === "ABERTO" ? (
             <div className="vazio">
               Este checklist ainda esta aberto. A chegada e registrada pela leitura do
-              QR Code do veiculo.
+              QR Code do veículo.
             </div>
           ) : (
             <dl className="lista-dados">
@@ -130,8 +130,8 @@ export default function ChecklistDetalhe() {
         )}
       </Cartao>
 
-      <Cartao titulo="Observacoes">
-        <p className="texto-corrido">{checklist.observacoes || "Nenhuma observacao registrada."}</p>
+      <Cartao titulo="Observações">
+        <p className="texto-corrido">{checklist.observações || "Nenhuma observacao registrada."}</p>
       </Cartao>
     </>
   );

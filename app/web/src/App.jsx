@@ -1,16 +1,5 @@
 /**
  * App.jsx - O mapa de rotas do sistema.
- *
- * Diz qual componente aparece em cada endereco. Tres camadas de protecao:
- *
- *   Protegido      exige estar logado; sem token, manda para /entrar
- *   ComPermissao   exige uma permissao; sem ela, mostra "sem acesso" no lugar
- *                  da tela (assim ninguem chega numa tela que so daria erro)
- *   Layout         a moldura com barra lateral e topo, comum a todas as telas
- *
- * Duas rotas ficam FORA do Layout de proposito:
- *   /entrar             a tela de login nao tem menu
- *   /checklist/:token   o checklist do QR Code, aberto no celular sem login
  */
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
@@ -60,8 +49,6 @@ function Protegido({ children }) {
   return children;
 }
 
-// Barra a rota inteira quando o perfil nao tem a permissao, para o usuario nao
-// chegar numa tela que so vai dar erro de API.
 function ComPermissao({ codigo, children }) {
   const { podeVer } = useSessao();
   if (!podeVer(codigo)) {
@@ -87,8 +74,6 @@ export default function App() {
   return (
     <Routes>
       <Route path="/entrar" element={usuario ? <Navigate to="/dashboard" replace /> : <Login />} />
-
-      {/* Aberta de proposito: e a tela que o QR Code do veiculo abre no celular. */}
       <Route path="/checklist/:token" element={<ChecklistQr />} />
 
       <Route element={<Protegido><Layout /></Protegido>}>

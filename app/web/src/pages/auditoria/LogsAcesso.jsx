@@ -31,8 +31,8 @@ export default criarPagina({
   colunas: [
     { chave: "data_hora", rotulo: "Data e hora", ordenavel: true, render: (l) => dataHora(l.data_hora) },
     {
-      chave: "usuario_nome", rotulo: "Usuario", ordenavel: true,
-      render: (l) => l.usuario_nome || l.login_informado || "-",
+      chave: "usuário_nome", rotulo: "Usuário", ordenavel: true,
+      render: (l) => l.usuário_nome || l.login_informado || "-",
     },
     { chave: "login_informado", rotulo: "Login informado", render: (l) => l.login_informado || "-" },
     {
@@ -53,7 +53,7 @@ export default criarPagina({
     },
   ],
   filtros: [
-    { nome: "busca", rotulo: "Buscar", dica: "Usuario, login ou IP" },
+    { nome: "busca", rotulo: "Buscar", dica: "Usuário, login ou IP" },
     { nome: "tipo", rotulo: "Evento", tipo: "selecao", opcoes: EVENTOS, vazio: "Todos" },
     {
       nome: "sucesso", rotulo: "Resultado", tipo: "selecao", vazio: "Todos",

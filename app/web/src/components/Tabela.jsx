@@ -2,7 +2,7 @@
  * Tabela.jsx - A tabela e a paginacao.
  *
  * Tabela: recebe a lista de colunas e as linhas. Cada coluna pode ter uma
- * funcao render(linha) para desenhar o conteudo do jeito que quiser - e assim
+ * função render(linha) para desenhar o conteudo do jeito que quiser - e assim
  * que nascem os selos coloridos, as celulas de duas linhas e os menus de acao.
  *
  * Paginacao: mostra a primeira pagina, a ultima e as vizinhas da atual,

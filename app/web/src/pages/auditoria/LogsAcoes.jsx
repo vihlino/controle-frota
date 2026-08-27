@@ -1,5 +1,5 @@
 /**
- * LogsAcoes.jsx - Tudo que foi criado, editado ou excluido.
+ * LogsAções.jsx - Tudo que foi criado, editado ou excluido.
  */
 import criarPagina from "../../components/criarPagina.jsx";
 import Selo from "../../components/Selo.jsx";
@@ -9,10 +9,10 @@ const ACOES = [
   { valor: "CRIAR", rotulo: "Criacao" },
   { valor: "EDITAR", rotulo: "Edicao" },
   { valor: "EXCLUIR", rotulo: "Exclusao" },
-  { valor: "GERAR_RELATORIO", rotulo: "Geracao de relatorio" },
-  { valor: "ATESTAR_RELATORIO", rotulo: "Ateste de relatorio" },
+  { valor: "GERAR_RELATORIO", rotulo: "Geracao de relatório" },
+  { valor: "ATESTAR_RELATORIO", rotulo: "Ateste de relatório" },
   { valor: "GERAR_QRCODE", rotulo: "Geracao de QR Code" },
-  { valor: "EDITAR_PERMISSOES", rotulo: "Alteracao de permissoes" },
+  { valor: "EDITAR_PERMISSOES", rotulo: "Alteracao de permissões" },
   { valor: "ALTERAR_SENHA", rotulo: "Troca de senha" },
 ];
 const TOM = {
@@ -22,17 +22,17 @@ const TOM = {
 };
 
 export default criarPagina({
-  recurso: "auditoria/acoes",
+  recurso: "auditoria/ações",
   id: "id_auditoria",
-  titulo: "Logs de Acoes",
+  titulo: "Logs de Ações",
   descricao: "Tudo o que foi criado, alterado ou excluido no sistema, e por quem.",
-  trilha: [{ rotulo: "Auditoria" }, { rotulo: "Logs de Acoes" }],
+  trilha: [{ rotulo: "Auditoria" }, { rotulo: "Logs de Ações" }],
   unidade: "registros",
   vazio: "Nenhuma acao registrada no periodo.",
   mapaOpcoes: {},
   colunas: [
     { chave: "data_hora", rotulo: "Data e hora", ordenavel: true, render: (a) => dataHora(a.data_hora) },
-    { chave: "usuario_nome", rotulo: "Usuario", ordenavel: true },
+    { chave: "usuário_nome", rotulo: "Usuário", ordenavel: true },
     {
       chave: "acao", rotulo: "Acao", ordenavel: true,
       render: (a) => (
@@ -44,7 +44,7 @@ export default criarPagina({
     { chave: "justificativa", rotulo: "Justificativa", render: (a) => a.justificativa || "-" },
   ],
   filtros: [
-    { nome: "busca", rotulo: "Buscar", dica: "Usuario, acao ou registro" },
+    { nome: "busca", rotulo: "Buscar", dica: "Usuário, acao ou registro" },
     { nome: "acao", rotulo: "Acao", tipo: "selecao", opcoes: ACOES, vazio: "Todas" },
     { nome: "dataDe", rotulo: "De", tipo: "data" },
     { nome: "dataAte", rotulo: "Ate", tipo: "data" },

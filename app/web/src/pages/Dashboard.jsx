@@ -1,9 +1,9 @@
 /**
  * Dashboard.jsx - A tela inicial.
  *
- * Existe UM Dashboard. O que aparece dentro dele depende das permissoes: o
- * Administrador ve as tres abas (Frotas, Fiscalizacao, TI e Sistema); um gestor
- * de frotas ve so a dele, e sem aba nenhuma, porque nao ha o que alternar.
+ * Existe UM Dashboard. O que aparece dentro dele depende das permissões: o
+ * Administrador ve as tres abas (Frotas, Fiscalização, TI e Sistema); um gestor
+ * de frotas ve so a dele, e sem aba nenhuma, porque não há o que alternar.
  *
  * Os paineis de cada aba estao em pages/painel/.
  */
@@ -17,10 +17,10 @@ import { api } from "../lib/api.js";
 import { useSessao } from "../lib/sessao.jsx";
 import { data, dataPorExtenso, hora, numero, porcentagem, saudacao } from "../lib/formato.js";
 import PainelFrotas from "./painel/PainelFrotas.jsx";
-import PainelFiscalizacao from "./painel/PainelFiscalizacao.jsx";
+import PainelFiscalização from "./painel/PainelFiscalização.jsx";
 import PainelTi from "./painel/PainelTi.jsx";
 
-// Um Dashboard so. Quais paineis aparecem depende das permissoes do usuario:
+// Um Dashboard so. Quais paineis aparecem depende das permissões do usuario:
 // o Administrador recebe os tres, o gestor de frotas so o de Frotas.
 export default function Dashboard() {
   const { definirCabecalho } = useOutletContext();
@@ -35,7 +35,7 @@ export default function Dashboard() {
       titulo: `${saudacao()}, ${primeiroNome}!`,
       legenda: dataPorExtenso(),
     });
-  }, [definirCabecalho, usuario]);
+  }, [definirCabecalho, usuário]);
 
   useEffect(() => {
     api("/dashboard")
@@ -51,7 +51,7 @@ export default function Dashboard() {
 
   const paineis = [
     { chave: "frotas", rotulo: "Frotas", icone: "nav-frotas" },
-    { chave: "fiscalizacao", rotulo: "Fiscalizacao", icone: "nav-fiscalizacao" },
+    { chave: "fiscalização", rotulo: "Fiscalização", icone: "nav-fiscalização" },
     { chave: "ti", rotulo: "TI e Sistema", icone: "nav-administracao" },
   ].filter((p) => dados[p.chave]);
 
@@ -59,7 +59,7 @@ export default function Dashboard() {
     return (
       <Cartao>
         <div className="vazio">
-          Seu perfil ainda nao tem acesso a nenhum painel. Procure a administracao.
+          Seu perfil ainda não tem acesso a nenhum painel. Procure a administração.
         </div>
       </Cartao>
     );
@@ -84,7 +84,7 @@ export default function Dashboard() {
       )}
 
       {aba === "frotas" && <PainelFrotas dados={dados.frotas} />}
-      {aba === "fiscalizacao" && <PainelFiscalizacao dados={dados.fiscalizacao} />}
+      {aba === "fiscalização" && <PainelFiscalização dados={dados.fiscalização} />}
       {aba === "ti" && <PainelTi dados={dados.ti} />}
     </>
   );

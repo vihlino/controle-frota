@@ -2,9 +2,9 @@
  * Topo.jsx - A barra superior.
  *
  * Traz o botao de recolher o menu, o titulo da tela, a busca (com atalho
- * Ctrl+K), o sininho de alertas e o menu do usuario com a saida.
+ * Ctrl+K), o sininho de alertas e o menu do usuário com a saida.
  *
- * Dois detalhes de comportamento: o menu do usuario fecha ao clicar fora, e o
+ * Dois detalhes de comportamento: o menu do usuário fecha ao clicar fora, e o
  * Ctrl+K joga o foco na busca. Os dois usam listeners no documento, sempre
  * removidos na limpeza do useEffect para nao acumular.
  */
@@ -18,7 +18,6 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
   const [menuAberto, setMenuAberto] = useState(false);
   const [alertas, setAlertas] = useState(0);
   const caixa = useRef(null);
-  const busca = useRef(null);
 
   useEffect(() => {
     api("/alertas")
@@ -26,7 +25,7 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
       .catch(() => {});
   }, []);
 
-  // Fecha o menu do usuario ao clicar fora dele.
+  // Fecha o menu do usuário ao clicar fora dele.
   useEffect(() => {
     function aoClicar(e) {
       if (caixa.current && !caixa.current.contains(e.target)) setMenuAberto(false);
@@ -35,17 +34,6 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
     return () => document.removeEventListener("mousedown", aoClicar);
   }, []);
 
-  // Ctrl+K joga o foco na busca, como indica o atalho desenhado no mockup.
-  useEffect(() => {
-    function aoTeclar(e) {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        busca.current?.focus();
-      }
-    }
-    document.addEventListener("keydown", aoTeclar);
-    return () => document.removeEventListener("keydown", aoTeclar);
-  }, []);
 
   const iniciais = (usuario?.nome || "?")
     .split(" ")
@@ -63,12 +51,6 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
       <div>
         <div className="topo__titulo">{titulo}</div>
         {legenda && <div className="topo__legenda">{legenda}</div>}
-      </div>
-
-      <div className="topo__busca">
-        <Icone nome="search" tamanho={18} />
-        <input ref={busca} placeholder="Buscar veiculo, motorista, placa, documento..." />
-        <span className="atalho">Ctrl + K</span>
       </div>
 
       <button className="topo__sino" aria-label="Alertas">
@@ -94,7 +76,7 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
               <div className="topo__usuario-perfil">
                 {usuario?.cargo_funcao} - {usuario?.setor}
               </div>
-              <div className="topo__usuario-perfil">Matricula {usuario?.matricula}</div>
+              <div className="topo__usuario-perfil">Matrícula {usuario?.matricula}</div>
             </div>
             <button onClick={sair}>Sair do sistema</button>
           </div>

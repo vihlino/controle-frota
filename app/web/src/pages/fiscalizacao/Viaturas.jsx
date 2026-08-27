@@ -1,21 +1,21 @@
 /**
- * Viaturas.jsx - Os veiculos usados pela fiscalizacao.
- * Reusa o mesmo recurso de veiculos das Frotas: viatura e veiculo da frota
- * vinculado ao setor de Fiscalizacao, nao um cadastro separado.
+ * Viaturas.jsx - Os veículos usados pela fiscalização.
+ * Reusa o mesmo recurso de veículos das Frotas: viatura e veículo da frota
+ * vinculado ao setor de Fiscalização, nao um cadastro separado.
  */
 import criarPagina from "../../components/criarPagina.jsx";
 import Selo from "../../components/Selo.jsx";
 import { numero } from "../../lib/formato.js";
 
-// Viaturas da fiscalizacao sao os veiculos da frota vinculados ao setor de
-// Fiscalizacao. A tela reusa o mesmo recurso de veiculos.
+// Viaturas da fiscalização sao os veículos da frota vinculados ao setor de
+// Fiscalização. A tela reusa o mesmo recurso de veículos.
 export default criarPagina({
   recurso: "frotas/veiculos",
-  id: "id_veiculo",
+  id: "id_veículo",
   singular: "viatura",
   titulo: "Viaturas",
-  descricao: "Veiculos utilizados pela fiscalizacao.",
-  trilha: [{ rotulo: "Fiscalizacao" }, { rotulo: "Viaturas" }],
+  descricao: "Veículos utilizados pela fiscalização.",
+  trilha: [{ rotulo: "Fiscalização" }, { rotulo: "Viaturas" }],
   unidade: "viaturas",
   vazio: "Nenhuma viatura encontrada.",
   mapaOpcoes: {
@@ -32,17 +32,17 @@ export default criarPagina({
       chave: "quilometragem_atual", rotulo: "KM atual",
       render: (v) => `${numero(v.quilometragem_atual)} km`,
     },
-    { chave: "status", rotulo: "Situacao", ordenavel: true, render: (v) => <Selo valor={v.status} /> },
+    { chave: "status", rotulo: "Situação", ordenavel: true, render: (v) => <Selo valor={v.status} /> },
   ],
   filtros: [
     { nome: "busca", rotulo: "Buscar", dica: "Placa, marca ou modelo" },
     { nome: "setor", rotulo: "Setor", tipo: "selecao", opcoes: "setores", vazio: "Todos" },
     {
-      nome: "status", rotulo: "Situacao", tipo: "selecao", vazio: "Todas",
+      nome: "status", rotulo: "Situação", tipo: "selecao", vazio: "Todas",
       opcoes: [
         { valor: "DISPONIVEL", rotulo: "Regular" },
         { valor: "EM_USO", rotulo: "Em uso" },
-        { valor: "EM_MANUTENCAO", rotulo: "Em manutencao" },
+        { valor: "EM_MANUTENCAO", rotulo: "Em manutenção" },
         { valor: "INATIVO", rotulo: "Indisponivel" },
       ],
     },

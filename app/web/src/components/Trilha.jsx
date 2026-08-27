@@ -1,5 +1,5 @@
 /**
- * Trilha.jsx - As migalhas de navegacao (Frotas > Veiculos > ...).
+ * Trilha.jsx - As migalhas de navegacao (Frotas > Veículos > ...).
  *
  * O ultimo item fica em negrito e sem link, porque e a pagina atual.
  */

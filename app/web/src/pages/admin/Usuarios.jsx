@@ -1,13 +1,13 @@
 /**
- * Usuarios.jsx - Quem acessa o sistema.
+ * Usuários.jsx - Quem acessa o sistema.
  * Escrita a mao porque senha exige tratamento proprio: criar acesso e trocar
- * senha sao acoes separadas, e a senha nunca volta numa consulta.
+ * senha sao ações separadas, e a senha nunca volta numa consulta.
  */
 import { useEffect, useState } from "react";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
-import Acoes from "../../components/Acoes.jsx";
+import Ações from "../../components/Ações.jsx";
 import Modal from "../../components/Modal.jsx";
 import { Texto, Selecao } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
@@ -15,11 +15,11 @@ import { api } from "../../lib/api.js";
 import { dataHora } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
 
-// Usuarios tem tela propria porque a senha nunca trafega junto com o resto do
-// cadastro: criar acesso e trocar senha sao acoes separadas.
-export default function Usuarios() {
+// Usuários tem tela propria porque a senha nunca trafega junto com o resto do
+// cadastro: criar acesso e trocar senha sao ações separadas.
+export default function Usuários() {
   const { podeVer } = useSessao();
-  const lista = useLista("usuarios", { busca: "", perfil: "", status: "" });
+  const lista = useLista("usuários", { busca: "", perfil: "", status: "" });
   const [perfis, setPerfis] = useState([]);
   const [servidores, setServidores] = useState([]);
   const [criando, setCriando] = useState(false);
@@ -64,7 +64,7 @@ export default function Usuarios() {
     setSalvando(true);
     setErroForm("");
     try {
-      await api(`/usuarios/${trocandoSenha.id_usuario}`, {
+      await api(`/usuários/${trocandoSenha.id_usuario}`, {
         method: "PUT",
         body: { senha: novaSenha },
       });
@@ -77,11 +77,11 @@ export default function Usuarios() {
     }
   }
 
-  async function alternarSituacao(u) {
+  async function alternarSituação(u) {
     const acao = u.status ? "desativar" : "reativar";
     if (!confirm(`Deseja ${acao} o acesso de ${u.nome}?`)) return;
     try {
-      await api(`/usuarios/${u.id_usuario}`, { method: "PUT", body: { status: !u.status } });
+      await api(`/usuários/${u.id_usuario}`, { method: "PUT", body: { status: !u.status } });
       lista.recarregar();
     } catch (e) {
       alert(e.message);
@@ -90,7 +90,7 @@ export default function Usuarios() {
 
   async function trocarPerfil(u, idPerfil) {
     try {
-      await api(`/usuarios/${u.id_usuario}`, {
+      await api(`/usuários/${u.id_usuario}`, {
         method: "PUT",
         body: { id_perfil: Number(idPerfil) },
       });
@@ -103,8 +103,8 @@ export default function Usuarios() {
   const colunas = [
     { chave: "nome", rotulo: "Servidor", ordenavel: true },
     { chave: "login", rotulo: "Login", ordenavel: true },
-    { chave: "matricula", rotulo: "Matricula" },
-    { chave: "cargo_funcao", rotulo: "Cargo / Funcao" },
+    { chave: "matricula", rotulo: "Matrícula" },
+    { chave: "cargo_funcao", rotulo: "Cargo / Função" },
     { chave: "setor", rotulo: "Setor" },
     {
       chave: "perfil", rotulo: "Perfil", ordenavel: true,
@@ -128,7 +128,7 @@ export default function Usuarios() {
       render: (u) => (u.ultimo_acesso ? dataHora(u.ultimo_acesso) : "Nunca acessou"),
     },
     {
-      chave: "status", rotulo: "Situacao",
+      chave: "status", rotulo: "Situação",
       render: (u) => (
         <Selo texto={u.status ? "Ativo" : "Inativo"} tom={u.status ? "verde" : "vermelho"} />
       ),
@@ -137,10 +137,10 @@ export default function Usuarios() {
 
   if (podeGerenciar) {
     colunas.push({
-      chave: "acoes", rotulo: "Acoes",
+      chave: "ações", rotulo: "Ações",
       render: (u) => (
-        <Acoes
-          acoes={[
+        <Ações
+          ações={[
             {
               rotulo: "Trocar senha",
               aoClicar: () => { setTrocandoSenha(u); setErroForm(""); },
@@ -148,7 +148,7 @@ export default function Usuarios() {
             {
               rotulo: u.status ? "Desativar acesso" : "Reativar acesso",
               perigo: u.status,
-              aoClicar: () => alternarSituacao(u),
+              aoClicar: () => alternarSituação(u),
             },
           ]}
         />
@@ -158,31 +158,31 @@ export default function Usuarios() {
 
   return (
     <PaginaLista
-      trilha={[{ rotulo: "Administracao" }, { rotulo: "Usuarios" }]}
-      titulo="Usuarios"
+      trilha={[{ rotulo: "Administração" }, { rotulo: "Usuários" }]}
+      titulo="Usuários"
       descricao="Quem acessa o SITRA, com qual perfil e quando entrou pela ultima vez."
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={() => setCriando(true)}>
-            <Icone nome="user" tamanho={16} /> Novo usuario
+            <Icone nome="user" tamanho={16} /> Novo usuário
           </button>
         )
       }
       lista={lista}
       colunas={colunas}
       chaveDe={(u) => u.id_usuario}
-      unidade="usuarios"
-      vazio="Nenhum usuario encontrado."
+      unidade="usuários"
+      vazio="Nenhum usuário encontrado."
       filtros={
         <>
-          <Texto rotulo="Buscar" id="busca" placeholder="Nome, login ou matricula"
+          <Texto rotulo="Buscar" id="busca" placeholder="Nome, login ou matrícula"
                  value={lista.filtros.busca}
                  onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
           <Selecao rotulo="Perfil" id="perfil" vazio="Todos"
                    opcoes={perfis.map((p) => ({ valor: p.id_perfil, rotulo: p.nome }))}
                    value={lista.filtros.perfil}
                    onChange={(e) => lista.alterarFiltro("perfil", e.target.value)} />
-          <Selecao rotulo="Situacao" id="status" vazio="Todos"
+          <Selecao rotulo="Situação" id="status" vazio="Todos"
                    opcoes={[
                      { valor: "true", rotulo: "Ativo" },
                      { valor: "false", rotulo: "Inativo" },
@@ -194,23 +194,23 @@ export default function Usuarios() {
     >
       {criando && (
         <Modal
-          titulo="Novo usuario"
+          titulo="Novo usuário"
           legenda="O acesso e criado a partir de um servidor ja cadastrado."
           aoFechar={() => setCriando(false)}
           rodape={
             <>
               <button className="botao" onClick={() => setCriando(false)}>Cancelar</button>
-              <button className="botao botao--primario" form="form-usuario" disabled={salvando}>
-                {salvando ? "Criando..." : "Criar usuario"}
+              <button className="botao botao--primario" form="form-usuário" disabled={salvando}>
+                {salvando ? "Criando..." : "Criar usuário"}
               </button>
             </>
           }
         >
           {erroForm && <div className="login__erro">{erroForm}</div>}
-          <form id="form-usuario" className="formulario-grade" onSubmit={criar}>
+          <form id="form-usuário" className="formulario-grade" onSubmit={criar}>
             <Selecao rotulo="Servidor *" id="id_servidor" required vazio="Selecione" largo
                      opcoes={servidores.map((s) => ({
-                       valor: s.id_servidor, rotulo: `${s.nome} - ${s.matricula}`,
+                       valor: s.id_servidor, rotulo: `${s.nome} - ${s.matrícula}`,
                      }))}
                      value={formulario.id_servidor}
                      onChange={(e) =>
@@ -227,7 +227,7 @@ export default function Usuarios() {
                    onChange={(e) => setFormulario((f) => ({ ...f, senha: e.target.value }))} />
             <p className="modal__aviso campo--largo">
               A senha precisa ter ao menos 8 caracteres e deve ser trocada pelo
-              usuario no primeiro acesso.
+              usuário no primeiro acesso.
             </p>
           </form>
         </Modal>

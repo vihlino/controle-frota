@@ -9,7 +9,7 @@ import Icone from "./Icone.jsx";
 import { numero } from "../lib/formato.js";
 
 // tom: "marca" (quadrado amarelo dos dashboards) ou azul/amarelo/verde/vermelho
-// (circulo suave usado nas telas de listagem, como Manutencoes e Documentos).
+// (circulo suave usado nas telas de listagem, como Manutenções e Documentos).
 export default function Kpi({ icone, rotulo, valor, nota, tom = "marca" }) {
   return (
     <div className="cartao kpi">

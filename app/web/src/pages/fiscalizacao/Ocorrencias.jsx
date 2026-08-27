@@ -1,5 +1,5 @@
 /**
- * Ocorrencias.jsx - As ocorrencias atendidas em servico.
+ * Ocorrências.jsx - As ocorrências atendidas em serviço.
  */
 import criarPagina from "../../components/criarPagina.jsx";
 import Selo from "../../components/Selo.jsx";
@@ -8,7 +8,7 @@ import { data, hora } from "../../lib/formato.js";
 const TIPOS = [
   { valor: "ACIDENTE", rotulo: "Acidente de transito" },
   { valor: "APOIO", rotulo: "Apoio operacional" },
-  { valor: "FISCALIZACAO", rotulo: "Fiscalizacao de transito" },
+  { valor: "FISCALIZACAO", rotulo: "Fiscalização de transito" },
   { valor: "ESTACIONAMENTO", rotulo: "Irregularidade de estacionamento" },
   { valor: "EVENTO", rotulo: "Apoio a evento" },
   { valor: "OUTRO", rotulo: "Outro" },
@@ -20,21 +20,21 @@ const SITUACOES = [
 ];
 
 export default criarPagina({
-  recurso: "fiscalizacao/ocorrencias",
-  id: "id_ocorrencia",
-  singular: "ocorrencia",
-  titulo: "Ocorrencias",
-  descricao: "Ocorrencias registradas pela fiscalizacao.",
-  trilha: [{ rotulo: "Fiscalizacao" }, { rotulo: "Ocorrencias" }],
-  unidade: "ocorrencias",
-  vazio: "Nenhuma ocorrencia encontrada.",
-  rotuloAcao: "Nova ocorrencia",
+  recurso: "fiscalizacao/ocorrências",
+  id: "id_ocorrência",
+  singular: "ocorrência",
+  titulo: "Ocorrências",
+  descricao: "Ocorrências registradas pela fiscalização.",
+  trilha: [{ rotulo: "Fiscalização" }, { rotulo: "Ocorrências" }],
+  unidade: "ocorrências",
+  vazio: "Nenhuma ocorrência encontrada.",
+  rotuloAcao: "Nova ocorrência",
   iconeAcao: "fisc-ocorrencias",
   permissaoGerenciar: "FISCALIZACAO_GERENCIAR_OCORRENCIAS",
   larguraFormulario: 720,
   mapaOpcoes: {},
   colunas: [
-    { chave: "protocolo", rotulo: "No da ocorrencia", ordenavel: true, render: (o) => o.protocolo || "-" },
+    { chave: "protocolo", rotulo: "No da ocorrência", ordenavel: true, render: (o) => o.protocolo || "-" },
     { chave: "tipo", rotulo: "Tipo", ordenavel: true },
     { chave: "endereco", rotulo: "Local" },
     {
@@ -47,12 +47,12 @@ export default criarPagina({
       ),
     },
     { chave: "criado_por_nome", rotulo: "Registrada por" },
-    { chave: "status", rotulo: "Situacao", ordenavel: true, render: (o) => <Selo valor={o.status} /> },
+    { chave: "status", rotulo: "Situação", ordenavel: true, render: (o) => <Selo valor={o.status} /> },
   ],
   filtros: [
     { nome: "busca", rotulo: "Buscar", dica: "Protocolo, tipo ou local" },
     { nome: "tipo", rotulo: "Tipo", tipo: "selecao", opcoes: TIPOS, vazio: "Todos" },
-    { nome: "status", rotulo: "Situacao", tipo: "selecao", opcoes: SITUACOES, vazio: "Todas" },
+    { nome: "status", rotulo: "Situação", tipo: "selecao", opcoes: SITUACOES, vazio: "Todas" },
     { nome: "dataDe", rotulo: "De", tipo: "data" },
     { nome: "dataAte", rotulo: "Ate", tipo: "data" },
   ],
@@ -63,7 +63,7 @@ export default criarPagina({
     { nome: "hora", rotulo: "Hora *", html: "time", obrigatorio: true },
     { nome: "endereco", rotulo: "Local *", obrigatorio: true, largo: true },
     { nome: "descricao", rotulo: "Descricao *", tipo: "area", obrigatorio: true, largo: true },
-    { nome: "observacoes", rotulo: "Observacoes", tipo: "area", largo: true },
+    { nome: "observações", rotulo: "Observações", tipo: "area", largo: true },
   ],
   aoSalvar: (f, usuario) => ({ ...f, criado_por: usuario.id_usuario, status: "PENDENTE" }),
 });

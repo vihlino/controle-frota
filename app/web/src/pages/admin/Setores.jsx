@@ -11,8 +11,8 @@ export default criarPagina({
   id: "id_setor",
   singular: "setor",
   titulo: "Setores",
-  descricao: "Estrutura organizacional que vincula servidores e veiculos.",
-  trilha: [{ rotulo: "Administracao" }, { rotulo: "Setores" }],
+  descricao: "Estrutura organizacional que vincula servidores e veículos.",
+  trilha: [{ rotulo: "Administração" }, { rotulo: "Setores" }],
   unidade: "setores",
   vazio: "Nenhum setor cadastrado.",
   rotuloAcao: "Novo setor",
@@ -25,9 +25,9 @@ export default criarPagina({
     { chave: "nome", rotulo: "Setor", ordenavel: true },
     { chave: "descricao", rotulo: "Descricao", render: (s) => s.descricao || "-" },
     { chave: "servidores", rotulo: "Servidores", render: (s) => numero(s.servidores) },
-    { chave: "veiculos", rotulo: "Veiculos", render: (s) => numero(s.veiculos) },
+    { chave: "veículos", rotulo: "Veículos", render: (s) => numero(s.veículos) },
     {
-      chave: "status", rotulo: "Situacao", ordenavel: true,
+      chave: "status", rotulo: "Situação", ordenavel: true,
       render: (s) => (
         <Selo texto={s.status ? "Ativo" : "Inativo"} tom={s.status ? "verde" : "vermelho"} />
       ),
@@ -36,7 +36,7 @@ export default criarPagina({
   filtros: [
     { nome: "busca", rotulo: "Buscar", dica: "Nome ou descricao" },
     {
-      nome: "status", rotulo: "Situacao", tipo: "selecao", vazio: "Todos",
+      nome: "status", rotulo: "Situação", tipo: "selecao", vazio: "Todos",
       opcoes: [{ valor: "true", rotulo: "Ativo" }, { valor: "false", rotulo: "Inativo" }],
     },
   ],
