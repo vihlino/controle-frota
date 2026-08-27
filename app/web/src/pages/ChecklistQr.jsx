@@ -40,7 +40,7 @@ export default function ChecklistQr() {
     api(`/qrcode/ler/${token}`)
       .then((r) => {
         setDados(r);
-        setSaida((s) => ({ ...s, odometro_saida: String(r.veículo.quilometragem_atual) }));
+        setSaida((s) => ({ ...s, odometro_saida: String(r.veiculo.quilometragem_atual) }));
       })
       .catch((e) => setErro(e.message));
   }, [token]);
@@ -114,7 +114,7 @@ export default function ChecklistQr() {
   }
   if (!dados) return <div className="carregando">Carregando o veículo...</div>;
 
-  const { veículo, checklistAberto } = dados;
+  const { veiculo, checklistAberto } = dados;
 
   if (concluido) {
     return (
@@ -135,20 +135,20 @@ export default function ChecklistQr() {
               : "Checklist concluido. Obrigado."}
           </p>
           <p className="qr-tela__veículo">
-            {veículo.marca} {veículo.modelo} - {veículo.placa}
+            {veiculo.marca} {veiculo.modelo} - {veiculo.placa}
           </p>
         </div>
       </div>
     );
   }
 
-  const dadosVeículo = [
-    ["Veículo", `${veículo.marca} ${veículo.modelo}`],
-    ["Placa", veículo.placa],
-    ["Ano / Modelo", `${veículo.ano_fabricacao} / ${veículo.ano_modelo}`],
-    ["Cor", veículo.cor],
-    ["Setor", veículo.setor],
-    ["Renavam", veículo.renavam || "-"],
+  const dadosVeiculo = [
+    ["Veículo", `${veiculo.marca} ${veiculo.modelo}`],
+    ["Placa", veiculo.placa],
+    ["Ano / Modelo", `${veiculo.ano_fabricacao} / ${veiculo.ano_modelo}`],
+    ["Cor", veiculo.cor],
+    ["Setor", veiculo.setor],
+    ["Renavam", veiculo.renavam || "-"],
   ];
 
   return (
@@ -172,7 +172,7 @@ export default function ChecklistQr() {
       <section className="qr-cartao">
         <h2 className="qr-cartao__titulo">Dados do veículo</h2>
         <dl className="qr-dados">
-          {dadosVeículo.map(([r, v]) => (
+          {dadosVeiculo.map(([r, v]) => (
             <div key={r}>
               <dt>{r}</dt>
               <dd>{v}</dd>
@@ -248,12 +248,12 @@ export default function ChecklistQr() {
             <div className="campo">
               <label htmlFor="km-saida">KM de saida *</label>
               <input
-                id="km-saida" type="number" required min={veículo.quilometragem_atual}
+                id="km-saida" type="number" required min={veiculo.quilometragem_atual}
                 value={saida.odometro_saida}
                 onChange={(e) => setSaida((s) => ({ ...s, odometro_saida: e.target.value }))}
               />
               <span className="campo__ajuda">
-                Ultimo KM registrado: {numero(veículo.quilometragem_atual)} km
+                Ultimo KM registrado: {numero(veiculo.quilometragem_atual)} km
               </span>
             </div>
 

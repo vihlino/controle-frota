@@ -91,6 +91,7 @@ export default function App() {
         <Route path="/frotas/documentos" element={<ComPermissao codigo={FROTAS}><Documentos /></ComPermissao>} />
         <Route path="/frotas/sinistros" element={<ComPermissao codigo={FROTAS}><Sinistros /></ComPermissao>} />
         <Route path="/frotas/motoristas" element={<ComPermissao codigo={FROTAS}><Servidores /></ComPermissao>} />
+        <Route path="/frotas/servidores" element={<ComPermissao codigo={FROTAS}><Servidores /></ComPermissao>} />
         <Route path="/frotas/relatorios" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><Relatorios /></ComPermissao>} />
         <Route path="/frotas/relatorios/:id" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><RelatorioVer /></ComPermissao>} />
 
