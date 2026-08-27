@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
-import Ações import Acoes from "../../components/Acoes.jsx";;
+import Acoes from "../../components/Acoes.jsx";
 import Modal from "../../components/Modal.jsx";
 import { Texto, Selecao } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
