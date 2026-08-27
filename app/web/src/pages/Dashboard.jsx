@@ -17,7 +17,7 @@ import { api } from "../lib/api.js";
 import { useSessao } from "../lib/sessao.jsx";
 import { data, dataPorExtenso, hora, numero, porcentagem, saudacao } from "../lib/formato.js";
 import PainelFrotas from "./painel/PainelFrotas.jsx";
-import PainelFiscalização from "./painel/PainelFiscalização.jsx";
+import PainelFiscalizacao from "./painel/PainelFiscalizacao.jsx";
 import PainelTi from "./painel/PainelTi.jsx";
 
 // Um Dashboard so. Quais paineis aparecem depende das permissões do usuario:
@@ -84,7 +84,7 @@ export default function Dashboard() {
       )}
 
       {aba === "frotas" && <PainelFrotas dados={dados.frotas} />}
-      {aba === "fiscalização" && <PainelFiscalização dados={dados.fiscalização} />}
+      {aba === "fiscalização" && <PainelFiscalizacao dados={dados.fiscalização} />}
       {aba === "ti" && <PainelTi dados={dados.ti} />}
     </>
   );

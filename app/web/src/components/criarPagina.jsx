@@ -26,7 +26,7 @@ import { useEffect, useState } from "react";
 import PaginaLista from "./PaginaLista.jsx";
 import Icone from "./Icone.jsx";
 import Modal from "./Modal.jsx";
-import Ações from "./Ações.jsx";
+import Ações import Acoes from "./Acoes.jsx";;
 import { Texto, Selecao, Data, Area } from "./Campos.jsx";
 import { useLista } from "./useLista.js";
 import { api } from "../lib/api.js";

@@ -5,8 +5,8 @@
  * relatório disponiveis, que vem dos modelos do backend - não há motivo para
  * duplicar a tela so por causa do menu de origem.
  */
-import RelatóriosFrotas from "./frotas/Relatórios.jsx";
+import RelatoriosFrotas from "./frotas/Relatorios.jsx"";
 
 // Fiscalização e Frotas usam a mesma tela de relatórios: a diferenca fica nos
 // tipos de relatório disponiveis, que vem do proprio modelo no backend.
-export default RelatóriosFrotas;
+export default RelatoriosFrotas;

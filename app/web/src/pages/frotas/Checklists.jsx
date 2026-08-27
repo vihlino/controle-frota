@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Selo from "../../components/Selo.jsx";
-import Ações from "../../components/Ações.jsx";
+import Ações import Acoes from "../../components/Acoes.jsx";;
 import { Texto, Selecao, Data } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
