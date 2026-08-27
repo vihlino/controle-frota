@@ -22,7 +22,7 @@ const TOM = {
 };
 
 export default criarPagina({
-  recurso: "auditoria/ações",
+  recurso: "auditoria/acoes",
   id: "id_auditoria",
   titulo: "Logs de Ações",
   descricao: "Tudo o que foi criado, alterado ou excluido no sistema, e por quem.",

@@ -33,7 +33,7 @@ const TOM_STATUS = {
 export default function Relatórios() {
   const navegar = useNavigate();
   const { podeVer } = useSessao();
-  const lista = useLista("relatórios", { busca: "", tipo: "", status: "" });
+  const lista = useLista("relatorios", { busca: "", tipo: "", status: "" });
   const [tipos, setTipos] = useState([]);
   const [gerando, setGerando] = useState(false);
   const [formulario, setFormulario] = useState({ tipo: "", periodo_inicio: "", periodo_fim: "" });

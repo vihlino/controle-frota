@@ -19,7 +19,7 @@ import { useSessao } from "../../lib/sessao.jsx";
 // cadastro: criar acesso e trocar senha sao ações separadas.
 export default function Usuários() {
   const { podeVer } = useSessao();
-  const lista = useLista("usuários", { busca: "", perfil: "", status: "" });
+  const lista = useLista("usuarios", { busca: "", perfil: "", status: "" });
   const [perfis, setPerfis] = useState([]);
   const [servidores, setServidores] = useState([]);
   const [criando, setCriando] = useState(false);
@@ -64,7 +64,7 @@ export default function Usuários() {
     setSalvando(true);
     setErroForm("");
     try {
-      await api(`/usuários/${trocandoSenha.id_usuario}`, {
+      await api(`/usuarios/${trocandoSenha.id_usuario}`, {
         method: "PUT",
         body: { senha: novaSenha },
       });
@@ -81,7 +81,7 @@ export default function Usuários() {
     const acao = u.status ? "desativar" : "reativar";
     if (!confirm(`Deseja ${acao} o acesso de ${u.nome}?`)) return;
     try {
-      await api(`/usuários/${u.id_usuario}`, { method: "PUT", body: { status: !u.status } });
+      await api(`/usuarios/${u.id_usuario}`, { method: "PUT", body: { status: !u.status } });
       lista.recarregar();
     } catch (e) {
       alert(e.message);
@@ -90,7 +90,7 @@ export default function Usuários() {
 
   async function trocarPerfil(u, idPerfil) {
     try {
-      await api(`/usuários/${u.id_usuario}`, {
+      await api(`/usuarios/${u.id_usuario}`, {
         method: "PUT",
         body: { id_perfil: Number(idPerfil) },
       });

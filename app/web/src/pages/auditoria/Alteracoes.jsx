@@ -43,7 +43,7 @@ function Diferenca({ antes, depois }) {
 }
 
 export default criarPagina({
-  recurso: "auditoria/alterações",
+  recurso: "auditoria/alteracoes",
   id: "id_auditoria",
   titulo: "Alterações de Registros",
   descricao: "O que mudou em cada registro, com o valor anterior e o novo.",

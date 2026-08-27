@@ -20,7 +20,7 @@ const SITUACOES = [
 ];
 
 export default criarPagina({
-  recurso: "fiscalizacao/ocorrências",
+  recurso: "fiscalizacao/ocorrencias",
   id: "id_ocorrência",
   singular: "ocorrência",
   titulo: "Ocorrências",
