@@ -26,13 +26,18 @@ const SITUACOES = [
   { valor: "EM_MANUTENCAO", rotulo: "Em manutenção" },
   { valor: "INATIVO", rotulo: "Indisponivel" },
 ];
-const TIPOS = ["AUTOMOVEL", "CAMINHONETE", "FURGAO", "MOTOCICLETA", "CAMINHAO", "ONIBUS", "MAQUINA"];
+const TIPOS = [
+  { valor: "AUTOMOVEL", rotulo: "Carro" },
+  { valor: "MOTOCICLETA", rotulo: "Motocicleta" },
+  { valor: "CAMINHONETE", rotulo: "Caminhonete" },
+  { valor: "CAMINHAO", rotulo: "Caminhão" },
+];
 const COMBUSTIVEIS = ["FLEX", "GASOLINA", "ETANOL", "DIESEL", "GNV", "ELETRICO", "HIBRIDO"];
 
 const VAZIO = {
   placa: "", marca: "", modelo: "", ano_fabricacao: "", ano_modelo: "", cor: "",
-  tipo_veículo: "AUTOMOVEL", renavam: "", chassi: "", tipo_combustivel: "FLEX",
-  capacidade: "", quilometragem_atual: 0, id_setor: "", observações: "",
+  tipo_veiculo: "AUTOMOVEL", renavam: "", chassi: "", tipo_combustivel: "FLEX",
+  capacidade: "", quilometragem_atual: 0, id_setor: "", observacoes: "",
   status: "DISPONIVEL",
 };
 
@@ -61,7 +66,7 @@ export default function Veículos() {
   function abrirEdicao(v) {
     setFormulario({ ...VAZIO, ...v, id_setor: v.id_setor });
     setErroForm("");
-    setEditando(v.id_veículo);
+    setEditando(v.id_veiculo);
   }
 
   async function salvar(e) {
@@ -93,7 +98,7 @@ export default function Veículos() {
   async function excluir(v) {
     if (!confirm(`Excluir o veículo ${v.placa}? Esta acao nao pode ser desfeita.`)) return;
     try {
-      await api(`/frotas/veiculos/${v.id_veículo}`, { method: "DELETE" });
+      await api(`/frotas/veiculos/${v.id_veiculo}`, { method: "DELETE" });
       lista.recarregar();
     } catch (e) {
       alert(e.message);
@@ -125,7 +130,7 @@ export default function Veículos() {
         <button
           className="botao-icone"
           title="QR Code do veículo"
-          onClick={() => navegar(`/frotas/veiculos/${v.id_veículo}/qrcode`)}
+          onClick={() => navegar(`/frotas/veiculos/${v.id_veiculo}/qrcode`)}
         >
           <Icone nome="checklist" tamanho={18} />
         </button>
@@ -136,11 +141,11 @@ export default function Veículos() {
       render: (v) => (
         <Acoes
           ações={[
-            { rotulo: "Visualizar detalhes", aoClicar: () => navegar(`/frotas/veiculos/${v.id_veículo}`) },
+            { rotulo: "Visualizar detalhes", aoClicar: () => navegar(`/frotas/veiculos/${v.id_veiculo}`) },
             ...(podeGerenciar ? [{ rotulo: "Editar veículo", aoClicar: () => abrirEdicao(v) }] : []),
-            { rotulo: "Historico", aoClicar: () => navegar(`/frotas/checklists?veículo=${v.id_veículo}`) },
-            { rotulo: "Documentos", aoClicar: () => navegar(`/frotas/documentos?veículo=${v.id_veículo}`) },
-            { rotulo: "QR Code", aoClicar: () => navegar(`/frotas/veiculos/${v.id_veículo}/qrcode`) },
+            { rotulo: "Historico", aoClicar: () => navegar(`/frotas/checklists?veículo=${v.id_veiculo}`) },
+            { rotulo: "Documentos", aoClicar: () => navegar(`/frotas/documentos?veículo=${v.id_veiculo}`) },
+            { rotulo: "QR Code", aoClicar: () => navegar(`/frotas/veiculos/${v.id_veiculo}/qrcode`) },
             ...(podeGerenciar
               ? [{ rotulo: "Excluir veículo", perigo: true, aoClicar: () => excluir(v) }]
               : []),
@@ -164,7 +169,7 @@ export default function Veículos() {
       }
       lista={lista}
       colunas={colunas}
-      chaveDe={(v) => v.id_veículo}
+      chaveDe={(v) => v.id_veiculo}
       unidade="veículos"
       vazio="Nenhum veículo encontrado com esses filtros."
       filtros={
@@ -217,8 +222,8 @@ export default function Veículos() {
             <Texto rotulo="Ano modelo *" id="ano_modelo" type="number"
                    min="1900" max="2100" required {...campo("ano_modelo")} />
             <Texto rotulo="Cor *" id="cor" required {...campo("cor")} />
-            <Selecao rotulo="Tipo de veículo *" id="tipo_veículo" required
-                     opcoes={TIPOS.map((t) => ({ valor: t, rotulo: t }))} {...campo("tipo_veículo")} />
+            <Selecao rotulo="Tipo de veículo *" id="tipo_veiculo" required
+                     opcoes={TIPOS} {...campo("tipo_veiculo")} />
             <Selecao rotulo="Combustivel *" id="tipo_combustivel" required
                      opcoes={COMBUSTIVEIS.map((c) => ({ valor: c, rotulo: c }))}
                      {...campo("tipo_combustivel")} />
@@ -230,7 +235,7 @@ export default function Veículos() {
                      opcoes={setores.map((s) => ({ valor: s.id_setor, rotulo: s.nome }))}
                      {...campo("id_setor")} />
             <Selecao rotulo="Situação" id="status" opcoes={SITUACOES} {...campo("status")} />
-            <Area rotulo="Observações" id="observações" largo {...campo("observações")} />
+            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")} />
           </form>
         </Modal>
       )}
