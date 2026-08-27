@@ -118,6 +118,17 @@ export default function Relatórios() {
     },
   ];
 
+  const CATEGORIAS_RELATORIO = [
+    { tipo: "VEICULOS", nome: "Veículos", descricao: "Relatórios sobre a frota, cadastro, status e utilização dos veículos.", icone: "kpi-car", tom: "azul" },
+    { tipo: "CHECKLISTS", nome: "Checklists", descricao: "Checklists realizados pelos motoristas.", icone: "checklist", tom: "verde" },
+    { tipo: "INSPECOES", nome: "Inspeções", descricao: "Relatórios das inspeções veiculares realizadas.", icone: "calendar", tom: "amarelo" },
+    { tipo: "MANUTENCOES", nome: "Manutenções", descricao: "Relatórios de manutenções, custos e histórico de serviços.", icone: "kpi-wrench", tom: "laranja" },
+    { tipo: "DOCUMENTOS", nome: "Documentos", descricao: "Relatórios de documentos, vencimentos e pendências.", icone: "nav-gestao", tom: "azul" },
+    { tipo: "SINISTROS", nome: "Sinistros", descricao: "Relatórios de sinistros, ocorrências e status.", icone: "alert-triangle", tom: "vermelho" },
+    { tipo: "INDICADORES", nome: "Indicadores", descricao: "Indicadores de desempenho e KPIs da frota.", icone: "chart-line", tom: "verde" },
+    { tipo: "PERSONALIZADO", nome: "Personalizado", descricao: "Monte seu próprio relatório com campos personalizados.", icone: "arrow-up", tom: "amarelo" },
+  ];
+
   return (
     <PaginaLista
       trilha={[{ rotulo: "Frotas" }, { rotulo: "Relatórios" }]}
@@ -128,6 +139,24 @@ export default function Relatórios() {
           <button className="botao botao--primario" onClick={() => setGerando(true)}>
             <Icone nome="chart-line" tamanho={16} /> Gerar relatório
           </button>
+        )
+      }
+      secao={
+        podeGerar && (
+          <div className="cartao" style={{ padding: "24px" }}>
+            <h2 style={{ margin: "0 0 16px", fontSize: "16px", fontWeight: 600 }}>Categorias de relatórios</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
+              {CATEGORIAS_RELATORIO.map((cat) => (
+                <div key={cat.tipo} className="cartao" style={{ padding: "20px", cursor: "pointer", border: "1px solid var(--borda)" }}
+                     onClick={() => { setFormulario((f) => ({ ...f, tipo: cat.tipo })); setGerando(true); }}>
+                  <Icone nome={cat.icone} tamanho={24} style={{ color: `var(--${cat.tom})` }} />
+                  <strong style={{ display: "block", marginTop: "10px", fontSize: "14px" }}>{cat.nome}</strong>
+                  <p style={{ fontSize: "12px", color: "var(--texto-2)", margin: "6px 0 14px" }}>{cat.descricao}</p>
+                  <span style={{ fontSize: "12px", color: "var(--amarelo)", fontWeight: 600 }}>Gerar relatório →</span>
+                </div>
+              ))}
+            </div>
+          </div>
         )
       }
       lista={lista}

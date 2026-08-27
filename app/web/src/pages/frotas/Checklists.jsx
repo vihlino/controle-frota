@@ -59,13 +59,22 @@ export default function Checklists() {
 
   const colunas = [
     {
-      chave: "data_abertura", rotulo: "Data do registro", ordenavel: true,
-      render: (c) => data(c.data_abertura),
+      chave: "data_abertura", rotulo: "Enviado em", ordenavel: true,
+      render: (c) => (
+        <span className="celula-dupla">
+          <strong>{data(c.data_abertura)}</strong>
+          <span>{hora(c.hora_saida)}</span>
+        </span>
+      ),
     },
-    { chave: "placa", rotulo: "Placa do veículo", ordenavel: true },
     {
-      chave: "veículo", rotulo: "Veículo",
-      render: (c) => `${c.marca} ${c.modelo}`,
+      chave: "placa", rotulo: "Placa / Veículo", ordenavel: true,
+      render: (c) => (
+        <span className="celula-dupla">
+          <strong>{c.placa}</strong>
+          <span>{`${c.marca} ${c.modelo}`}</span>
+        </span>
+      ),
     },
     { chave: "condutor", rotulo: "Condutor", ordenavel: true },
     { chave: "percurso", rotulo: "Percurso", render: (c) => c.percurso || "-" },
@@ -97,6 +106,15 @@ export default function Checklists() {
     {
       chave: "equipamentos", rotulo: "Equipamentos",
       render: (c) => <Equipamentos itens={c.equipamentos} />,
+    },
+    {
+      chave: "fotos", rotulo: "Fotos",
+      render: (c) =>
+        c.total_fotos > 0 ? (
+          <span className="selo selo--azul">{c.total_fotos} foto{c.total_fotos > 1 ? "s" : ""}</span>
+        ) : (
+          <span className="texto-3">—</span>
+        ),
     },
     { chave: "status", rotulo: "Situação", render: (c) => <Selo valor={c.status} /> },
     {

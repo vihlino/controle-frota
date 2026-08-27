@@ -91,10 +91,14 @@ export default function Inspeções() {
   });
 
   const colunas = [
-    { chave: "numero", rotulo: "No da inspeção", render: (i) => i.numero || "-" },
     {
       chave: "data_realizacao", rotulo: "Data da inspeção", ordenavel: true,
-      render: (i) => data(i.data_realizacao),
+      render: (i) => (
+        <span className="celula-dupla">
+          <strong>{data(i.data_realizacao)}</strong>
+          <span>{i.placa} — {i.marca} {i.modelo}</span>
+        </span>
+      ),
     },
     {
       chave: "placa", rotulo: "Veículo", ordenavel: true,
@@ -134,10 +138,6 @@ export default function Inspeções() {
             tom={i.resultado === "CONFORME" ? "verde" : "vermelho"}
           />
         ),
-    },
-    {
-      chave: "itens_com_ressalva", rotulo: "Ressalvas",
-      render: (i) => (i.itens_com_ressalva ? numero(i.itens_com_ressalva) : "-"),
     },
     {
       chave: "ações", rotulo: "Ações",

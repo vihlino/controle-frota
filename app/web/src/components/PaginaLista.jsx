@@ -23,6 +23,7 @@ export default function PaginaLista({
   descricao,
   acao,
   kpis,
+  secao,
   filtros,
   lista,
   colunas,
@@ -59,6 +60,8 @@ export default function PaginaLista({
           ))}
         </div>
       )}
+
+      {secao}
 
       {filtros && (
         <div className="cartao filtros">
