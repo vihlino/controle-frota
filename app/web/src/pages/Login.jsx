@@ -53,7 +53,7 @@ export default function Login() {
             <Icone nome="nav-frotas" tamanho={18} /> Frotas
           </span>
           <span className="login__módulo">
-            <Icone nome="nav-fiscalização" tamanho={18} /> Fiscalização
+            <Icone nome="nav-fiscalizacao" tamanho={18} /> Fiscalização
           </span>
           <span className="login__módulo">
             <Icone nome="chart-line" tamanho={18} /> Relatórios

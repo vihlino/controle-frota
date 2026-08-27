@@ -51,7 +51,7 @@ export default function Dashboard() {
 
   const paineis = [
     { chave: "frotas", rotulo: "Frotas", icone: "nav-frotas" },
-    { chave: "fiscalizacao", rotulo: "Fiscalização", icone: "nav-fiscalização" },
+    { chave: "fiscalizacao", rotulo: "Fiscalização", icone: "nav-fiscalizacao" },
     { chave: "ti", rotulo: "TI e Sistema", icone: "nav-administracao" },
   ].filter((p) => dados[p.chave]);
 
