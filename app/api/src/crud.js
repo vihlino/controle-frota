@@ -97,17 +97,19 @@ export function criarCrud(config) {
       // Filtro nao informado ou vazio simplesmente nao entra no WHERE.
       if (valor === undefined || valor === "") continue;
 
+      // Converte "true"/"false" string para boolean para colunas BOOLEAN do PostgreSQL.
+      // O node-postgres envia strings como tipo TEXT, e PostgreSQL nao aceita
+      // "boolean = text" sem conversao explicita.
+      const valorFinal = valor === "true" ? true : valor === "false" ? false : valor;
+
       if (parametro.endsWith("De")) {
-        // "dataDe=2026-01-01" vira "coluna >= '2026-01-01'"
-        valores.push(valor);
+        valores.push(valorFinal);
         condicoes.push(`${coluna} >= $${valores.length}`);
       } else if (parametro.endsWith("Ate")) {
-        // "dataAte=2026-12-31" vira "coluna <= '2026-12-31'"
-        valores.push(valor);
+        valores.push(valorFinal);
         condicoes.push(`${coluna} <= $${valores.length}`);
       } else {
-        // Qualquer outro filtro e igualdade simples.
-        valores.push(valor);
+        valores.push(valorFinal);
         condicoes.push(`${coluna} = $${valores.length}`);
       }
     }

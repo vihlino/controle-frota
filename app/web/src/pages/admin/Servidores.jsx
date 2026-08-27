@@ -40,7 +40,7 @@ export default criarPagina({
     {
       chave: "tem_usuario", rotulo: "Acesso",
       render: (s) =>
-        s.tem_usuário ? (
+        s.tem_usuario ? (
           <Selo texto="Tem usuário" tom="azul" />
         ) : (
           <Selo texto="Sem acesso" tom="cinza" />
