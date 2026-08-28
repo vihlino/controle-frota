@@ -191,7 +191,7 @@ export const documentos = criarCrud({
   ordemPadrao: "documento_veiculo.data_validade",
   campos: [
     "id_veiculo", "tipo_documento", "numero_documento", "data_emissao",
-    "data_validade", "status", "observacoes", "bloqueia_veiculo",
+    "data_validade", "status", "observacoes",
     "categoria", "id_responsavel", "arquivo_url",
   ],
   obrigatorios: ["id_veiculo", "tipo_documento"],

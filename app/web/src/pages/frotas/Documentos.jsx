@@ -254,18 +254,6 @@ export default function Documentos() {
                      opcoes={servidores.map((s) => ({ valor: s.id_servidor, rotulo: s.nome }))}
                      {...campo("id_responsavel")} />
             <Selecao rotulo="Situação" id="status" opcoes={SITUACOES} {...campo("status")} />
-            <div className="campo campo--marcavel" data-largo="sim">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={!!formulario.bloqueia_veiculo}
-                  onChange={(e) =>
-                    setFormulario((f) => ({ ...f, bloqueia_veiculo: e.target.checked }))
-                  }
-                />
-                Este documento bloqueia o uso do veículo quando estiver vencido
-              </label>
-            </div>
             <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")} />
           </form>
         </Modal>
