@@ -53,12 +53,12 @@ export default function VeículoDetalhe() {
     ["Ano de fabricacao", veículo.ano_fabricacao],
     ["Ano modelo", veículo.ano_modelo],
     ["Cor", veículo.cor],
-    ["Tipo de veículo", veículo.tipo_veículo],
+    ["Tipo de veículo", veículo.tipo_veiculo],
     ["Combustivel", veículo.tipo_combustivel],
     ["Capacidade", veículo.capacidade || "-"],
     ["Setor", veículo.setor],
     ["Quilometragem atual", `${numero(veículo.quilometragem_atual)} km`],
-    ["QR Code", veículo.qr_código || "Ainda nao gerado"],
+    ["QR Code", veículo.qr_codigo || "Ainda nao gerado"],
   ];
 
   return (
@@ -91,10 +91,10 @@ export default function VeículoDetalhe() {
         <div className="kpis">
           <Kpi icone="checklist" rotulo="Checklists" valor={resumo.checklists}
                nota="Registros de uso" tom="azul" />
-          <Kpi icone="calendar" rotulo="Inspeções" valor={resumo.inspeções}
+          <Kpi icone="calendar" rotulo="Inspeções" valor={resumo.inspecoes}
                nota="Realizadas" tom="amarelo" />
           <Kpi icone="kpi-wrench" rotulo="OS em aberto" valor={resumo.os_abertas}
-               nota={dinheiro(resumo.custo_manutenção)} tom="laranja" />
+               nota={dinheiro(resumo.custo_manutencao)} tom="laranja" />
           <Kpi icone="alert-triangle" rotulo="Sinistros" valor={resumo.sinistros}
                nota={`${numero(resumo.documentos_vencidos)} doc. vencidos`} tom="vermelho" />
         </div>
@@ -137,7 +137,7 @@ export default function VeículoDetalhe() {
       </div>
 
       <Cartao titulo="Observações">
-        <p className="texto-corrido">{veículo.observações || "Nenhuma observacao registrada."}</p>
+        <p className="texto-corrido">{veículo.observacoes || "Nenhuma observacao registrada."}</p>
       </Cartao>
 
       <Cartao titulo="Atalhos deste veículo">

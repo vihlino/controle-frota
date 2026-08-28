@@ -41,7 +41,7 @@ export default function Manutenções() {
   const navegar = useNavigate();
   const { podeVer, usuario } = useSessao();
   const lista = useLista("frotas/manutencoes", {
-    busca: "", veículo: "", status: "", tipo: "", gravidade: "", dataDe: "", dataAte: "",
+    busca: "", veiculo: "", status: "", tipo: "", gravidade: "", dataDe: "", dataAte: "",
   });
   const [veículos, setVeículos] = useState([]);
   const [usuários, setUsuários] = useState([]);
@@ -51,7 +51,7 @@ export default function Manutenções() {
   const [erroForm, setErroForm] = useState("");
   const [formulario, setFormulario] = useState({
     id_veículo: "", tipo: "PREVENTIVA", gravidade: "MEDIA", descricao: "",
-    oficina: "", data_agendada: "", quilometragem: "", custo: "", observações: "",
+    oficina: "", data_agendada: "", quilometragem: "", custo: "", observacoes: "",
   });
 
   const podeGerenciar = podeVer("FROTAS_GERENCIAR_OS");
@@ -147,7 +147,7 @@ export default function Manutenções() {
         <Acoes
           ações={[
             { rotulo: "Visualizar detalhes", aoClicar: () => navegar(`/frotas/manutencoes/${o.id_os}`) },
-            { rotulo: "Ver veículo", aoClicar: () => navegar(`/frotas/veiculos/${o.id_veículo}`) },
+            { rotulo: "Ver veículo", aoClicar: () => navegar(`/frotas/veiculos/${o.id_veiculo}`) },
           ]}
         />
       ),
@@ -184,10 +184,10 @@ export default function Manutenções() {
           <Texto rotulo="Buscar" id="busca" placeholder="Placa, descricao ou oficina"
                  value={lista.filtros.busca}
                  onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
-          <Selecao rotulo="Veículo" id="veículo" vazio="Todos os veículos"
-                   opcoes={veículos.map((v) => ({ valor: v.id_veículo, rotulo: `${v.placa} - ${v.modelo}` }))}
-                   value={lista.filtros.veículo}
-                   onChange={(e) => lista.alterarFiltro("veículo", e.target.value)} />
+          <Selecao rotulo="Veículo" id="veiculo" vazio="Todos os veículos"
+                   opcoes={veículos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.modelo}` }))}
+                   value={lista.filtros.veiculo}
+                   onChange={(e) => lista.alterarFiltro("veiculo", e.target.value)} />
           <Selecao rotulo="Tipo" id="tipo" vazio="Todos" opcoes={TIPOS}
                    value={lista.filtros.tipo}
                    onChange={(e) => lista.alterarFiltro("tipo", e.target.value)} />
@@ -223,7 +223,7 @@ export default function Manutenções() {
           <form id="form-os" className="formulario-grade" onSubmit={agendarManutenção}>
             <Selecao rotulo="Veículo *" id="id_veículo" required vazio="Selecione"
                      opcoes={veículos.map((v) => ({
-                       valor: v.id_veículo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
+                       valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
                      }))}
                      {...campo("id_veículo")} />
             <Selecao rotulo="Tipo de manutenção *" id="tipo" required opcoes={TIPOS} {...campo("tipo")} />
@@ -237,7 +237,7 @@ export default function Manutenções() {
                    {...campo("custo")} />
             <Area rotulo="Descricao do serviço *" id="descricao" largo required
                   {...campo("descricao")} />
-            <Area rotulo="Observações" id="observações" largo {...campo("observações")} />
+            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")} />
           </form>
         </Modal>
       )}

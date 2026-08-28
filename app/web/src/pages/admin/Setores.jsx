@@ -25,7 +25,7 @@ export default criarPagina({
     { chave: "nome", rotulo: "Setor", ordenavel: true },
     { chave: "descricao", rotulo: "Descricao", render: (s) => s.descricao || "-" },
     { chave: "servidores", rotulo: "Servidores", render: (s) => numero(s.servidores) },
-    { chave: "veículos", rotulo: "Veículos", render: (s) => numero(s.veículos) },
+    { chave: "veiculos", rotulo: "Veículos", render: (s) => numero(s.veiculos) },
     {
       chave: "status", rotulo: "Situação", ordenavel: true,
       render: (s) => (

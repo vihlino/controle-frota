@@ -65,7 +65,7 @@ export default function InspeçãoDetalhe() {
   ];
 
   const secundarios = [
-    ["Proxima inspeção", data(inspeção.proxima_inspeção)],
+    ["Proxima inspeção", data(inspeção.proxima_inspecao)],
     ["Quilometragem no momento", inspeção.quilometragem ? `${numero(inspeção.quilometragem)} km` : "-"],
     ["Local da inspeção", inspeção.local || "-"],
     ["Hora de finalizacao", hora(inspeção.hora_finalizacao)],
@@ -135,7 +135,7 @@ export default function InspeçãoDetalhe() {
             </thead>
             <tbody>
               {itens.map((i) => (
-                <tr key={i.id_inspeção_item}>
+                <tr key={i.id_inspecao_item}>
                   <td>{i.item}</td>
                   <td className="coluna-marca">
                     <Marca ativo={i.resultado === "NORMAL"} tom="verde" />
@@ -160,7 +160,7 @@ export default function InspeçãoDetalhe() {
       <div className="grade-2">
         <Cartao titulo="Observações gerais">
           <p className="texto-corrido">
-            {inspeção.observações || "Nenhuma observacao registrada."}
+            {inspeção.observacoes || "Nenhuma observacao registrada."}
           </p>
         </Cartao>
 
@@ -185,12 +185,12 @@ export default function InspeçãoDetalhe() {
                 </div>
               </li>
             )}
-            {inspeção.proxima_inspeção && (
+            {inspeção.proxima_inspecao && (
               <li>
                 <span className="linha-tempo__ponto" data-tom="amarelo" />
                 <div>
                   <strong>Proxima inspeção prevista</strong>
-                  <span>{data(inspeção.proxima_inspeção)}</span>
+                  <span>{data(inspeção.proxima_inspecao)}</span>
                 </div>
               </li>
             )}

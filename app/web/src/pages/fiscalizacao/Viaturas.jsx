@@ -11,7 +11,7 @@ import { numero } from "../../lib/formato.js";
 // Fiscalização. A tela reusa o mesmo recurso de veículos.
 export default criarPagina({
   recurso: "frotas/veiculos",
-  id: "id_veículo",
+  id: "id_veiculo",
   singular: "viatura",
   titulo: "Viaturas",
   descricao: "Veículos utilizados pela fiscalização.",

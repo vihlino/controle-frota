@@ -21,7 +21,7 @@ const SITUACOES = [
 
 export default criarPagina({
   recurso: "fiscalizacao/ocorrencias",
-  id: "id_ocorrência",
+  id: "id_ocorrencia",
   singular: "ocorrência",
   titulo: "Ocorrências",
   descricao: "Ocorrências registradas pela fiscalização.",
@@ -63,7 +63,7 @@ export default criarPagina({
     { nome: "hora", rotulo: "Hora *", html: "time", obrigatorio: true },
     { nome: "endereco", rotulo: "Local *", obrigatorio: true, largo: true },
     { nome: "descricao", rotulo: "Descricao *", tipo: "area", obrigatorio: true, largo: true },
-    { nome: "observações", rotulo: "Observações", tipo: "area", largo: true },
+    { nome: "observacoes", rotulo: "Observações", tipo: "area", largo: true },
   ],
   aoSalvar: (f, usuario) => ({ ...f, criado_por: usuario.id_usuario, status: "PENDENTE" }),
 });

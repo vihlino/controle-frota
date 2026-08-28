@@ -30,7 +30,7 @@ const CATEGORIAS = ["Licenciamento", "Seguro", "Imposto", "Inspeção", "Manual"
 const VAZIO = {
   id_veículo: "", tipo_documento: "", numero_documento: "", categoria: "Licenciamento",
   data_emissao: "", data_validade: "", status: "VALIDO", id_responsavel: "",
-  bloqueia_veículo: false, observações: "",
+  bloqueia_veiculo: false, observacoes: "",
 };
 
 // Traduz os dias restantes na frase que aparece embaixo da data.
@@ -47,7 +47,7 @@ export default function Documentos() {
   const { podeVer } = useSessao();
   const [parâmetros] = useSearchParams();
   const lista = useLista("frotas/documentos", {
-    busca: "", veículo: parâmetros.get("veículo") || "", status: "", categoria: "",
+    busca: "", veiculo: parâmetros.get("veiculo") || "", status: "", categoria: "",
   });
   const [veículos, setVeículos] = useState([]);
   const [servidores, setServidores] = useState([]);
@@ -96,7 +96,7 @@ export default function Documentos() {
         ...formulario,
         id_veiculo: Number(formulario.id_veículo),
         id_responsavel: formulario.id_responsavel ? Number(formulario.id_responsavel) : null,
-        bloqueia_veículo: !!formulario.bloqueia_veículo,
+        bloqueia_veiculo: !!formulario.bloqueia_veiculo,
       };
       if (editando === "novo") await api("/frotas/documentos", { method: "POST", body: corpo });
       else await api(`/frotas/documentos/${editando}`, { method: "PUT", body: corpo });
@@ -156,15 +156,15 @@ export default function Documentos() {
     { chave: "responsavel", rotulo: "Responsavel", render: (d) => d.responsavel || "-" },
     { chave: "status", rotulo: "Situação", ordenavel: true, render: (d) => <Selo valor={d.status} /> },
     {
-      chave: "bloqueia_veículo", rotulo: "Bloqueia",
-      render: (d) => (d.bloqueia_veículo ? <Selo texto="Bloqueia" tom="vermelho" /> : "-"),
+      chave: "bloqueia_veiculo", rotulo: "Bloqueia",
+      render: (d) => (d.bloqueia_veiculo ? <Selo texto="Bloqueia" tom="vermelho" /> : "-"),
     },
     {
       chave: "ações", rotulo: "Ações",
       render: (d) => (
         <Acoes
           ações={[
-            { rotulo: "Ver veículo", aoClicar: () => navegar(`/frotas/veiculos/${d.id_veículo}`) },
+            { rotulo: "Ver veículo", aoClicar: () => navegar(`/frotas/veiculos/${d.id_veiculo}`) },
             ...(podeGerenciar
               ? [
                   { rotulo: "Editar documento", aoClicar: () => abrirEdicao(d) },
@@ -208,9 +208,9 @@ export default function Documentos() {
                  value={lista.filtros.busca}
                  onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
           <Selecao rotulo="Veículo" id="veículo" vazio="Todos os veículos"
-                   opcoes={veículos.map((v) => ({ valor: v.id_veículo, rotulo: `${v.placa} - ${v.modelo}` }))}
-                   value={lista.filtros.veículo}
-                   onChange={(e) => lista.alterarFiltro("veículo", e.target.value)} />
+                   opcoes={veículos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.modelo}` }))}
+                   value={lista.filtros.veiculo}
+                   onChange={(e) => lista.alterarFiltro("veiculo", e.target.value)} />
           <Selecao rotulo="Categoria" id="categoria" vazio="Todas as categorias"
                    opcoes={CATEGORIAS.map((c) => ({ valor: c, rotulo: c }))}
                    value={lista.filtros.categoria}
@@ -239,7 +239,7 @@ export default function Documentos() {
           <form id="form-doc" className="formulario-grade" onSubmit={salvar}>
             <Selecao rotulo="Veículo *" id="id_veículo" required vazio="Selecione"
                      opcoes={veículos.map((v) => ({
-                       valor: v.id_veículo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
+                       valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
                      }))}
                      {...campo("id_veículo")} />
             <Texto rotulo="Tipo de documento *" id="tipo_documento" required
@@ -258,15 +258,15 @@ export default function Documentos() {
               <label>
                 <input
                   type="checkbox"
-                  checked={!!formulario.bloqueia_veículo}
+                  checked={!!formulario.bloqueia_veiculo}
                   onChange={(e) =>
-                    setFormulario((f) => ({ ...f, bloqueia_veículo: e.target.checked }))
+                    setFormulario((f) => ({ ...f, bloqueia_veiculo: e.target.checked }))
                   }
                 />
                 Este documento bloqueia o uso do veículo quando estiver vencido
               </label>
             </div>
-            <Area rotulo="Observações" id="observações" largo {...campo("observações")} />
+            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")} />
           </form>
         </Modal>
       )}

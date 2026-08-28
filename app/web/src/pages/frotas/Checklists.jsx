@@ -49,7 +49,7 @@ export default function Checklists() {
   const navegar = useNavigate();
   const [parâmetros] = useSearchParams();
   const lista = useLista("frotas/checklists", {
-    busca: "", veículo: parâmetros.get("veículo") || "", status: "", dataDe: "", dataAte: "",
+    busca: "", veiculo: parâmetros.get("veiculo") || "", status: "", dataDe: "", dataAte: "",
   });
   const [veículos, setVeículos] = useState([]);
 
@@ -128,7 +128,7 @@ export default function Checklists() {
             },
             {
               rotulo: "Ver veículo",
-              aoClicar: () => navegar(`/frotas/veiculos/${c.id_veículo}`),
+              aoClicar: () => navegar(`/frotas/veiculos/${c.id_veiculo}`),
             },
           ]}
         />
@@ -155,9 +155,9 @@ export default function Checklists() {
           />
           <Selecao
             rotulo="Veículo" id="veículo" vazio="Todos"
-            opcoes={veículos.map((v) => ({ valor: v.id_veículo, rotulo: `${v.placa} - ${v.modelo}` }))}
-            value={lista.filtros.veículo}
-            onChange={(e) => lista.alterarFiltro("veículo", e.target.value)}
+            opcoes={veículos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.modelo}` }))}
+            value={lista.filtros.veiculo}
+            onChange={(e) => lista.alterarFiltro("veiculo", e.target.value)}
           />
           <Selecao
             rotulo="Situação" id="status" vazio="Todas"

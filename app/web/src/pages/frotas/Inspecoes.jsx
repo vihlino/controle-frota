@@ -32,14 +32,14 @@ export default function Inspeções() {
   const navegar = useNavigate();
   const { podeVer } = useSessao();
   const lista = useLista("frotas/inspecoes", {
-    busca: "", veículo: "", tipo: "", status: "", dataDe: "", dataAte: "",
+    busca: "", veiculo: "", tipo: "", status: "", dataDe: "", dataAte: "",
   });
   const [veículos, setVeículos] = useState([]);
   const [usuários, setUsuários] = useState([]);
   const [agendando, setAgendando] = useState(false);
   const [formulario, setFormulario] = useState({
     id_veículo: "", id_gestor: "", tipo: "MENSAL", data_realizacao: "",
-    hora_inicio: "08:00", local: "", observações: "",
+    hora_inicio: "08:00", local: "", observacoes: "",
   });
   const [erroForm, setErroForm] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -150,11 +150,11 @@ export default function Inspeções() {
           ações={[
             {
               rotulo: "Visualizar detalhes",
-              aoClicar: () => navegar(`/frotas/inspecoes/${i.id_inspeção}`),
+              aoClicar: () => navegar(`/frotas/inspecoes/${i.id_inspecao}`),
             },
             {
               rotulo: "Ver veículo",
-              aoClicar: () => navegar(`/frotas/veiculos/${i.id_veículo}`),
+              aoClicar: () => navegar(`/frotas/veiculos/${i.id_veiculo}`),
             },
           ]}
         />
@@ -176,7 +176,7 @@ export default function Inspeções() {
       }
       lista={lista}
       colunas={colunas}
-      chaveDe={(i) => i.id_inspeção}
+      chaveDe={(i) => i.id_inspecao}
       unidade="inspeções"
       vazio="Nenhuma inspeção encontrada com esses filtros."
       filtros={
@@ -185,9 +185,9 @@ export default function Inspeções() {
                  value={lista.filtros.busca}
                  onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
           <Selecao rotulo="Veículo" id="veículo" vazio="Todos"
-                   opcoes={veículos.map((v) => ({ valor: v.id_veículo, rotulo: `${v.placa} - ${v.modelo}` }))}
-                   value={lista.filtros.veículo}
-                   onChange={(e) => lista.alterarFiltro("veículo", e.target.value)} />
+                   opcoes={veículos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.modelo}` }))}
+                   value={lista.filtros.veiculo}
+                   onChange={(e) => lista.alterarFiltro("veiculo", e.target.value)} />
           <Selecao rotulo="Frequencia" id="tipo" vazio="Todas" opcoes={FREQUENCIAS}
                    value={lista.filtros.tipo}
                    onChange={(e) => lista.alterarFiltro("tipo", e.target.value)} />
@@ -223,7 +223,7 @@ export default function Inspeções() {
           <form id="form-inspeção" className="formulario-grade" onSubmit={agendar}>
             <Selecao rotulo="Veículo *" id="id_veículo" required vazio="Selecione"
                      opcoes={veículos.map((v) => ({
-                       valor: v.id_veículo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
+                       valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
                      }))}
                      {...campo("id_veículo")} />
             <Selecao rotulo="Responsavel *" id="id_gestor" required vazio="Selecione"
@@ -236,7 +236,7 @@ export default function Inspeções() {
             <Texto rotulo="Hora" id="hora_inicio" type="time" {...campo("hora_inicio")} />
             <Texto rotulo="Local" id="local" placeholder="Ex.: Garagem Central"
                    {...campo("local")} />
-            <Area rotulo="Observações" id="observações" largo {...campo("observações")} />
+            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")} />
           </form>
         </Modal>
       )}

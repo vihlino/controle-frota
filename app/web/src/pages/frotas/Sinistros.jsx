@@ -38,14 +38,14 @@ const TOM_TIPO = {
 
 const VAZIO = {
   id_veículo: "", id_servidor: "", data: "", hora: "", local: "", tipo: "COLISAO",
-  descricao: "", bo: "", houve_terceiros: false, status: "ABERTO", observações: "",
+  descricao: "", bo: "", houve_terceiros: false, status: "ABERTO", observacoes: "",
 };
 
 export default function Sinistros() {
   const navegar = useNavigate();
   const { podeVer, usuario } = useSessao();
   const lista = useLista("frotas/sinistros", {
-    busca: "", veículo: "", status: "", tipo: "", dataDe: "", dataAte: "",
+    busca: "", veiculo: "", status: "", tipo: "", dataDe: "", dataAte: "",
   });
   const [veículos, setVeículos] = useState([]);
   const [servidores, setServidores] = useState([]);
@@ -147,7 +147,7 @@ export default function Sinistros() {
         <Acoes
           ações={[
             { rotulo: "Visualizar detalhes", aoClicar: () => navegar(`/frotas/sinistros/${s.id_sinistro}`) },
-            { rotulo: "Ver veículo", aoClicar: () => navegar(`/frotas/veiculos/${s.id_veículo}`) },
+            { rotulo: "Ver veículo", aoClicar: () => navegar(`/frotas/veiculos/${s.id_veiculo}`) },
           ]}
         />
       ),
@@ -184,10 +184,10 @@ export default function Sinistros() {
           <Texto rotulo="Buscar" id="busca" placeholder="Placa, local, numero ou B.O."
                  value={lista.filtros.busca}
                  onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
-          <Selecao rotulo="Veículo" id="veículo" vazio="Todos os veículos"
-                   opcoes={veículos.map((v) => ({ valor: v.id_veículo, rotulo: `${v.placa} - ${v.modelo}` }))}
-                   value={lista.filtros.veículo}
-                   onChange={(e) => lista.alterarFiltro("veículo", e.target.value)} />
+          <Selecao rotulo="Veículo" id="veiculo" vazio="Todos os veículos"
+                   opcoes={veículos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.modelo}` }))}
+                   value={lista.filtros.veiculo}
+                   onChange={(e) => lista.alterarFiltro("veiculo", e.target.value)} />
           <Selecao rotulo="Tipo de sinistro" id="tipo" vazio="Todos" opcoes={TIPOS}
                    value={lista.filtros.tipo}
                    onChange={(e) => lista.alterarFiltro("tipo", e.target.value)} />
@@ -220,7 +220,7 @@ export default function Sinistros() {
           <form id="form-sinistro" className="formulario-grade" onSubmit={salvar}>
             <Selecao rotulo="Veículo *" id="id_veículo" required vazio="Selecione"
                      opcoes={veículos.map((v) => ({
-                       valor: v.id_veículo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
+                       valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
                      }))}
                      {...campo("id_veículo")} />
             <Selecao rotulo="Condutor *" id="id_servidor" required vazio="Selecione"
@@ -247,7 +247,7 @@ export default function Sinistros() {
             </div>
             <Area rotulo="Descricao do sinistro *" id="descricao" largo required
                   {...campo("descricao")} />
-            <Area rotulo="Observações" id="observações" largo {...campo("observações")} />
+            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")} />
           </form>
         </Modal>
       )}

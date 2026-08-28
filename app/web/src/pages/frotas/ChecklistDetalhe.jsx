@@ -67,12 +67,12 @@ export default function ChecklistDetalhe() {
           <h1>Checklist do veículo {checklist.placa}</h1>
           <p>
             {checklist.marca} {checklist.modelo} - Condutor {checklist.condutor} (matrícula{" "}
-            {checklist.matrícula}) - <Selo valor={checklist.status} />
+            {checklist.matricula}) - <Selo valor={checklist.status} />
           </p>
         </div>
         <div className="cabecalho-pagina__ações">
           <button className="botao" onClick={() => navegar("/frotas/checklists")}>Voltar</button>
-          <Link className="botao" to={`/frotas/veiculos/${checklist.id_veículo}`}>
+          <Link className="botao" to={`/frotas/veiculos/${checklist.id_veiculo}`}>
             Ver veículo
           </Link>
           <button className="botao" onClick={() => window.print()}>
@@ -131,7 +131,7 @@ export default function ChecklistDetalhe() {
       </Cartao>
 
       <Cartao titulo="Observações">
-        <p className="texto-corrido">{checklist.observações || "Nenhuma observacao registrada."}</p>
+        <p className="texto-corrido">{checklist.observacoes || "Nenhuma observacao registrada."}</p>
       </Cartao>
     </>
   );

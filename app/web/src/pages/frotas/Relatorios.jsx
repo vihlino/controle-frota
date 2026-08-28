@@ -53,7 +53,7 @@ export default function Relatórios() {
     try {
       const novo = await api("/relatorios", { method: "POST", body: formulario });
       setGerando(false);
-      navegar(`/frotas/relatorios/${novo.id_relatório}`);
+      navegar(`/frotas/relatorios/${novo.id_relatorio}`);
     } catch (e) {
       setErroForm(e.message);
     } finally {
@@ -111,7 +111,7 @@ export default function Relatórios() {
       chave: "ações", rotulo: "Ações",
       render: (r) => (
         <button className="botao botao--pequeno"
-                onClick={() => navegar(`/frotas/relatorios/${r.id_relatório}`)}>
+                onClick={() => navegar(`/frotas/relatorios/${r.id_relatorio}`)}>
           Ver
         </button>
       ),
@@ -161,7 +161,7 @@ export default function Relatórios() {
       }
       lista={lista}
       colunas={colunas}
-      chaveDe={(r) => r.id_relatório}
+      chaveDe={(r) => r.id_relatorio}
       unidade="relatórios"
       vazio="Nenhum relatório gerado ainda."
       filtros={

@@ -22,7 +22,7 @@ export default criarPagina({
   iconeAcao: "fisc-bolt",
   permissaoGerenciar: "FISCALIZACAO_GERENCIAR_PONTUACAO",
   permiteExcluir: true,
-  confirmarExclusao: (i) => `Excluir o item ${i.código}?`,
+  confirmarExclusao: (i) => `Excluir o item ${i.codigo}?`,
   larguraFormulario: 700,
   mapaOpcoes: {},
   colunas: [

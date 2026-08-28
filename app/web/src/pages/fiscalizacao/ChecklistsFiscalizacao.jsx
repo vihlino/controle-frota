@@ -15,7 +15,7 @@ export default criarPagina({
   unidade: "checklists",
   vazio: "Nenhum checklist de viatura registrado.",
   mapaOpcoes: {
-    veículos: (v) => ({ valor: v.id_veículo, rotulo: `${v.placa} - ${v.modelo}` }),
+    veículos: (v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.modelo}` }),
   },
   opcoes: { veículos: "/frotas/veiculos/opcoes" },
   colunas: [
@@ -33,7 +33,7 @@ export default criarPagina({
   ],
   filtros: [
     { nome: "busca", rotulo: "Buscar", dica: "Placa ou equipe" },
-    { nome: "veículo", rotulo: "Viatura", tipo: "selecao", opcoes: "veículos", vazio: "Todas" },
+    { nome: "veiculo", rotulo: "Viatura", tipo: "selecao", opcoes: "veículos", vazio: "Todas" },
     {
       nome: "status", rotulo: "Situação", tipo: "selecao", vazio: "Todas",
       opcoes: [

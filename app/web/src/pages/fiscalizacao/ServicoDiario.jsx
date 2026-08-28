@@ -79,7 +79,7 @@ export default function ServiçoDiário() {
     { chave: "hora_inicio", rotulo: "Inicio", render: (s) => hora(s.hora_inicio) },
     { chave: "hora_encerramento", rotulo: "Encerramento", render: (s) => hora(s.hora_encerramento) },
     { chave: "equipes", rotulo: "Equipes", render: (s) => numero(s.equipes) },
-    { chave: "ocorrências", rotulo: "Ocorrências", render: (s) => numero(s.ocorrências) },
+    { chave: "ocorrencias", rotulo: "Ocorrências", render: (s) => numero(s.ocorrencias) },
     { chave: "status", rotulo: "Situação", ordenavel: true, render: (s) => <Selo valor={s.status} /> },
   ];
 
@@ -97,7 +97,7 @@ export default function ServiçoDiário() {
       }
       lista={lista}
       colunas={colunas}
-      chaveDe={(s) => s.id_serviço_diário}
+      chaveDe={(s) => s.id_servico_diario}
       unidade="serviços"
       vazio="Nenhum serviço diário registrado."
       filtros={

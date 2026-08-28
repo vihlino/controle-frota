@@ -30,7 +30,7 @@ export default criarPagina({
     { chave: "numero", rotulo: "Numero", ordenavel: true },
     { chave: "tipo", rotulo: "Tipo", ordenavel: true },
     { chave: "integrantes", rotulo: "Integrantes", render: (e) => numero(e.integrantes) },
-    { chave: "observações", rotulo: "Observações", render: (e) => e.observações || "-" },
+    { chave: "observacoes", rotulo: "Observações", render: (e) => e.observacoes || "-" },
     {
       chave: "status", rotulo: "Situação", ordenavel: true,
       render: (e) => (
@@ -48,7 +48,7 @@ export default criarPagina({
   formulario: [
     { nome: "numero", rotulo: "Numero da equipe *", obrigatorio: true },
     { nome: "tipo", rotulo: "Tipo *", tipo: "selecao", opcoes: TIPOS, obrigatorio: true, padrao: "OSTENSIVA" },
-    { nome: "observações", rotulo: "Observações", tipo: "area", largo: true },
+    { nome: "observacoes", rotulo: "Observações", tipo: "area", largo: true },
   ],
   aoSalvar: (f) => ({ ...f, status: true }),
 });
