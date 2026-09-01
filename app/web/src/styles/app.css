@@ -94,42 +94,6 @@ button { font: inherit; cursor: pointer; }
   font-weight: 600;
 }
 .lateral__item .icone { flex: none; }
-.lateral__rodape { padding: 12px; border-top: 1px solid #1f1f1f; }
-.lateral__tema {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  background: var(--lateral-hover);
-  border: none;
-  color: var(--lateral-texto);
-  padding: 14px 16px;
-  border-radius: var(--raio);
-  font-size: 14px;
-}
-.interruptor {
-  margin-left: auto;
-  width: 38px;
-  height: 21px;
-  border-radius: 999px;
-  background: #3a3f45;
-  position: relative;
-  transition: background 0.15s;
-  flex: none;
-}
-.interruptor[data-ligado="true"] { background: var(--amarelo); }
-.interruptor::after {
-  content: "";
-  position: absolute;
-  top: 2.5px;
-  left: 2.5px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #fff;
-  transition: transform 0.15s;
-}
-.interruptor[data-ligado="true"]::after { transform: translateX(17px); }
 
 /* ---------- topo ---------- */
 
@@ -299,29 +263,63 @@ button { font: inherit; cursor: pointer; }
 
 /* ---------- KPIs ---------- */
 
+/* O cartao de KPI tem UM formato so em todo o sistema: circulo de icone em
+   tom suave a esquerda, rotulo, numero grande e nota. O tom do circulo diz o
+   que o numero significa (ver --verde/--vermelho/--ambar/--azul/--roxo nos
+   tokens); ele nunca e escolhido por gosto. */
 .kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 16px;
-  margin-bottom: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  gap: var(--e-4);
+  margin-bottom: var(--e-6);
 }
-.kpi { padding: 18px; display: flex; gap: 14px; }
+.kpi {
+  padding: var(--e-5);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-3);
+}
 .kpi__icone {
-  width: 46px;
-  height: 46px;
-  border-radius: var(--raio-sm);
-  background: var(--amarelo);
-  color: #0d0d0d;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--raio-full);
+  background: var(--superficie-3);
+  color: var(--texto-2);
   display: grid;
   place-items: center;
   flex: none;
 }
-.kpi__rotulo { font-size: 13px; color: var(--texto-2); font-weight: 500; }
-.kpi__valor { font-size: 34px; font-weight: 700; line-height: 1.1; margin: 2px 0 4px; }
-.kpi__nota { font-size: 12.5px; color: var(--texto-2); }
-.kpi__variacao { font-size: 12.5px; margin-top: 6px; display: flex; align-items: center; gap: 5px; }
-.kpi__variacao[data-sentido="subiu"] { color: var(--verde); }
-.kpi__variacao[data-sentido="caiu"] { color: var(--vermelho); }
+.kpi__rotulo {
+  font-size: var(--t-base);
+  line-height: var(--altura-normal);
+  color: var(--texto-2);
+  font-weight: var(--peso-medio);
+  /* Duas linhas reservadas: rotulos de tamanhos diferentes ("Disponivel" e
+     "Checklists de hoje") deixariam os numeros em alturas diferentes na mesma
+     fileira. Com a altura fixa, a fileira inteira alinha. */
+  min-height: calc(2 * var(--altura-normal) * var(--t-base));
+}
+.kpi__valor {
+  font-size: var(--t-3xl);
+  font-weight: var(--peso-forte);
+  line-height: var(--altura-apertada);
+  color: var(--texto);
+  margin: var(--e-1) 0;
+}
+.kpi__nota {
+  font-size: var(--t-sm);
+  line-height: var(--altura-normal);
+  color: var(--texto-2);
+}
+.kpi__variacao {
+  font-size: var(--t-sm);
+  margin-top: var(--e-1);
+  display: flex;
+  align-items: center;
+  gap: var(--e-1);
+}
+.kpi__variacao[data-sentido="subiu"] { color: var(--verde-texto); }
+.kpi__variacao[data-sentido="caiu"]  { color: var(--vermelho-texto); }
 
 /* ---------- grade do dashboard ---------- */
 
@@ -481,22 +479,35 @@ button { font: inherit; cursor: pointer; }
 
 /* ---------- tabelas ---------- */
 
-.tabela { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: auto; }
+/* A tabela roda um degrau abaixo do corpo do sistema (12px, nao 13px). E o
+   que o mockup usa e o que faz 8 colunas caberem num cartao de meia largura
+   sem rolagem. Os rotulos de cabecalho descem mais um degrau. */
+.tabela { width: 100%; border-collapse: collapse; font-size: var(--t-sm); table-layout: auto; }
 .tabela th {
   text-align: left;
-  font-weight: 600;
+  font-size: var(--t-xs);
+  font-weight: var(--peso-semi);
   color: var(--texto-2);
-  padding: 8px 10px;
+  padding: var(--e-2) var(--e-2);
   border-bottom: 1px solid var(--borda);
   white-space: nowrap;
 }
 .tabela td {
-  padding: 10px 10px;
+  padding: var(--e-2) var(--e-2);
   border-bottom: 1px solid var(--borda);
   color: var(--texto);
+  /* Nada de quebrar no meio da palavra: "word-break: break-word" com largura
+     maxima produzia "Volksw / agen Gol" e "MNO / -345 / 6". Uma placa ou um
+     modelo tem de ficar inteiro. Tabela larga demais rola na horizontal, que
+     e o que o .rolagem-x em volta ja faz. */
+  white-space: nowrap;
+}
+
+/* Colunas de texto livre e longo (percurso, observacao, descricao) podem
+   quebrar - mas em espacos, nunca no meio da palavra. */
+.tabela td.longa {
   white-space: normal;
-  word-break: break-word;
-  max-width: 220px;
+  max-width: 260px;
 }
 .tabela tbody tr:last-child td { border-bottom: none; }
 .tabela tbody tr:hover { background: var(--superficie-2); }
@@ -506,10 +517,10 @@ button { font: inherit; cursor: pointer; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 999px;
+  font-size: var(--t-sm);
+  font-weight: var(--peso-medio);
+  padding: var(--e-1) var(--e-3);
+  border-radius: var(--raio-full);
   background: var(--superficie-2);
   color: var(--texto-2);
 }
@@ -535,9 +546,10 @@ button { font: inherit; cursor: pointer; }
   padding: 16px;
 }
 .vencimento__faixa { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
-.vencimento[data-faixa="30"] .vencimento__faixa { color: var(--verde); }
-.vencimento[data-faixa="90"] .vencimento__faixa { color: var(--laranja); }
-.vencimento[data-faixa="120"] .vencimento__faixa { color: var(--vermelho); }
+/* Quanto MENOS dias faltam, mais urgente. As cores estavam ao contrario. */
+.vencimento[data-faixa="30"]  .vencimento__faixa { color: var(--vermelho-texto); }
+.vencimento[data-faixa="90"]  .vencimento__faixa { color: var(--ambar-texto); }
+.vencimento[data-faixa="120"] .vencimento__faixa { color: var(--verde-texto); }
 .vencimento__total { font-size: 30px; font-weight: 700; line-height: 1; }
 .vencimento__unidade { font-size: 12.5px; color: var(--texto-2); margin-bottom: 12px; }
 .vencimento__linha {
@@ -590,26 +602,62 @@ button { font: inherit; cursor: pointer; }
 
 /* ---------- acoes rapidas ---------- */
 
+/* Acoes rapidas: uma fileira de atalhos compactos, como no mockup. Era uma
+   grade de blocos de 200px que estourava a largura e quebrava linha. Agora
+   sao pilulas que se ajustam ao proprio texto e cabem numa linha so. */
 .acoes-rapidas {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2);
 }
 .acao-rapida {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: var(--e-2);
   background: var(--superficie);
   border: 1px solid var(--borda);
   border-radius: var(--raio);
-  padding: 16px;
-  font-size: 14.5px;
-  font-weight: 500;
+  padding: var(--e-2) var(--e-3);
+  font-size: var(--t-base);
+  font-weight: var(--peso-medio);
+  line-height: var(--altura-normal);
   color: var(--texto);
-  box-shadow: var(--sombra);
+  white-space: nowrap;
+  transition: border-color var(--transicao), background var(--transicao);
 }
-.acao-rapida:hover { border-color: var(--amarelo); background: var(--amarelo-suave); }
+.acao-rapida .icone { color: var(--texto-2); flex: none; }
+.acao-rapida:hover {
+  border-color: var(--marca);
+  background: var(--marca-fraca);
+}
+.acao-rapida:hover .icone { color: var(--marca-texto); }
+
+/* A celula de veiculo das tabelas: miniatura + nome, como no mockup das
+   Movimentacoes. A miniatura usa o icone do TIPO do veiculo - carro, moto,
+   caminhao - porque a tabela `veiculo` ainda nao tem coluna de foto. */
+.veiculo-cel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-3);
+}
+.veiculo-cel__foto {
+  width: 40px;
+  height: 28px;
+  border-radius: var(--raio-sm);
+  background: var(--superficie-3);
+  color: var(--texto-2);
+  display: grid;
+  place-items: center;
+  flex: none;
+  overflow: hidden;
+}
+.veiculo-cel__foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 
 /* ---------- botoes e campos ---------- */
 
@@ -773,16 +821,19 @@ button { font: inherit; cursor: pointer; }
 
 /* ---------- KPI: variantes de tom ---------- */
 
-.kpi__icone[data-tom="azul"]     { background: var(--azul-suave);     color: var(--azul); }
-.kpi__icone[data-tom="amarelo"]  { background: var(--amarelo-suave);  color: var(--amarelo-escuro); }
-.kpi__icone[data-tom="verde"]    { background: var(--verde-suave);    color: var(--verde); }
-.kpi__icone[data-tom="vermelho"] { background: var(--vermelho-suave); color: var(--vermelho); }
-.kpi__icone[data-tom="laranja"]  { background: var(--laranja-suave);  color: var(--laranja); }
-.kpi__icone[data-tom="azul"],
-.kpi__icone[data-tom="amarelo"],
-.kpi__icone[data-tom="verde"],
-.kpi__icone[data-tom="vermelho"],
-.kpi__icone[data-tom="laranja"] { border-radius: 50%; }
+/* Os tons do circulo de icone do KPI. "neutro" e o padrao, ja definido em
+   .kpi__icone. "marca" existe so para a tela de login e cabecalhos de marca -
+   nao use em numero de dashboard. */
+.kpi__icone[data-tom="verde"]    { background: var(--verde-suave);    color: var(--verde-texto); }
+.kpi__icone[data-tom="vermelho"] { background: var(--vermelho-suave); color: var(--vermelho-texto); }
+.kpi__icone[data-tom="ambar"]    { background: var(--ambar-suave);    color: var(--ambar-texto); }
+.kpi__icone[data-tom="azul"]     { background: var(--azul-suave);     color: var(--azul-texto); }
+.kpi__icone[data-tom="roxo"]     { background: var(--roxo-suave);     color: var(--roxo-texto); }
+.kpi__icone[data-tom="marca"]    { background: var(--marca-suave);    color: var(--marca-texto); }
+
+/* apelidos antigos, para as telas ainda nao migradas */
+.kpi__icone[data-tom="amarelo"]  { background: var(--ambar-suave);    color: var(--ambar-texto); }
+.kpi__icone[data-tom="laranja"]  { background: var(--ambar-suave);    color: var(--ambar-texto); }
 
 /* ---------- trilha ---------- */
 
@@ -1331,7 +1382,7 @@ button { font: inherit; cursor: pointer; }
 .documento__titulo h2 { font-size: 20px; margin: 0 0 16px; text-align: center; text-transform: uppercase; letter-spacing: 0.03em; }
 .documento__identificacao {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
   gap: 12px 20px;
   margin: 0;
 }
@@ -1438,7 +1489,7 @@ button { font: inherit; cursor: pointer; }
 
 .faixa-resumo {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
   gap: 14px;
   background: var(--superficie);
   border: 1px solid var(--borda);

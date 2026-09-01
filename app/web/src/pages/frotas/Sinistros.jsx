@@ -168,8 +168,8 @@ export default function Sinistros() {
       }
       kpis={
         resumo && [
-          { icone: "alert-triangle", rotulo: "Total de sinistros", valor: resumo.total, nota: "Todos os registros", tom: "azul" },
-          { icone: "calendar", rotulo: "Em andamento", valor: resumo.andamento, nota: "Aguardando conclusao", tom: "amarelo" },
+          { icone: "alert-triangle", rotulo: "Total de sinistros", valor: resumo.total, nota: "Todos os registros", tom: "neutro" },
+          { icone: "calendar", rotulo: "Em andamento", valor: resumo.andamento, nota: "Aguardando conclusão", tom: "ambar" },
           { icone: "checklist", rotulo: "Resolvidos", valor: resumo.resolvidos, nota: "Sinistros finalizados", tom: "verde" },
           { icone: "minus", rotulo: "Cancelados", valor: resumo.encerrados, nota: "Registros cancelados", tom: "vermelho" },
         ]

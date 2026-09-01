@@ -191,10 +191,10 @@ export default function Documentos() {
       }
       kpis={
         resumo && [
-          { icone: "nav-gestao", rotulo: "Total de documentos", valor: resumo.total, nota: "Todos", tom: "azul" },
-          { icone: "calendar", rotulo: "Vencendo em breve", valor: resumo.vencendo, nota: "Proximos 30 dias", tom: "laranja" },
-          { icone: "alert-triangle", rotulo: "Vencidos", valor: resumo.vencidos, nota: "Requerem atencao", tom: "vermelho" },
-          { icone: "checklist", rotulo: "Categorias", valor: resumo.categorias, nota: "Tipos de documento", tom: "verde" },
+          { icone: "nav-gestao", rotulo: "Total de documentos", valor: resumo.total, nota: "Todos", tom: "neutro" },
+          { icone: "calendar", rotulo: "Vencendo em breve", valor: resumo.vencendo, nota: "Próximos 30 dias", tom: "ambar" },
+          { icone: "alert-triangle", rotulo: "Vencidos", valor: resumo.vencidos, nota: "Requerem atenção", tom: "vermelho" },
+          { icone: "checklist", rotulo: "Categorias", valor: resumo.categorias, nota: "Tipos de documento", tom: "roxo" },
         ]
       }
       lista={lista}

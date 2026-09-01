@@ -1,4 +1,15 @@
-/* Tokens do SITRA, tirados dos mockups em TELAS/ e do briefing de design. */
+/* ==========================================================================
+   tokens.css - A base visual do SITRA.
+   ==========================================================================
+   Toda cor, tamanho de texto, espacamento, raio e sombra do sistema nasce
+   aqui. Nenhum componente deve escrever um valor cru: se voce precisou de um
+   numero que nao esta neste arquivo, o certo e adicionar o token aqui.
+
+   A paleta foi extraida dos mockups aprovados (LayoutNovo_SITRA), telas
+   "Setores" e "Servicos Diarios".
+
+   O sistema tem CORES FIXAS. Nao existe tema escuro.
+   ========================================================================== */
 
 @font-face {
   font-family: "Noto Sans";
@@ -26,44 +37,143 @@
 }
 
 :root {
-  /* marca */
-  --amarelo: #f5b800;
-  --amarelo-escuro: #c8930a;
-  --amarelo-suave: #fff6dc;
+  /* ---------------------------------------------------------------- marca
+     O amarelo e da MARCA, nao de estado. Ele aparece em tres lugares e so
+     nesses tres: a logo, o item ativo da lateral e o botao primario.
+     Um numero na tela nunca e amarelo so por ser importante. */
+  --marca:        #FFA800;
+  --marca-forte:  #E09200;  /* hover do botao primario */
+  --marca-suave:  #FEF3C7;  /* fundo de badge / circulo de icone */
+  --marca-fraca:  #FFFBEB;  /* fundo de faixa, linha destacada */
+  --marca-texto:  #B45309;  /* texto ambar sobre fundo claro (passa em AA) */
 
-  /* superficies - tema claro */
-  --fundo: #f4f5f7;
-  --superficie: #ffffff;
-  --superficie-2: #fafafa;
-  --borda: #e6e8eb;
-  --borda-forte: #d3d7dc;
+  /* --------------------------------------------------------- superficies */
+  --fundo:        #F9FAFB;  /* o cinza atras de tudo */
+  --superficie:   #FFFFFF;  /* cartao, tabela, modal */
+  --superficie-2: #F9FAFB;  /* cabecalho de tabela, linha zebrada */
+  --superficie-3: #F3F4F6;  /* campo desabilitado, chip neutro */
+  --borda:        #E5E7EB;  /* a borda padrao de tudo */
+  --borda-forte:  #D1D5DB;  /* borda de campo, divisor com mais peso */
 
-  /* texto */
-  --texto: #111315;
-  --texto-2: #5b6167;
-  --texto-3: #8b9198;
+  /* -------------------------------------------------------------- texto */
+  --texto:        #111827;  /* titulo, numero, dado da tabela */
+  --texto-2:      #6B7280;  /* rotulo, legenda, texto de apoio */
+  --texto-3:      #9CA3AF;  /* placeholder, texto desabilitado */
+  --texto-invertido: #FFFFFF;
 
-  /* barra lateral (sempre escura, como no mockup) */
-  --lateral-fundo: #0d0d0d;
-  --lateral-texto: #d6d8da;
-  --lateral-texto-2: #85898e;
-  --lateral-hover: #1c1c1c;
+  /* ------------------------------------------------------------- lateral
+     A barra lateral e sempre escura, independente do resto. */
+  --lateral-fundo:        #0D0D0D;
+  --lateral-texto:        #D4D4D4;
+  --lateral-texto-2:      #8A8A8A;  /* item inativo, texto sob a logo */
+  --lateral-hover:        #1C1C1C;
+  --lateral-secao:        var(--marca);  /* o rotulo "ADMINISTRACAO" */
+  --lateral-ativo-fundo:  var(--marca);
+  --lateral-ativo-texto:  #000000;
 
-  /* estados */
-  --verde: #17a34a;
-  --verde-suave: #e7f6ec;
-  --vermelho: #e02424;
-  --vermelho-suave: #fdeaea;
-  --laranja: #f97316;
-  --laranja-suave: #fff0e6;
-  --azul: #2563eb;
-  --azul-suave: #e8effd;
+  /* -------------------------------------------------------------- estado
+     Cada cor CARREGA UM SIGNIFICADO. Use pelo sentido, nunca pela estetica:
+       verde    = esta certo, concluido, disponivel
+       vermelho = esta errado, cancelado, indisponivel
+       ambar    = precisa de atencao, em andamento, vence em breve
+       azul     = neutro informativo, em analise, intervencao
+       roxo     = contagem / agrupamento, sem juizo de valor            */
+  --verde:          #16A34A;
+  --verde-suave:    #DCFCE7;
+  --verde-texto:    #15803D;
 
-  /* forma */
-  --raio: 12px;
-  --raio-sm: 8px;
-  --sombra: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
-  --lateral-largura: 232px;
-  --topo-altura: 76px;
+  --vermelho:       #DC2626;
+  --vermelho-suave: #FEE2E2;
+  --vermelho-texto: #B91C1C;
+
+  --ambar:          #F59E0B;
+  --ambar-suave:    #FEF3C7;
+  --ambar-texto:    #B45309;
+
+  --azul:           #2563EB;
+  --azul-suave:     #DBEAFE;
+  --azul-texto:     #1D4ED8;
+
+  --roxo:           #7C3AED;
+  --roxo-suave:     #EDE9FE;
+  --roxo-texto:     #6D28D9;
+
+  /* -------------------------------------------------------- espacamento
+     Escala de 4 em 4. Todo padding, margin e gap sai daqui. E isto que faz
+     telas diferentes terem o mesmo respiro. */
+  --e-1:  4px;
+  --e-2:  8px;
+  --e-3: 12px;
+  --e-4: 16px;
+  --e-5: 20px;
+  --e-6: 24px;
+  --e-7: 32px;
+  --e-8: 40px;
+  --e-9: 48px;
+
+  /* --------------------------------------------------------- tipografia
+     Nove degraus, com papel definido. Nada de 12.5px no meio do caminho. */
+  --t-xs:   11px;  /* rotulo em caixa alta, contador */
+  --t-sm:   12px;  /* nota de rodape do cartao, texto auxiliar */
+  --t-base: 13px;  /* celula de tabela, rotulo de campo */
+  --t-md:   14px;  /* corpo, item de menu, valor de campo */
+  --t-lg:   16px;  /* titulo de cartao */
+  --t-xl:   20px;  /* titulo de secao */
+  --t-2xl:  24px;  /* titulo de pagina */
+  --t-3xl:  30px;  /* numero de KPI */
+  --t-4xl:  36px;  /* numero de destaque unico */
+
+  --peso-normal: 400;
+  --peso-medio:  500;
+  --peso-semi:   600;
+  --peso-forte:  700;
+
+  --altura-apertada: 1.2;   /* numeros e titulos grandes */
+  --altura-normal:   1.45;  /* interface em geral */
+  --altura-solta:    1.6;   /* paragrafo de leitura */
+
+  --caixa-alta-espaco: 0.06em;  /* letter-spacing de rotulo em maiuscula */
+
+  /* -------------------------------------------------------------- forma */
+  --raio-sm:   6px;   /* badge, chip, botao pequeno */
+  --raio:      8px;   /* cartao, campo, botao */
+  --raio-lg:  12px;   /* modal, painel grande */
+  --raio-full: 999px; /* circulo de icone, pilula */
+
+  /* ------------------------------------------------------------ sombras
+     Tres niveis, um por altura. Cartao parado quase nao levanta; so o que
+     flutua de verdade (modal, menu suspenso) ganha sombra forte. */
+  --sombra-1: 0 1px 2px rgba(16, 24, 40, 0.04),
+              0 1px 3px rgba(16, 24, 40, 0.06);
+  --sombra-2: 0 2px 4px -1px rgba(16, 24, 40, 0.06),
+              0 4px 8px -2px rgba(16, 24, 40, 0.08);
+  --sombra-3: 0 8px 16px -4px rgba(16, 24, 40, 0.10),
+              0 20px 32px -8px rgba(16, 24, 40, 0.14);
+
+  --foco: 0 0 0 3px rgba(255, 168, 0, 0.35);  /* anel de foco do teclado */
+
+  /* ------------------------------------------------------------- layout */
+  --lateral-largura:  232px;
+  --lateral-recolhida: 76px;
+  --topo-altura:       76px;
+  --pagina-max:      1440px;
+
+  --transicao: 140ms ease;
+
+  /* ==================================================================
+     COMPATIBILIDADE
+     ------------------------------------------------------------------
+     O app.css antigo (1.500 linhas) usa os nomes abaixo. Eles continuam
+     valendo, apontando para os tokens novos, para nada quebrar enquanto a
+     migracao acontece tela a tela. Conforme o app.css for reescrito, cada
+     linha daqui pode sair.
+     ================================================================== */
+  --amarelo:        var(--marca);
+  --amarelo-escuro: var(--marca-texto);
+  --amarelo-suave:  var(--marca-suave);
+  --laranja:        var(--ambar);
+  --laranja-suave:  var(--ambar-suave);
+  --raio-md:        var(--raio);
+  --sombra:         var(--sombra-1);
+  --font-family:    "Noto Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
-

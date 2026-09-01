@@ -3,6 +3,7 @@ import Cartao from "../../components/Cartao.jsx";
 import Icone from "../../components/Icone.jsx";
 import Kpi from "../../components/Kpi.jsx";
 import Selo from "../../components/Selo.jsx";
+import VeiculoCel from "../../components/VeiculoCel.jsx";
 import { data, hora, numero, porcentagem } from "../../lib/formato.js";
 
 const ROTULOS_OS = {
@@ -20,19 +21,19 @@ export default function PainelFrotas({ dados }) {
     <>
       <div className="kpis">
         <Kpi icone="kpi-car"       rotulo="Total de Veículos"  valor={kpis.total}
-             nota="100% da frota" />
+             nota="100% da frota" tom="neutro" />
         <Kpi icone="kpi-car-front" rotulo="Disponível"         valor={kpis.disponiveis.valor}
-             nota={`${porcentagem(kpis.disponiveis.percentual)} da frota`} />
+             nota={`${porcentagem(kpis.disponiveis.percentual)} da frota`} tom="verde" />
         <Kpi icone="kpi-steering"  rotulo="Em Operação"        valor={kpis.emOperacao.valor}
-             nota={`${porcentagem(kpis.emOperacao.percentual)} da frota`} />
+             nota={`${porcentagem(kpis.emOperacao.percentual)} da frota`} tom="azul" />
         <Kpi icone="kpi-wrench"    rotulo="Em manutenção"      valor={kpis.emManutencao.valor}
-             nota={`${porcentagem(kpis.emManutencao.percentual)} da frota`} />
+             nota={`${porcentagem(kpis.emManutencao.percentual)} da frota`} tom="ambar" />
         <Kpi icone="alert-triangle" rotulo="Indisponível"      valor={kpis.indisponiveis.valor}
-             nota={`${porcentagem(kpis.indisponiveis.percentual)} da frota`} />
+             nota={`${porcentagem(kpis.indisponiveis.percentual)} da frota`} tom="vermelho" />
         <Kpi icone="checklist"     rotulo="Checklists de hoje" valor={kpis.checklistsHoje.valor}
              nota={difChecklists >= 0
                ? `↑ ${numero(Math.abs(difChecklists))} em relação a ontem`
-               : `↓ ${numero(Math.abs(difChecklists))} em relação a ontem`} />
+               : `↓ ${numero(Math.abs(difChecklists))} em relação a ontem`} tom="roxo" />
       </div>
 
       <div className="grade-2">
@@ -52,9 +53,10 @@ export default function PainelFrotas({ dados }) {
                     <td>{hora(c.hora_saida)}</td>
                     <td>{data(c.data_abertura)}</td>
                     <td>{c.condutor}</td>
-                    <td>{`${c.marca} ${c.modelo}`}</td>
+                    <td><VeiculoCel marca={c.marca} modelo={c.modelo}
+                                   tipo={c.tipo_veiculo} foto={c.foto} /></td>
                     <td>{c.placa}</td>
-                    <td>{c.percurso || "—"}</td>
+                    <td className="longa">{c.percurso || "—"}</td>
                     <td>{c.km_rodado === null ? "—" : `${numero(c.km_rodado)} km`}</td>
                     <td><Selo valor={c.status} /></td>
                   </tr>
@@ -77,7 +79,8 @@ export default function PainelFrotas({ dados }) {
               <tbody>
                 {veiculosEmUso.map((m) => (
                   <tr key={m.id_checklist}>
-                    <td>{`${m.marca} ${m.modelo}`}</td>
+                    <td><VeiculoCel marca={m.marca} modelo={m.modelo}
+                                   tipo={m.tipo_veiculo} foto={m.foto} /></td>
                     <td>{m.motorista}</td>
                     <td>{m.placa}</td>
                     <td>{hora(m.hora_saida)}</td>
@@ -98,7 +101,7 @@ export default function PainelFrotas({ dados }) {
             {vencimentos.map((f) => (
               <div className="vencimento" key={f.dias} data-faixa={f.dias}>
                 <div className="vencimento__faixa">
-                  {f.dias === 120 ? "Até 150 dias" : `Até ${f.dias} dias`}
+                  {`Até ${f.dias} dias`}
                 </div>
                 <div className="vencimento__total">{numero(f.total)}</div>
                 <div className="vencimento__unidade">documentos</div>
@@ -157,7 +160,7 @@ export default function PainelFrotas({ dados }) {
             <Icone nome="kpi-steering" tamanho={20} /> Movimentação
           </Link>
           <Link className="acao-rapida" to="/frotas/relatorios">
-            <Icone nome="chart-line" tamanho={20} /> Ver veículos
+            <Icone nome="chart-line" tamanho={20} /> Relatórios
           </Link>
         </div>
       </Cartao>

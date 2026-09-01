@@ -16,16 +16,16 @@ export default function PainelFiscalizacao({ dados }) {
       <div className="kpis">
         <Kpi icone="fisc-servidores" rotulo="Equipes em serviço"
              valor={kpis.equipesEmServico}
-             nota={`${pctEquipes}% do total`} />
+             nota={`${pctEquipes}% do total`} tom="verde" />
         <Kpi icone="fisc-viatura" rotulo="Viaturas em uso"
              valor={kpis.viaturasEmUso}
-             nota="Em campo agora" />
+             nota="Em campo agora" tom="azul" />
         <Kpi icone="fisc-ocorrencias" rotulo="Ocorrências hoje"
              valor={kpis.ocorrenciasHoje.hoje}
-             nota={`${numero(kpis.ocorrenciasHoje.em_andamento)} em andamento`} />
+             nota={`${numero(kpis.ocorrenciasHoje.em_andamento)} em andamento`} tom="ambar" />
         <Kpi icone="checklist" rotulo="Checklists de hoje"
              valor={kpis.checklistsHoje}
-             nota="Enviados" />
+             nota="Enviados" tom="roxo" />
       </div>
 
       <div className="grade-2">

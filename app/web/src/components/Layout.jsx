@@ -11,24 +11,16 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Lateral from "./Lateral.jsx";
 import Topo from "./Topo.jsx";
-import { aplicarTema, temaAtual } from "../lib/tema.js";
 
 // O titulo e a legenda do topo mudam por pagina; cada pagina publica os seus
 // atraves do contexto do Outlet.
 export default function Layout() {
   const [recolhida, setRecolhida] = useState(false);
-  const [tema, setTema] = useState(temaAtual);
   const [cabecalho, setCabecalho] = useState({ titulo: "SITRA", legenda: "" });
-
-  function alternarTema() {
-    const novo = tema === "escuro" ? "claro" : "escuro";
-    aplicarTema(novo);
-    setTema(novo);
-  }
 
   return (
     <div className="app" data-lateral={recolhida ? "recolhida" : "aberta"}>
-      <Lateral recolhida={recolhida} tema={tema} alternarTema={alternarTema} />
+      <Lateral recolhida={recolhida} />
       <div className="conteudo">
         <Topo
           titulo={cabecalho.titulo}

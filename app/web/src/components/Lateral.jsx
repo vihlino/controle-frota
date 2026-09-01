@@ -12,7 +12,7 @@ import Icone from "./Icone.jsx";
 import { MENU } from "./menu.js";
 import { useSessao } from "../lib/sessao.jsx";
 
-export default function Lateral({ recolhida, tema, alternarTema }) {
+export default function Lateral({ recolhida }) {
   const { podeVer } = useSessao();
 
   function rotuloDashboard() {
@@ -72,7 +72,6 @@ export default function Lateral({ recolhida, tema, alternarTema }) {
         ))}
       </nav>
 
-      <div className="lateral__rodape" />
     </aside>
   );
 }

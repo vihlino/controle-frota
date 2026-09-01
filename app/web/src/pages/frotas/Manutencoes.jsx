@@ -168,9 +168,9 @@ export default function Manutenções() {
       }
       kpis={
         resumo && [
-          { icone: "kpi-wrench", rotulo: "Total de manutenções", valor: resumo.total, nota: "Todas", tom: "azul" },
-          { icone: "calendar", rotulo: "Em andamento", valor: resumo.andamento, nota: "Serviços abertos", tom: "amarelo" },
-          { icone: "checklist", rotulo: "Concluidas", valor: resumo.concluidas, nota: "Serviços finalizados", tom: "verde" },
+          { icone: "kpi-wrench", rotulo: "Total de manutenções", valor: resumo.total, nota: "Todas", tom: "neutro" },
+          { icone: "calendar", rotulo: "Em andamento", valor: resumo.andamento, nota: "Serviços abertos", tom: "ambar" },
+          { icone: "checklist", rotulo: "Concluídas", valor: resumo.concluidas, nota: "Serviços finalizados", tom: "verde" },
           { icone: "alert-triangle", rotulo: "Atrasadas", valor: resumo.atrasadas, nota: "Passaram da data", tom: "vermelho" },
         ]
       }

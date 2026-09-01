@@ -35,8 +35,10 @@ export function numero(valor, casas = 0) {
   });
 }
 
+// So formata o numero. O contexto ("da frota", "do total") e de quem chama:
+// embutir isso aqui ja causou o texto duplicado "74,4% da frota da frota".
 export function porcentagem(valor) {
-  return `${numero(valor, 1)}% da frota`;
+  return `${numero(valor, 1)}%`;
 }
 
 const ROTULOS_STATUS = {

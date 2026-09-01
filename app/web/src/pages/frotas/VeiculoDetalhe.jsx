@@ -92,9 +92,9 @@ export default function VeículoDetalhe() {
           <Kpi icone="checklist" rotulo="Checklists" valor={resumo.checklists}
                nota="Registros de uso" tom="azul" />
           <Kpi icone="calendar" rotulo="Inspeções" valor={resumo.inspecoes}
-               nota="Realizadas" tom="amarelo" />
+               nota="Realizadas" tom="roxo" />
           <Kpi icone="kpi-wrench" rotulo="OS em aberto" valor={resumo.os_abertas}
-               nota={dinheiro(resumo.custo_manutencao)} tom="laranja" />
+               nota={dinheiro(resumo.custo_manutencao)} tom="ambar" />
           <Kpi icone="alert-triangle" rotulo="Sinistros" valor={resumo.sinistros}
                nota={`${numero(resumo.documentos_vencidos)} doc. vencidos`} tom="vermelho" />
         </div>

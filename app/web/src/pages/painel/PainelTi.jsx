@@ -39,13 +39,13 @@ export default function PainelTi({ dados }) {
         <Kpi icone="user" rotulo="Usuários ativos" valor={kpis.usuarios.ativos}
              nota={`${numero(kpis.usuarios.total)} cadastrados`} tom="azul" />
         <Kpi icone="fisc-servidores" rotulo="Servidores cadastrados" valor={kpis.servidores}
-             nota="Base de pessoas" tom="verde" />
+             nota="Base de pessoas" tom="neutro" />
         <Kpi icone="nav-gestao" rotulo="Setores cadastrados" valor={kpis.setores}
-             nota="Estrutura ativa" tom="amarelo" />
+             nota="Estrutura ativa" tom="roxo" />
         <Kpi icone="user" rotulo="Sessões ativas" valor={kpis.usuarios.ativos}
-             nota="Usuários online" tom="azul" />
+             nota="Usuários online" tom="verde" />
         <Kpi icone="checklist" rotulo="Acessos hoje" valor={kpis.acessos.hoje}
-             nota={`${numero(kpis.acessos.falhas_hoje)} falhas`} tom="laranja" />
+             nota={`${numero(kpis.acessos.falhas_hoje)} falhas`} tom="ambar" />
       </div>
 
       <div className="grade-3">
