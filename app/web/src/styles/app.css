@@ -95,6 +95,26 @@ button { font: inherit; cursor: pointer; }
 }
 .lateral__item .icone { flex: none; }
 
+/* Rodape da lateral: a Ajuda fica ancorada em baixo, separada do menu por uma
+   linha, como nos mockups. O margin-top:auto e o que empurra ela para o fim,
+   ja que a .lateral e um flex em coluna. */
+.lateral__ajuda {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  padding: var(--e-4) var(--e-4);
+  margin: auto var(--e-3) var(--e-3);
+  border-top: 1px solid #1f1f1f;
+  border-radius: var(--raio);
+  color: var(--lateral-texto-2);
+  font-size: var(--t-md);
+  font-weight: var(--peso-medio);
+  transition: background var(--transicao), color var(--transicao);
+}
+.lateral__ajuda:hover { background: var(--lateral-hover); color: var(--lateral-texto); }
+.lateral__ajuda-seta { margin-left: auto; }
+
 /* ---------- topo ---------- */
 
 .topo {

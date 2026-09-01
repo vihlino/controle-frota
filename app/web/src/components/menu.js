@@ -8,17 +8,22 @@ export const MENU = [
     ],
   },
   {
-    grupo: "Frotas",
+    // Nos mockups o rotulo deste bloco e "MENU PRINCIPAL", nao "Frotas": o
+    // usuario de frotas ve so este grupo, entao chama-lo de "Frotas" seria
+    // repetir o obvio.
+    grupo: "Menu principal",
     permissao: "FROTAS_VISUALIZAR",
     itens: [
-      { rotulo: "Veículos",    para: "/frotas/veiculos",    icone: "kpi-car" },
-      { rotulo: "Motoristas",  para: "/frotas/motoristas",  icone: "cnh" },
-      { rotulo: "Checklists",  para: "/frotas/checklists",  icone: "checklist" },
-      { rotulo: "Inspeções",   para: "/frotas/inspecoes",   icone: "calendar" },
-      { rotulo: "Manutenções", para: "/frotas/manutencoes", icone: "kpi-wrench" },
-      { rotulo: "Documentos",  para: "/frotas/documentos",  icone: "documentos" },
-      { rotulo: "Sinistros",   para: "/frotas/sinistros",   icone: "sinistro" },
-      { rotulo: "Relatórios",  para: "/frotas/relatorios",  icone: "chart-line" },
+      { rotulo: "Veículos",       para: "/frotas/veiculos",       icone: "kpi-car" },
+      { rotulo: "Motoristas",     para: "/frotas/motoristas",     icone: "cnh" },
+      { rotulo: "Checklists",     para: "/frotas/checklists",     icone: "checklist" },
+      { rotulo: "Inspeções",      para: "/frotas/inspecoes",      icone: "calendar" },
+      { rotulo: "Manutenções",    para: "/frotas/manutencoes",    icone: "kpi-wrench" },
+      { rotulo: "Documentos",     para: "/frotas/documentos",     icone: "documentos" },
+      { rotulo: "Sinistros",      para: "/frotas/sinistros",      icone: "sinistro" },
+      // Ainda nao existe: cai no EmConstrucao pelo path="*" do App.jsx.
+      { rotulo: "Movimentações",  para: "/frotas/movimentacoes",  icone: "movements" },
+      { rotulo: "Relatórios",     para: "/frotas/relatorios",     icone: "chart-line" },
     ],
   },
   {
@@ -51,6 +56,8 @@ export const MENU = [
       { rotulo: "Perfis e Permissões",   para: "/admin/perfis",     icone: "perfis" },
       { rotulo: "Setores",               para: "/admin/setores",    icone: "setores" },
       { rotulo: "Parâmetros do Sistema", para: "/admin/parametros", icone: "nav-administracao" },
+      // Ainda nao existe: cai no EmConstrucao pelo path="*" do App.jsx.
+      { rotulo: "Configurações",         para: "/admin/configuracoes", icone: "administracao-alt" },
     ],
   },
   {
