@@ -101,14 +101,52 @@ afetado e o antes/depois em JSON. Senha nunca entra na auditoria, nem como hash.
 - `web/src/components/criarPagina.jsx` faz o mesmo no front: telas de listagem
   simples nascem de uma configuracao. As que tem comportamento proprio
   (Veiculos, Checklists, Relatorios, Usuarios, Perfis) sao escritas a mao.
-- Estilo so em `web/src/styles/`: `tokens.css` guarda cores, fontes e formas
-  (inclusive o tema escuro); `app.css` tem as classes.
+- Estilo so em `web/src/styles/`: `tokens.css` guarda TODOS os valores -
+  cores, escala de espacamento, escala tipografica, raios e sombras; `app.css`
+  tem as classes. Nenhum componente escreve um valor cru: se voce precisou de
+  um numero que nao esta no tokens.css, o certo e adicionar o token la.
+- O sistema tem CORES FIXAS. Nao existe tema escuro (foi removido: era codigo
+  morto, sem botao e sem CSS).
+- Nome de classe CSS NAO leva acento. O CSS e escrito sem, e um `className`
+  acentuado nunca casa - a regra simplesmente nao se aplica, sem erro nenhum.
+  Ja aconteceu com 26 classes de uma vez.
 - Icones em `web/public/icons/` sao lidos pelo componente `Icone`, que troca o
   preto fixo dos arquivos por `currentColor` para funcionarem na lateral escura.
 
 ## Pendencias conhecidas
 
-- Os icones novos do Figma ("01 - Dashboard - Icones") ainda nao foram
-  exportados. O sistema usa os 28 SVGs entregues antes.
+- A tabela `veiculo` nao tem coluna de foto. A miniatura do veiculo nas
+  tabelas usa o icone do tipo; `VeiculoCel` ja prefere a imagem real quando
+  a API passar `foto`.
+- A logo em `web/public/icons/logo-sitra.svg` e um rascunho desenhado em
+  codigo, nao a marca. A logo real esta em `SITRA DESIGN/LOGO` (so PNG).
 - Fotos em checklists, inspecoes e sinistros ainda nao tem upload de arquivo.
 - Alertas por e-mail: a tabela `alerta_email` existe, mas o envio nao foi feito.
+
+## Deploy
+
+O front fica na **Vercel** e a API no **Render**. (O projeto ja usou Netlify;
+o `netlify.toml` foi removido.)
+
+**Front - Vercel**
+
+1. Importe o repositorio na Vercel.
+2. Em Settings > General, defina **Root Directory = `app/web`**.
+3. Em Settings > Environment Variables, crie `VITE_API_URL` com a URL da API
+   no Render (ex.: `https://sitra-api.onrender.com`). Sem ela o front chama
+   `/api/...` no proprio dominio da Vercel e nao acha ninguem.
+4. Cada push na branch configurada dispara o build sozinho.
+
+O `app/web/vercel.json` manda toda rota para o `index.html`. Sem isso, abrir
+`/frotas/veiculos` direto daria 404: o arquivo nao existe, quem cuida da rota
+e o React Router.
+
+> Existe um `vercel.json` identico na RAIZ do repositorio. Com Root Directory
+> apontando para `app/web`, ele nao e lido - fica ali por seguranca, de quando
+> nao se sabia qual dos dois a Vercel usaria. Se voce confirmar a configuracao
+> no painel, da para apagar o da raiz.
+
+**API - Render**
+
+Configurada em `app/render.yaml` (servico Docker + Postgres). O contexto do
+build e a pasta `app/`, para o Dockerfile alcancar `api/` e `db/`.

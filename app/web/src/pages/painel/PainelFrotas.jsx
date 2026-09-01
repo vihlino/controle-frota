@@ -112,7 +112,7 @@ export default function PainelFrotas({ dados }) {
                   </div>
                 ))}
                 {f.porTipo.length === 0 && (
-                  <div className="vencimento__linha" style={{ color: "var(--texto-leve)" }}>
+                  <div className="vencimento__linha" style={{ color: "var(--texto-3)" }}>
                     <span>Nenhum</span>
                   </div>
                 )}

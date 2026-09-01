@@ -531,6 +531,7 @@ button { font: inherit; cursor: pointer; }
   border-radius: 50%;
   background: currentColor;
 }
+.selo[data-tom="cinza"] { background: var(--superficie-3); color: var(--texto-2); }
 .selo[data-tom="verde"] { background: var(--verde-suave); color: var(--verde); }
 .selo[data-tom="amarelo"] { background: var(--amarelo-suave); color: var(--amarelo-escuro); }
 .selo[data-tom="vermelho"] { background: var(--vermelho-suave); color: var(--vermelho); }
@@ -807,6 +808,8 @@ button { font: inherit; cursor: pointer; }
 .icone svg { width: 100%; height: 100%; display: block; }
 .carregando { padding: 40px; text-align: center; color: var(--texto-2); }
 .vazio { padding: 32px; text-align: center; color: var(--texto-3); font-size: 14px; }
+/* Texto apagado numa celula: o travessao de "sem valor". */
+.texto-fraco { color: var(--texto-3); }
 
 @media (max-width: 900px) {
   .login { grid-template-columns: 1fr; }

@@ -65,7 +65,7 @@ export class ErroApi extends Error {
  * o front e a API ficam no mesmo dominio. Assim nao existe URL de servidor
  * espalhada pelo código nem problema de CORS.
  */
-// Em producao (Netlify), VITE_API_URL aponta para a URL do Render.
+// Em producao (Vercel), VITE_API_URL aponta para a URL da API no Render.
 // Em desenvolvimento, fica vazio e o proxy do Vite cuida do /api.
 const BASE = (typeof __API_URL__ !== "undefined" && __API_URL__) ? __API_URL__ : "";
 

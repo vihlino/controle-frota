@@ -101,7 +101,7 @@ export default function PainelTi({ dados }) {
                 ☁
               </div>
               <div style={{ fontWeight: 700, fontSize: "15px" }}>Hoje, 03:00</div>
-              <div style={{ fontSize: "12px", color: "var(--texto-leve)" }}>21/08/2026 03:00:15</div>
+              <div style={{ fontSize: "12px", color: "var(--texto-3)" }}>21/08/2026 03:00:15</div>
             </div>
             <div className="lista-os">
               <div className="lista-os__item">
@@ -162,7 +162,7 @@ export default function PainelTi({ dados }) {
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "12px" }}>
               <div style={{ width: 100, height: 100, borderRadius: "50%", border: "10px solid var(--amarelo)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
                 <span style={{ fontSize: "22px", fontWeight: 800 }}>{operacionais}</span>
-                <span style={{ fontSize: "10px", color: "var(--texto-leve)" }}>Módulos</span>
+                <span style={{ fontSize: "10px", color: "var(--texto-3)" }}>Módulos</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>

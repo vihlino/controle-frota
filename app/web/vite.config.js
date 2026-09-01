@@ -14,8 +14,9 @@ export default defineConfig({
       },
     },
   },
-  // VITE_API_URL so e usada no build de producao (Netlify).
-  // Em dev, a variavel nao existe e o proxy acima cuida de tudo.
+  // VITE_API_URL so e usada no build de producao (Vercel), onde ela aponta
+  // para a API no Render. Em dev a variavel nao existe e o proxy acima
+  // cuida de tudo.
   define: {
     __API_URL__: JSON.stringify(process.env.VITE_API_URL || ""),
   },

@@ -111,9 +111,9 @@ export default function Checklists() {
       chave: "fotos", rotulo: "Fotos",
       render: (c) =>
         c.total_fotos > 0 ? (
-          <span className="selo selo--azul">{c.total_fotos} foto{c.total_fotos > 1 ? "s" : ""}</span>
+          <Selo texto={`${c.total_fotos} foto${c.total_fotos > 1 ? "s" : ""}`} tom="azul" />
         ) : (
-          <span className="texto-3">—</span>
+          <span className="texto-fraco">—</span>
         ),
     },
     { chave: "status", rotulo: "Situação", render: (c) => <Selo valor={c.status} /> },
