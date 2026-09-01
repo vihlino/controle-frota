@@ -131,13 +131,13 @@ export default function Parâmetros() {
                       <span>{p.descricao || "-"}</span>
                     </span>
                   </td>
-                  <td><code className="código">{p.chave}</code></td>
+                  <td><code className="codigo">{p.chave}</code></td>
                   <td>
                     {editando === p.id_parametro ? (
                       <input className="entrada-embutida" value={rascunho} autoFocus
                              onChange={(e) => setRascunho(e.target.value)} />
                     ) : (
-                      <code className="código">{valorLegivel(p)}</code>
+                      <code className="codigo">{valorLegivel(p)}</code>
                     )}
                   </td>
                   <td>{p.tipo_valor}</td>
@@ -150,7 +150,7 @@ export default function Parâmetros() {
                   {podeEditar && (
                     <td>
                       {editando === p.id_parametro ? (
-                        <span className="ações-linha">
+                        <span className="acoes-linha">
                           <button className="botao botao--pequeno botao--primario"
                                   onClick={() => salvar(p)}>Salvar</button>
                           <button className="botao botao--pequeno"

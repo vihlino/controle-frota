@@ -48,17 +48,17 @@ export default function Login() {
           Frota, fiscalização e relatórios da CMTT em um so lugar, com registro de
           tudo o que acontece.
         </p>
-        <div className="login__módulos">
-          <span className="login__módulo">
+        <div className="login__modulos">
+          <span className="login__modulo">
             <Icone nome="nav-frotas" tamanho={18} /> Frotas
           </span>
-          <span className="login__módulo">
+          <span className="login__modulo">
             <Icone nome="nav-fiscalizacao" tamanho={18} /> Fiscalização
           </span>
-          <span className="login__módulo">
+          <span className="login__modulo">
             <Icone nome="chart-line" tamanho={18} /> Relatórios
           </span>
-          <span className="login__módulo">
+          <span className="login__modulo">
             <Icone nome="nav-administracao" tamanho={18} /> Administração
           </span>
         </div>

@@ -66,7 +66,7 @@ export default function PaginaLista({
       {filtros && (
         <div className="cartao filtros">
           {filtros}
-          <div className="filtros__ações">
+          <div className="filtros__acoes">
             <button className="botao" onClick={limpar}>
               <Icone nome="minus" tamanho={15} /> Limpar
             </button>

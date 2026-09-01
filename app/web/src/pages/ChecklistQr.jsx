@@ -134,7 +134,7 @@ export default function ChecklistQr() {
               ? "Boa viagem. Ao retornar, leia o QR Code de novo para registrar a chegada."
               : "Checklist concluido. Obrigado."}
           </p>
-          <p className="qr-tela__veículo">
+          <p className="qr-tela__veiculo">
             {veiculo.marca} {veiculo.modelo} - {veiculo.placa}
           </p>
         </div>
@@ -224,7 +224,7 @@ export default function ChecklistQr() {
 
             <div className="campo">
               <label htmlFor="matrícula">Matrícula do condutor *</label>
-              <div className="qr-matrícula">
+              <div className="qr-matricula">
                 <input
                   id="matrícula" required value={matrícula}
                   onChange={(e) => setMatrícula(e.target.value)}

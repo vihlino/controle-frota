@@ -116,8 +116,8 @@ export default function VeículoQrCode() {
                 Aponte a camera do celular para o QR Code para abrir o checklist
                 deste veículo.
               </p>
-              <p className="qr__código">{qr.código}</p>
-              <div className="qr__ações">
+              <p className="qr__codigo">{qr.código}</p>
+              <div className="qr__acoes">
                 <a className="botao botao--primario" href={qr.imagem}
                    download={`qrcode-${veículo.placa}.png`}>
                   <Icone nome="arrow-up" tamanho={16} /> Baixar QR Code

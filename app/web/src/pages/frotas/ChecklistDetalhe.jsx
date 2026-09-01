@@ -70,7 +70,7 @@ export default function ChecklistDetalhe() {
             {checklist.matricula}) - <Selo valor={checklist.status} />
           </p>
         </div>
-        <div className="cabecalho-pagina__ações">
+        <div className="cabecalho-pagina__acoes">
           <button className="botao" onClick={() => navegar("/frotas/checklists")}>Voltar</button>
           <Link className="botao" to={`/frotas/veiculos/${checklist.id_veiculo}`}>
             Ver veículo

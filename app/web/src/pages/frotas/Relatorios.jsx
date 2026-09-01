@@ -203,9 +203,9 @@ export default function Relatórios() {
                       setFormulario((f) => ({ ...f, periodo_fim: e.target.value }))} />
             </div>
 
-            <div className="tipos-relatório">
+            <div className="tipos-relatorio">
               {tipos.map((t) => (
-                <label key={t.tipo} className="tipo-relatório" data-ativo={formulario.tipo === t.tipo}>
+                <label key={t.tipo} className="tipo-relatorio" data-ativo={formulario.tipo === t.tipo}>
                   <input
                     type="radio" name="tipo" value={t.tipo} required
                     checked={formulario.tipo === t.tipo}
@@ -220,7 +220,7 @@ export default function Relatórios() {
             </div>
 
             {escolhido && (
-              <p className="tipo-relatório__colunas">
+              <p className="tipo-relatorio__colunas">
                 <strong>Informações do modelo:</strong> {escolhido.colunas.join(", ")}.
               </p>
             )}

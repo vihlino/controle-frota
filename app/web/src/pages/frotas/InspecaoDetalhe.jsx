@@ -87,7 +87,7 @@ export default function InspeçãoDetalhe() {
           <h1>Detalhes da inspeção</h1>
           <p>{inspeção.numero || `Inspeção do veículo ${inspeção.placa}`}</p>
         </div>
-        <div className="cabecalho-pagina__ações">
+        <div className="cabecalho-pagina__acoes">
           <button className="botao" onClick={() => navegar("/frotas/inspecoes")}>
             Voltar para inspeções
           </button>

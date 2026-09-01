@@ -30,7 +30,7 @@ function Diferenca({ antes, depois }) {
           <tbody>
             {mudados.map((chave) => (
               <tr key={chave}>
-                <td><code className="código">{chave}</code></td>
+                <td><code className="codigo">{chave}</code></td>
                 <td className="diferenca__antes">{String(antes[chave] ?? "-")}</td>
                 <td className="diferenca__depois">{String(depois[chave] ?? "-")}</td>
               </tr>

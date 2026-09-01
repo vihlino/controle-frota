@@ -121,7 +121,7 @@ export default function Perfis() {
           ))}
         </aside>
 
-        <div className="perfis__permissões">
+        <div className="perfis__permissoes">
           {Object.entries(catalogo.porModulo || {}).map(([modulo, permissoes]) => {
             const todasMarcadas = permissoes.every((p) => marcadas.has(p.id_permissao));
             return (

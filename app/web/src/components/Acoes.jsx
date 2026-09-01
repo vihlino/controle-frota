@@ -25,16 +25,16 @@ export default function Ações({ ações }) {
   }, []);
 
   return (
-    <div className="relativo ações" ref={caixa}>
+    <div className="relativo acoes" ref={caixa}>
       <button
-        className="ações__botao"
+        className="acoes__botao"
         onClick={() => setAberto((v) => !v)}
         aria-label="Ações do registro"
       >
         <Icone nome="chevron-down" tamanho={18} />
       </button>
       {aberto && (
-        <div className="menu-suspenso menu-suspenso--ações">
+        <div className="menu-suspenso menu-suspenso--acoes">
           {ações.map((a) => (
             <button
               key={a.rotulo}

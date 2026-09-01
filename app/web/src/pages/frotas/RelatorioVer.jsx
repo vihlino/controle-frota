@@ -94,7 +94,7 @@ export default function RelatórioVer() {
             {numero(conteudo.linhas.length)} registros
           </p>
         </div>
-        <div className="cabecalho-pagina__ações">
+        <div className="cabecalho-pagina__acoes">
           <button className="botao" onClick={() => navegar("/frotas/relatorios")}>Voltar</button>
           <button className="botao" onClick={() => window.print()}>
             <Icone nome="arrow-up" tamanho={15} /> Imprimir / PDF

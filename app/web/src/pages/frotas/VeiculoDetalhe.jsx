@@ -79,7 +79,7 @@ export default function VeículoDetalhe() {
             Placa {veículo.placa} - {veículo.setor} - <Selo valor={veículo.status} />
           </p>
         </div>
-        <div className="cabecalho-pagina__ações">
+        <div className="cabecalho-pagina__acoes">
           <button className="botao" onClick={() => navegar("/frotas/veiculos")}>Voltar</button>
           <Link className="botao botao--primario" to={`/frotas/veiculos/${id}/qrcode`}>
             <Icone nome="checklist" tamanho={15} /> QR Code
@@ -141,7 +141,7 @@ export default function VeículoDetalhe() {
       </Cartao>
 
       <Cartao titulo="Atalhos deste veículo">
-        <div className="ações-rapidas">
+        <div className="acoes-rapidas">
           <Link className="acao-rapida" to={`/frotas/checklists?veículo=${id}`}>
             <Icone nome="checklist" tamanho={20} /> Checklists
           </Link>
