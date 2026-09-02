@@ -63,7 +63,11 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
         {legenda && <div className="topo__legenda">{legenda}</div>}
       </div>
 
-      <div className="relativo">
+      {/* Este wrapper e quem empurra o sino e o usuario para a direita
+          (margin-left: auto no CSS). O empurrao NAO pode ficar no botao:
+          dentro do wrapper ele so afasta o botao das proprias bordas, e a
+          barra inteira volta para o meio da tela. */}
+      <div className="topo__alertas">
         <button ref={sino} className="topo__sino" aria-label="Alertas"
                 aria-haspopup="menu" aria-expanded={alertasAberto}
                 onClick={() => setAlertasAberto((v) => !v)}>

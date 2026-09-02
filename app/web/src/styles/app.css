@@ -171,8 +171,12 @@ button { font: inherit; cursor: pointer; }
   background: var(--superficie-2);
   white-space: nowrap;
 }
+/* O empurrao para a direita vive AQUI, no wrapper, e nao no botao: o botao
+   esta dentro dele e um margin-left: auto ali dentro nao afasta nada da barra.
+   Foi o que jogou o sino e o usuario para o meio da tela. */
+.topo__alertas { margin-left: auto; position: relative; }
+
 .topo__sino {
-  margin-left: auto;
   position: relative;
   background: none;
   border: none;
