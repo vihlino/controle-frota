@@ -27,9 +27,11 @@ import PaginaLista from "./PaginaLista.jsx";
 import Icone from "./Icone.jsx";
 import Modal from "./Modal.jsx";
 import Acoes from "./Acoes.jsx";
+import { useConfirmacaoSenha } from "./ConfirmarSenha.jsx";
 import { Texto, Selecao, Data, Area } from "./Campos.jsx";
 import { useLista } from "./useLista.js";
 import { api } from "../lib/api.js";
+import { data as dataBr } from "../lib/formato.js";
 import { useSessao } from "../lib/sessao.jsx";
 
 // Traduz o "tipo" declarado na configuração para o componente de campo.
@@ -83,6 +85,8 @@ export default function criarPagina(config) {
     const [formulario, setFormulario] = useState({});
     const [erroForm, setErroForm] = useState("");
     const [salvando, setSalvando] = useState(false);
+    const [vendo, setVendo] = useState(null);   // registro aberto em "Detalhes"
+    const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
 
     const podeGerenciar = !config.permissaoGerenciar || podeVer(config.permissaoGerenciar);
     const temFormulario = !!config.formulario;
@@ -107,6 +111,28 @@ export default function criarPagina(config) {
      * de secao ({ secao: "Dados pessoais" }). Esta funcao devolve so os
      * campos - a secao nao tem valor, nao entra no estado nem no POST.
      */
+    /**
+     * Valor de um campo em formato de leitura: o select mostra o ROTULO da
+     * opcao, nao o codigo guardado; data vira dd/mm/aaaa; vazio vira travessao.
+     */
+    function valorLegivel(campo, registro) {
+      const bruto = registro[campo.nome];
+      if (bruto === null || bruto === undefined || bruto === "") return "—";
+
+      if (campo.tipo === "data") return dataBr(bruto);
+
+      if (campo.tipo === "selecao") {
+        const lista = typeof campo.opcoes === "string"
+          ? (opcoes[campo.opcoes] || []).map(config.mapaOpcoes[campo.opcoes])
+          : campo.opcoes || [];
+        const achado = lista.find((o) => String(o.valor) === String(bruto));
+        return achado ? achado.rotulo : String(bruto);
+      }
+
+      if (typeof bruto === "boolean") return bruto ? "Sim" : "Não";
+      return String(bruto);
+    }
+
     function camposDoFormulario() {
       return config.formulario.filter((c) => !c.secao);
     }
@@ -167,6 +193,17 @@ export default function criarPagina(config) {
         if (editando === "novo") {
           await api(`/${config.recurso}`, { method: "POST", body: corpo });
         } else {
+          // So a EDICAO pede senha. Criar um registro novo nao destroi nada e
+          // e a acao mais comum do dia - exigir senha ali seria atrito sem
+          // ganho de seguranca.
+          const confirmou = await pedirSenha({
+            titulo: `Salvar alterações`,
+            aviso: `Confirme sua senha para salvar as alterações neste ${config.singular}.`,
+          });
+          if (!confirmou) {
+            setSalvando(false);
+            return;
+          }
           await api(`/${config.recurso}/${editando}`, { method: "PUT", body: corpo });
         }
         setEditando(null);
@@ -180,9 +217,21 @@ export default function criarPagina(config) {
       }
     }
 
-    /** Exclui um registro, com confirmacao. */
+    /**
+     * Exclui um registro. A senha substitui o confirm() do navegador: alem de
+     * provar quem esta agindo, o confirm() nativo e clicado no automatico -
+     * ninguem le aquela caixinha.
+     */
     async function excluir(registro) {
-      if (!confirm(config.confirmarExclusao?.(registro) || "Excluir este registro?")) return;
+      const confirmou = await pedirSenha({
+        titulo: "Excluir registro",
+        aviso:
+          config.confirmarExclusao?.(registro) ||
+          `Esta ação não pode ser desfeita. Confirme sua senha para excluir este ${config.singular}.`,
+        perigo: true,
+      });
+      if (!confirmou) return;
+
       try {
         await api(`/${config.recurso}/${registro[config.id]}`, { method: "DELETE" });
         lista.recarregar();
@@ -204,7 +253,11 @@ export default function criarPagina(config) {
           <Acoes
             acoes={[
               { rotulo: "Editar", aoClicar: () => abrir(registro) },
-              ...(config.permiteExcluir
+              { rotulo: "Detalhes", aoClicar: () => setVendo(registro) },
+              // Excluir aparece por padrao; a tela declara
+              // permiteExcluir: false quando o registro nao deve sumir
+              // (checklist e a auditoria de uma saida, por exemplo).
+              ...(config.permiteExcluir !== false
                 ? [{ rotulo: "Excluir", perigo: true, aoClicar: () => excluir(registro) }]
                 : []),
             ]}
@@ -322,6 +375,40 @@ export default function criarPagina(config) {
             </form>
           </Modal>
         )}
+
+        {/* Detalhes: os mesmos campos do formulario, so leitura. Reaproveitar
+            a declaracao garante que um campo novo aparece aqui sozinho. */}
+        {vendo && (
+          <Modal
+            titulo={config.tituloDetalhes || `Detalhes do ${config.singular}`}
+            aoFechar={() => setVendo(null)}
+            largura={config.larguraFormulario || 640}
+            rodape={
+              <>
+                <button className="botao" onClick={() => setVendo(null)}>Fechar</button>
+                {podeGerenciar && (
+                  <button
+                    className="botao botao--primario"
+                    onClick={() => { const r = vendo; setVendo(null); abrir(r); }}
+                  >
+                    Editar
+                  </button>
+                )}
+              </>
+            }
+          >
+            <dl className="lista-dados">
+              {camposDoFormulario().map((c) => (
+                <div className="lista-dados__linha" key={c.nome}>
+                  <dt>{c.rotulo.replace(" *", "")}</dt>
+                  <dd>{valorLegivel(c, vendo)}</dd>
+                </div>
+              ))}
+            </dl>
+          </Modal>
+        )}
+
+        {modalSenha}
       </PaginaLista>
     );
   };

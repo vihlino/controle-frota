@@ -29,7 +29,8 @@ import { createPortal } from "react-dom";
 const MARGEM = 8;   // respiro entre o botao e o menu
 const BORDA = 8;    // respiro minimo ate a borda da janela
 
-export default function MenuSuspenso({ aberto, aoFechar, ancora, largura, children }) {
+export default function MenuSuspenso({ aberto, aoFechar, ancora, largura,
+                                       alinhamento = "direita", children }) {
   const menu = useRef(null);
   const [pos, setPos] = useState(null);
 
@@ -58,12 +59,15 @@ export default function MenuSuspenso({ aberto, aoFechar, ancora, largura, childr
     let topo = paraCima ? b.top - alturaMenu - MARGEM : b.bottom + MARGEM;
     topo = Math.max(BORDA, Math.min(topo, window.innerHeight - alturaMenu - BORDA));
 
-    // Alinha pela direita do botao, que e onde o menu costuma ficar.
-    let esquerda = b.right - larguraMenu;
+    // Alinhar pela direita e o certo para um botao encostado na borda da
+    // janela (o menu do usuario). Para um botao no meio do topo - o sininho -
+    // isso joga o menu para tras, por cima do menu lateral; ali o alinhamento
+    // pela esquerda e que mantem o menu embaixo do botao.
+    let esquerda = alinhamento === "esquerda" ? b.left : b.right - larguraMenu;
     esquerda = Math.max(BORDA, Math.min(esquerda, window.innerWidth - larguraMenu - BORDA));
 
     setPos({ top: Math.round(topo), left: Math.round(esquerda) });
-  }, [ancora, largura, aoFechar]);
+  }, [ancora, largura, alinhamento, aoFechar]);
 
   // useLayoutEffect (e nao useEffect) para medir e posicionar ANTES de o
   // navegador pintar - com useEffect o menu piscaria no lugar errado.

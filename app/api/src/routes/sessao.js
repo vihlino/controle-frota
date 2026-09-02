@@ -133,6 +133,52 @@ router.get("/eu", autenticar, async (req, res, next) => {
   }
 });
 
+/**
+ * Confirma a senha de quem esta logado.
+ *
+ * Usada antes de acoes destrutivas ou que alteram cadastro (salvar edicao,
+ * excluir). Nao emite token novo nem muda a sessao: so responde se a senha
+ * confere.
+ *
+ * POR QUE ISTO EXISTE
+ * -------------------
+ * O login prova quem entrou; nao prova quem esta na frente do computador
+ * AGORA. Numa sala compartilhada, uma sessao aberta e esquecida permite que
+ * qualquer pessoa apague um cadastro em nome de outra - e a auditoria
+ * registraria o nome errado. Pedir a senha no momento da acao fecha essa
+ * brecha.
+ */
+router.post("/confirmar", autenticar, async (req, res, next) => {
+  try {
+    const { senha } = req.body || {};
+    if (!senha) return res.status(400).json({ erro: "Informe a senha." });
+
+    const { rows } = await query(
+      "SELECT senha_hash, status FROM usuario WHERE id_usuario = $1",
+      [req.usuario.id_usuario]
+    );
+    const u = rows[0];
+    const confere = u && u.status && (await bcrypt.compare(senha, u.senha_hash));
+
+    if (!confere) {
+      // Fica na auditoria: varias tentativas seguidas indicam alguem tentando
+      // agir numa sessao que nao e sua.
+      await registrarAcesso({
+        idUsuario: req.usuario.id_usuario,
+        login: req.usuario.login,
+        tipo: "CONFIRMACAO_SENHA",
+        sucesso: false,
+        req,
+      }).catch(() => {});
+      return res.status(401).json({ erro: "Senha incorreta." });
+    }
+
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
 router.post("/logout", autenticar, async (req, res) => {
   await registrarAcesso({
     idUsuario: req.usuario.id_usuario,

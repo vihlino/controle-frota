@@ -69,19 +69,32 @@ export function Selecao({ rotulo, id, opcoes = [], vazio, largo, ajuda, ...resto
  * quando falta, o campo continua funcionando como sempre - digitando.
  */
 export function Data({ rotulo, id, largo, ajuda, ...resto }) {
+  // SO no clique. Tinha tambem um onFocus, e os dois juntos quebravam: o
+  // focus abria o calendario e o click, no mesmo gesto, chamava showPicker de
+  // novo - a segunda chamada lanca NotAllowedError ("requires a user
+  // gesture") e o calendario fechava. O sintoma era o icone "nao clicavel".
+  //
+  // Abrir no foco tambem atrapalhava quem navega por Tab e quer digitar.
   function abrirCalendario(e) {
     const campo = e.currentTarget;
-    if (typeof campo.showPicker === "function") {
-      // showPicker lanca se o campo estiver desabilitado ou fora da tela.
-      try { campo.showPicker(); } catch { /* segue digitavel */ }
+    if (typeof campo.showPicker !== "function") return;
+    try {
+      campo.showPicker();
+    } catch {
+      // Navegador sem suporte, campo desabilitado ou fora da tela: o campo
+      // continua digitavel, que e o comportamento padrao.
     }
   }
 
   return (
     <Campo rotulo={rotulo} htmlFor={id} largo={largo} ajuda={ajuda}>
       <span className="campo-data">
-        <input id={id} type="date" onClick={abrirCalendario}
-               onFocus={abrirCalendario} {...resto} />
+        {/* type="date" DEPOIS do espalhamento, de proposito. Quem chama
+            manda `type={c.html}`, que vale undefined para um campo de data;
+            espalhado por ultimo, esse undefined apagava o type="date" e o
+            campo virava texto comum - sem calendario nenhum. Era esta a causa
+            do "icone da data nao abre" na tela de editar servidor. */}
+        <input id={id} onClick={abrirCalendario} {...resto} type="date" />
         <span className="campo-data__icone">
           <Icone nome="calendar" tamanho={18} />
         </span>

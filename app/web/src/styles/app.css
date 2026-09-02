@@ -1964,3 +1964,74 @@ button { font: inherit; cursor: pointer; }
 .linha-tempo__ponto[data-tom="vermelho"] { background: var(--vermelho); }
 .linha-tempo li > .selo { margin-left: auto; flex: none; }
 .linha-tempo--rolagem { max-height: 460px; overflow-y: auto; }
+
+/* ============================================================
+   ALERTAS DO SININHO
+   O menu do sino e mais alto que o do usuario: rola por dentro em vez de
+   crescer alem da tela.
+   ============================================================ */
+.alertas-lista { max-height: 320px; overflow-y: auto; }
+
+.alertas-lista__vazio {
+  margin: 0;
+  padding: var(--e-4);
+  font-size: var(--t-sm);
+  color: var(--texto-2);
+  text-align: center;
+}
+
+.menu-suspenso .alerta-item {
+  display: flex;
+  gap: var(--e-3);
+  align-items: flex-start;
+  width: 100%;
+  padding: var(--e-3);
+  text-align: left;
+  border-bottom: 1px solid var(--borda);
+}
+.menu-suspenso .alerta-item:last-child { border-bottom: 0; }
+
+/* A marca colorida diz a gravidade sem obrigar a ler o texto todo. */
+.alerta-item__marca {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--azul);
+}
+.alerta-item__marca--critica { background: var(--vermelho); }
+.alerta-item__marca--alta    { background: var(--ambar); }
+.alerta-item__marca--media   { background: var(--azul); }
+.alerta-item__marca--baixa   { background: var(--borda-forte); }
+
+.alerta-item__texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.alerta-item__titulo {
+  font-size: var(--t-sm);
+  font-weight: var(--peso-medio);
+  color: var(--texto);
+}
+.alerta-item__mensagem {
+  font-size: var(--t-xs);
+  color: var(--texto-2);
+  line-height: 1.4;
+  white-space: normal;
+}
+
+/* ============================================================
+   CONFIRMACAO DE SENHA
+   ============================================================ */
+.confirmar-senha { display: flex; flex-direction: column; gap: var(--e-4); }
+.confirmar-senha__texto {
+  margin: 0;
+  font-size: var(--t-md);
+  color: var(--texto-2);
+  line-height: 1.5;
+}
+
+.botao--perigo {
+  background: var(--vermelho);
+  border-color: var(--vermelho);
+  color: #fff;
+}
+.botao--perigo:hover:not(:disabled) { filter: brightness(0.94); }
