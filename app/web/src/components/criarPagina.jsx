@@ -97,16 +97,27 @@ export default function criarPagina(config) {
      * Abre o modal de cadastro.
      * @param {object|null} registro  null = novo; um registro = edicao.
      */
+    /**
+     * O `formulario` da configuracao aceita duas coisas: campos e cabecalhos
+     * de secao ({ secao: "Dados pessoais" }). Esta funcao devolve so os
+     * campos - a secao nao tem valor, nao entra no estado nem no POST.
+     */
+    function camposDoFormulario() {
+      return config.formulario.filter((c) => !c.secao);
+    }
+
     function abrir(registro) {
       // Comeca com todos os campos vazios (ou com o padrao declarado), para o
       // React nao reclamar de campo que muda de "nao controlado" para
       // "controlado" quando o usuário digita.
       const base = Object.fromEntries(
-        config.formulario.map((c) => [c.nome, c.padrao ?? ""])
+        camposDoFormulario().map((c) => [c.nome, c.padrao ?? ""])
       );
       let reg = registro;
       if (reg) {
-        const camposData = config.formulario.filter((c) => c.tipo === "data").map((c) => c.nome);
+        const camposData = camposDoFormulario()
+          .filter((c) => c.tipo === "data")
+          .map((c) => c.nome);
         for (const nome of camposData) {
           const v = reg[nome];
           if (v) {
@@ -141,7 +152,7 @@ export default function criarPagina(config) {
 
         // Normaliza campos de data: converte dd/mm/yyyy -> yyyy-mm-dd caso o
         // browser envie no formato de exibicao em vez do formato ISO.
-        const camposData = (config.formulario || [])
+        const camposData = camposDoFormulario()
           .filter((c) => c.tipo === "data")
           .map((c) => c.nome);
         for (const nome of camposData) {
@@ -224,6 +235,7 @@ export default function criarPagina(config) {
           largo={c.largo}
           type={c.html}
           placeholder={c.dica}
+          ajuda={c.ajuda}
           vazio={c.tipo === "selecao" ? c.vazio ?? "Selecione" : undefined}
           opcoes={listaOpcoes}
           value={valores[c.nome] ?? ""}
@@ -276,16 +288,20 @@ export default function criarPagina(config) {
                     permite deixar o botao no rodape do modal, fora do
                     formulario, sem perder o envio nem a validacao do HTML. */}
                 <button className="botao botao--primario" form="form-pagina" disabled={salvando}>
-                  {salvando ? "Salvando..." : "Salvar"}
+                  {salvando ? "Salvando..." : config.rotuloSalvar || "Salvar"}
                 </button>
               </>
             }
           >
             {erroForm && <div className="login__erro">{erroForm}</div>}
             <form id="form-pagina" className="formulario-grade" onSubmit={salvar}>
-              {config.formulario.map((c) =>
-                renderCampo(c, formulario, (nome, valor) =>
-                  setFormulario((f) => ({ ...f, [nome]: valor }))
+              {config.formulario.map((c, i) =>
+                c.secao ? (
+                  <h3 className="formulario__secao" key={`secao-${i}`}>{c.secao}</h3>
+                ) : (
+                  renderCampo(c, formulario, (nome, valor) =>
+                    setFormulario((f) => ({ ...f, [nome]: valor }))
+                  )
                 )
               )}
             </form>

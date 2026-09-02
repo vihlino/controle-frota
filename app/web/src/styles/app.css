@@ -992,6 +992,21 @@ button { font: inherit; cursor: pointer; }
 }
 .modal__fechar:hover { background: var(--superficie-2); color: var(--texto); }
 .modal__corpo { padding: 20px 22px; overflow-y: auto; }
+
+/* Cabecalho de secao dentro do formulario ("Dados pessoais", "CNH",
+   "Vinculacao"). Ocupa a linha inteira da grade e separa os blocos. */
+.formulario__secao {
+  grid-column: 1 / -1;
+  margin: var(--e-4) 0 calc(var(--e-1) * -1);
+  padding-bottom: var(--e-2);
+  border-bottom: 1px solid var(--borda);
+  font-size: var(--t-xs);
+  font-weight: var(--peso-semi);
+  text-transform: uppercase;
+  letter-spacing: var(--caixa-alta-espaco);
+  color: var(--marca-texto);
+}
+.formulario__secao:first-child { margin-top: 0; }
 .modal__rodape {
   display: flex;
   justify-content: flex-end;
@@ -1089,7 +1104,13 @@ button { font: inherit; cursor: pointer; }
 }
 .campo--marcavel input { width: 17px; height: 17px; accent-color: var(--amarelo); }
 .campo--largo { grid-column: 1 / -1; }
-.campo__ajuda { font-size: 12.5px; color: var(--texto-3); }
+.campo__ajuda {
+  font-size: var(--t-sm);
+  line-height: var(--altura-normal);
+  color: var(--texto-2);
+  display: block;
+  margin-top: var(--e-1);
+}
 
 /* input standalone (sem wrapper .campo com label — ex: listas de itens) */
 .campo__input {

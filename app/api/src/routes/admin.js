@@ -47,11 +47,13 @@ export const servidores = criarCrud({
   ordemPadrao: "servidor.nome",
   campos: [
     "nome", "cpf", "data_nascimento", "telefone", "email", "matricula",
-    "cnh", "categoria_cnh", "cargo_funcao", "id_setor", "status",
+    "cnh", "categoria_cnh", "cnh_data_emissao", "cnh_data_validade",
+    "cargo_funcao", "id_setor", "status",
   ],
+  // telefone, email e cargo_funcao sairam daqui: nem todo servidor tem e-mail
+  // corporativo, e exigir isso obriga quem cadastra a inventar um valor.
   obrigatorios: [
-    "nome", "cpf", "data_nascimento", "telefone", "email",
-    "matricula", "cargo_funcao", "id_setor",
+    "nome", "cpf", "data_nascimento", "matricula", "id_setor",
   ],
   permissoes: { ver: VER, gerenciar: "ADMIN_GERENCIAR_SERVIDORES" },
 });

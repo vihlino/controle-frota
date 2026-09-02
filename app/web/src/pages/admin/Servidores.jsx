@@ -5,7 +5,23 @@
  */
 import criarPagina from "../../components/criarPagina.jsx";
 import Selo from "../../components/Selo.jsx";
-import { data } from "../../lib/formato.js";
+import { data, diasAte } from "../../lib/formato.js";
+
+/**
+ * Mostra a validade da CNH com a cor certa. E o mesmo criterio do alerta
+ * que a API calcula: 30 dias e o limiar em que a gestao precisa agir.
+ */
+function ValidadeCnh({ ate }) {
+  if (!ate) return <span className="texto-fraco">Sem validade</span>;
+  const dias = diasAte(ate);
+  const tom = dias < 0 ? "vermelho" : dias <= 30 ? "ambar" : "verde";
+  const texto =
+    dias < 0 ? `Vencida em ${data(ate)}`
+    : dias === 0 ? "Vence hoje"
+    : dias <= 30 ? `Vence em ${dias} dia${dias > 1 ? "s" : ""}`
+    : `Válida até ${data(ate)}`;
+  return <span className="atraso" data-tom={tom}>{texto}</span>;
+}
 
 const CATEGORIAS_CNH = ["A", "B", "AB", "C", "D", "E", "AC", "AD", "AE"];
 
@@ -19,6 +35,7 @@ export default criarPagina({
   unidade: "servidores",
   vazio: "Nenhum servidor cadastrado.",
   rotuloAcao: "Novo servidor",
+  rotuloSalvar: "Salvar servidor",
   iconeAcao: "fisc-servidores",
   permissaoGerenciar: "ADMIN_GERENCIAR_SERVIDORES",
   larguraFormulario: 760,
@@ -35,7 +52,15 @@ export default criarPagina({
     { chave: "email", rotulo: "E-mail" },
     {
       chave: "cnh", rotulo: "CNH",
-      render: (s) => (s.cnh ? `${s.cnh} (${s.categoria_cnh || "-"})` : "-"),
+      render: (s) =>
+        s.cnh ? (
+          <span className="celula-dupla">
+            <strong>{`${s.cnh} (${s.categoria_cnh || "-"})`}</strong>
+            <ValidadeCnh ate={s.cnh_data_validade} />
+          </span>
+        ) : (
+          <span className="texto-fraco">—</span>
+        ),
     },
     {
       chave: "tem_usuario", rotulo: "Acesso",
@@ -62,19 +87,43 @@ export default criarPagina({
     },
   ],
   formulario: [
+    { secao: "Dados pessoais" },
     { nome: "nome", rotulo: "Nome completo *", obrigatorio: true, largo: true },
-    { nome: "cpf", rotulo: "CPF *", obrigatorio: true, dica: "000.000.000-00" },
     { nome: "matricula", rotulo: "Matrícula *", obrigatorio: true },
+    { nome: "cpf", rotulo: "CPF *", obrigatorio: true, dica: "000.000.000-00" },
     { nome: "data_nascimento", rotulo: "Data de nascimento *", tipo: "data", obrigatorio: true },
-    { nome: "telefone", rotulo: "Telefone *", obrigatorio: true },
-    { nome: "email", rotulo: "E-mail *", html: "email", obrigatorio: true },
-    { nome: "cargo_funcao", rotulo: "Cargo / Função *", obrigatorio: true },
-    { nome: "id_setor", rotulo: "Setor *", tipo: "selecao", opcoes: "setores", obrigatorio: true },
-    { nome: "cnh", rotulo: "CNH" },
+    { nome: "email", rotulo: "E-mail corporativo", html: "email" },
+    { nome: "telefone", rotulo: "Telefone" },
+
+    { secao: "CNH" },
+    { nome: "cnh", rotulo: "Nº da CNH / Nº de registro *", obrigatorio: true },
     {
-      nome: "categoria_cnh", rotulo: "Categoria da CNH", tipo: "selecao", vazio: "Sem CNH",
-      opcoes: CATEGORIAS_CNH.map((c) => ({ valor: c, rotulo: c })),
+      nome: "categoria_cnh", rotulo: "Categoria *", tipo: "selecao", obrigatorio: true,
+      vazio: "Selecione", opcoes: CATEGORIAS_CNH.map((c) => ({ valor: c, rotulo: c })),
+    },
+    { nome: "cnh_data_emissao", rotulo: "Data de emissão *", tipo: "data", obrigatorio: true },
+    {
+      nome: "cnh_data_validade", rotulo: "Data de validade *", tipo: "data", obrigatorio: true,
+      ajuda: "Usada para avisar a gestão quando a habilitação está vencendo.",
+    },
+
+    { secao: "Vinculação" },
+    { nome: "id_setor", rotulo: "Setor *", tipo: "selecao", opcoes: "setores", obrigatorio: true },
+    { nome: "cargo_funcao", rotulo: "Cargo / Função" },
+    {
+      nome: "status", rotulo: "Status *", tipo: "selecao", obrigatorio: true, padrao: "true",
+      opcoes: [{ valor: "true", rotulo: "Ativo" }, { valor: "false", rotulo: "Inativo" }],
     },
   ],
-  aoSalvar: (f) => ({ ...f, id_setor: Number(f.id_setor), status: true }),
+  aoSalvar: (f) => ({
+    ...f,
+    id_setor: Number(f.id_setor),
+    // O <select> devolve texto; a coluna e boolean.
+    status: f.status === true || f.status === "true",
+    // Campo opcional vazio vai como null, nao como "" - "nao informado" e
+    // diferente de "vazio".
+    email: f.email?.trim() || null,
+    telefone: f.telefone?.trim() || null,
+    cargo_funcao: f.cargo_funcao?.trim() || null,
+  }),
 });

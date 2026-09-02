@@ -60,6 +60,19 @@ export function atraso(dataDeclarada, horaDeclarada, enviadoEm) {
   return { minutos, texto: `${dias}d depois`, tom: "vermelho" };
 }
 
+/**
+ * Quantos dias faltam ate a data. Negativo se ja passou.
+ * Compara so a parte da data - hora nao interessa para validade.
+ */
+export function diasAte(valor) {
+  if (!valor) return null;
+  const [ano, mes, dia] = String(valor).slice(0, 10).split("-").map(Number);
+  const alvo = new Date(ano, mes - 1, dia);
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  return Math.round((alvo - hoje) / 86400000);
+}
+
 export function numero(valor, casas = 0) {
   if (valor === null || valor === undefined) return "-";
   return Number(valor).toLocaleString("pt-BR", {
