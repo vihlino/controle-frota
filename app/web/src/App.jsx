@@ -37,6 +37,7 @@ import Pontuacao from "./pages/fiscalizacao/Pontuacao.jsx";
 
 import Usuarios from "./pages/admin/Usuarios.jsx";
 import Servidores from "./pages/admin/Servidores.jsx";
+import Motoristas from "./pages/Motoristas.jsx";
 import Perfis from "./pages/admin/Perfis.jsx";
 import Setores from "./pages/admin/Setores.jsx";
 import Parametros from "./pages/admin/Parametros.jsx";
@@ -98,7 +99,7 @@ export default function App() {
         <Route path="/frotas/documentos/novo" element={<ComPermissao codigo={FROTAS}><NovoDocumento /></ComPermissao>} />
         <Route path="/frotas/sinistros" element={<ComPermissao codigo={FROTAS}><Sinistros /></ComPermissao>} />
         <Route path="/frotas/sinistros/novo" element={<ComPermissao codigo={FROTAS}><NovoSinistro /></ComPermissao>} />
-        <Route path="/frotas/motoristas" element={<ComPermissao codigo={FROTAS}><Servidores /></ComPermissao>} />
+        <Route path="/frotas/motoristas" element={<ComPermissao codigo={FROTAS}><Motoristas /></ComPermissao>} />
         <Route path="/frotas/servidores" element={<ComPermissao codigo={FROTAS}><Servidores /></ComPermissao>} />
         <Route path="/frotas/relatorios" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><Relatorios /></ComPermissao>} />
         <Route path="/frotas/relatorios/:id" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><RelatorioVer /></ComPermissao>} />
@@ -109,7 +110,7 @@ export default function App() {
         <Route path="/fiscalizacao/ocorrencias" element={<ComPermissao codigo={FISC}><Ocorrencias /></ComPermissao>} />
         <Route path="/fiscalizacao/manutencoes" element={<ComPermissao codigo={FISC}><ManutencoesFisc /></ComPermissao>} />
         <Route path="/fiscalizacao/checklists" element={<ComPermissao codigo={FISC}><ChecklistsFiscalizacao /></ComPermissao>} />
-        <Route path="/fiscalizacao/motoristas" element={<ComPermissao codigo={FISC}><Servidores /></ComPermissao>} />
+        <Route path="/fiscalizacao/motoristas" element={<ComPermissao codigo={FISC}><Motoristas /></ComPermissao>} />
         <Route path="/fiscalizacao/pontuacao" element={<ComPermissao codigo="FISCALIZACAO_GERENCIAR_PONTUACAO"><Pontuacao /></ComPermissao>} />
         <Route path="/fiscalizacao/relatorios" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><Relatorios /></ComPermissao>} />
 

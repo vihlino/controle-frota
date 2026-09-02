@@ -23,9 +23,13 @@ function ValidadeCnh({ ate }) {
   return <span className="atraso" data-tom={tom}>{texto}</span>;
 }
 
+
+/** O <select> devolve "true"/"false"; o banco guarda boolean. */
+const ehCondutor = (f) => f.condutor === true || f.condutor === "true";
+
 const CATEGORIAS_CNH = ["A", "B", "AB", "C", "D", "E", "AC", "AD", "AE"];
 
-export default criarPagina({
+export const CONFIG_SERVIDOR = {
   recurso: "admin/servidores",
   id: "id_servidor",
   singular: "servidor",
@@ -96,14 +100,34 @@ export default criarPagina({
     { nome: "telefone", rotulo: "Telefone" },
 
     { secao: "CNH" },
-    { nome: "cnh", rotulo: "Nº da CNH / Nº de registro *", obrigatorio: true },
+    {
+      // Esta tela e a base de TODOS os servidores, nao so dos motoristas. A
+      // CNH so e exigida de quem dirige - senao nao daria para cadastrar um
+      // auxiliar administrativo.
+      nome: "condutor", rotulo: "É condutor? *", tipo: "selecao", obrigatorio: true,
+      padrao: "false",
+      opcoes: [
+        { valor: "true", rotulo: "Sim — dirige veículo da frota" },
+        { valor: "false", rotulo: "Não" },
+      ],
+      ajuda: "Só condutores precisam de CNH cadastrada.",
+    },
+    {
+      nome: "cnh", rotulo: "Nº da CNH / Nº de registro *", obrigatorio: true,
+      mostrarSe: ehCondutor,
+    },
     {
       nome: "categoria_cnh", rotulo: "Categoria *", tipo: "selecao", obrigatorio: true,
       vazio: "Selecione", opcoes: CATEGORIAS_CNH.map((c) => ({ valor: c, rotulo: c })),
+      mostrarSe: ehCondutor,
     },
-    { nome: "cnh_data_emissao", rotulo: "Data de emissão *", tipo: "data", obrigatorio: true },
+    {
+      nome: "cnh_data_emissao", rotulo: "Data de emissão *", tipo: "data", obrigatorio: true,
+      mostrarSe: ehCondutor,
+    },
     {
       nome: "cnh_data_validade", rotulo: "Data de validade *", tipo: "data", obrigatorio: true,
+      mostrarSe: ehCondutor,
       ajuda: "Usada para avisar a gestão quando a habilitação está vencendo.",
     },
 
@@ -120,10 +144,18 @@ export default criarPagina({
     id_setor: Number(f.id_setor),
     // O <select> devolve texto; a coluna e boolean.
     status: f.status === true || f.status === "true",
+    condutor: ehCondutor(f),
+    // Quem deixou de ser condutor nao pode manter a CNH antiga pendurada -
+    // ela continuaria alimentando o alerta de validade.
+    ...(ehCondutor(f)
+      ? {}
+      : { cnh: null, categoria_cnh: null, cnh_data_emissao: null, cnh_data_validade: null }),
     // Campo opcional vazio vai como null, nao como "" - "nao informado" e
     // diferente de "vazio".
     email: f.email?.trim() || null,
     telefone: f.telefone?.trim() || null,
     cargo_funcao: f.cargo_funcao?.trim() || null,
   }),
-});
+};
+
+export default criarPagina(CONFIG_SERVIDOR);

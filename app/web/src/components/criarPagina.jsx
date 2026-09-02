@@ -68,9 +68,14 @@ export default function criarPagina(config) {
 
     // Transforma [{nome:"busca"},{nome:"setor"}] em {busca:"", setor:""},
     // que e o formato que o useLista espera.
-    const filtrosIniciais = Object.fromEntries(
-      (config.filtros || []).map((f) => [f.nome, ""])
-    );
+    const filtrosIniciais = {
+      ...Object.fromEntries((config.filtros || []).map((f) => [f.nome, ""])),
+      // `filtrosFixos` nao tem controle na tela: e uma trava da propria pagina
+      // (Motoristas = servidores com condutor=true). Como entra nos filtros
+      // INICIAIS, ele sobrevive ao botao "Limpar" e vale tambem na contagem e
+      // na paginacao, que sao calculadas pela API.
+      ...(config.filtrosFixos || {}),
+    };
     const lista = useLista(config.recurso, filtrosIniciais);
 
     const [opcoes, setOpcoes] = useState({});        // listas dos selects
@@ -231,7 +236,7 @@ export default function criarPagina(config) {
           key={c.nome}
           id={c.nome}
           rotulo={c.rotulo}
-          required={c.obrigatorio}
+          required={c.obrigatorio && (c.mostrarSe ? c.mostrarSe(valores) : true)}
           largo={c.largo}
           type={c.html}
           placeholder={c.dica}
@@ -295,15 +300,25 @@ export default function criarPagina(config) {
           >
             {erroForm && <div className="login__erro">{erroForm}</div>}
             <form id="form-pagina" className="formulario-grade" onSubmit={salvar}>
-              {config.formulario.map((c, i) =>
-                c.secao ? (
-                  <h3 className="formulario__secao" key={`secao-${i}`}>{c.secao}</h3>
-                ) : (
-                  renderCampo(c, formulario, (nome, valor) =>
-                    setFormulario((f) => ({ ...f, [nome]: valor }))
-                  )
+              {config.formulario
+                // `mostrarSe` esconde campo que nao faz sentido no momento -
+                // os dados da CNH so aparecem para quem e condutor. Uma secao
+                // some junto quando nenhum campo dela sobrou.
+                .filter((c) => (c.mostrarSe ? c.mostrarSe(formulario) : true))
+                // Uma secao ficou vazia quando o proximo item ja e outra
+                // secao (ou nao ha proximo).
+                .filter((c, i, lista) =>
+                  !c.secao || (lista[i + 1] && !lista[i + 1].secao)
                 )
-              )}
+                .map((c, i) =>
+                  c.secao ? (
+                    <h3 className="formulario__secao" key={`secao-${i}`}>{c.secao}</h3>
+                  ) : (
+                    renderCampo(c, formulario, (nome, valor) =>
+                      setFormulario((f) => ({ ...f, [nome]: valor }))
+                    )
+                  )
+                )}
             </form>
           </Modal>
         )}

@@ -39,7 +39,11 @@ export const servidores = criarCrud({
            (SELECT COUNT(*)::int FROM usuario u WHERE u.id_servidor = servidor.id_servidor) AS tem_usuario`,
   from: "servidor LEFT JOIN setor ON setor.id_setor = servidor.id_setor",
   busca: ["servidor.nome", "servidor.matricula", "servidor.cpf", "servidor.email"],
-  filtros: { setor: "servidor.id_setor", status: "servidor.status" },
+  filtros: {
+    setor: "servidor.id_setor",
+    status: "servidor.status",
+    condutor: "servidor.condutor",
+  },
   ordenaveis: {
     nome: "servidor.nome", matricula: "servidor.matricula",
     setor: "setor.nome", cargo_funcao: "servidor.cargo_funcao",
@@ -48,7 +52,7 @@ export const servidores = criarCrud({
   campos: [
     "nome", "cpf", "data_nascimento", "telefone", "email", "matricula",
     "cnh", "categoria_cnh", "cnh_data_emissao", "cnh_data_validade",
-    "cargo_funcao", "id_setor", "status",
+    "cargo_funcao", "id_setor", "status", "condutor",
   ],
   // telefone, email e cargo_funcao sairam daqui: nem todo servidor tem e-mail
   // corporativo, e exigir isso obriga quem cadastra a inventar um valor.
