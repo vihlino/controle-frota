@@ -2118,3 +2118,21 @@ button { font: inherit; cursor: pointer; }
   color: var(--texto-2);
   line-height: 1.5;
 }
+
+/* Momento da saida, mostrado como TEXTO e nao como campo.
+   Na saida a data e a hora nao sao preenchidas nem enviadas por quem esta no
+   patio - quem grava o horario e o servidor. Como <input type="date"> elas
+   ainda seguiam o idioma do aparelho, e um celular em ingles mostrava mes e
+   dia trocados numa tela que registra QUANDO o veiculo saiu. */
+.qr-momento {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--e-1) var(--e-2);
+  padding: var(--e-3);
+  background: var(--superficie-2);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+}
+.qr-momento__rotulo { font-size: var(--t-sm); color: var(--texto-2); }
+.qr-momento__valor { font-size: var(--t-md); color: var(--texto); }

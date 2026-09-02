@@ -77,9 +77,15 @@ export default function ChecklistQr() {
   // respondendo "Nao" o campo abre para edicao.
   const [kmConfere, setKmConfere] = useState(null);
 
+  // Data e hora comecam no relogio do aparelho, igual a saida. Nasciam vazias
+  // e sao obrigatorias: o motorista teria que digitar dia e hora na mao, no
+  // patio, com o veiculo ainda ligado - justamente o atrito que a tela de
+  // saida evita preenchendo sozinha. Continuam editaveis porque aqui a
+  // correcao e real: quem chegou as 18h e so registrou as 19h precisa poder
+  // dizer a hora certa.
   const [chegada, setChegada] = useState({
-    data: "",
-    hora: "",
+    data: inicio.data,
+    hora: inicio.hora,
     odometro: "",
     percurso: "",
     observacoes: "",
@@ -368,30 +374,45 @@ export default function ChecklistQr() {
             </>
           )}
 
-          <div className="qr-dupla">
-            <div className="campo">
-              <label htmlFor="data">Data de {naChegada ? "chegada" : "saída"} *</label>
-              <input
-                id="data" type="date" required
-                value={naChegada ? chegada.data : saida.data}
-                readOnly={!naChegada}
-                onChange={(e) =>
-                  naChegada && setChegada((c) => ({ ...c, data: e.target.value }))
-                }
-              />
+          {/* SAIDA: texto, nao campo.
+              O <input type="date"> desenha a data no idioma do APARELHO. Num
+              celular em ingles, "2026-09-02" aparece como 09/02/2026 - mes e
+              dia trocados numa tela que registra QUANDO o veiculo saiu.
+              Na saida estes dois valores nem sao enviados: quem grava o
+              horario e o servidor. Eram campos de formulario mostrando uma
+              informacao que ninguem preenche e ninguem envia. Como texto, o
+              formato e sempre o brasileiro e nao depende do celular.
+
+              CHEGADA: continuam campos, porque ali a pessoa corrige de
+              verdade - quem volta as 18h e so registra as 19h precisa poder
+              dizer a hora certa - e os valores vao no corpo da requisicao. */}
+          {naChegada ? (
+            <div className="qr-dupla">
+              <div className="campo">
+                <label htmlFor="data">Data de chegada *</label>
+                <input
+                  id="data" type="date" required
+                  value={chegada.data}
+                  onChange={(e) => setChegada((c) => ({ ...c, data: e.target.value }))}
+                />
+              </div>
+              <div className="campo">
+                <label htmlFor="hora">Hora de chegada *</label>
+                <input
+                  id="hora" type="time" required
+                  value={chegada.hora}
+                  onChange={(e) => setChegada((c) => ({ ...c, hora: e.target.value }))}
+                />
+              </div>
             </div>
-            <div className="campo">
-              <label htmlFor="hora">Hora de {naChegada ? "chegada" : "saída"} *</label>
-              <input
-                id="hora" type="time" required
-                value={naChegada ? chegada.hora : saida.hora}
-                readOnly={!naChegada}
-                onChange={(e) =>
-                  naChegada && setChegada((c) => ({ ...c, hora: e.target.value }))
-                }
-              />
+          ) : (
+            <div className="qr-momento">
+              <span className="qr-momento__rotulo">Saída registrada em</span>
+              <strong className="qr-momento__valor">
+                {dataBr(saida.data)} às {saida.hora}
+              </strong>
             </div>
-          </div>
+          )}
 
           {/* KM. Na saida o valor ja vem do ultimo registro e o condutor so
               confirma - digitar de novo um numero que o sistema ja sabe e
