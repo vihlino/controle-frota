@@ -59,7 +59,27 @@ export const servidores = criarCrud({
   obrigatorios: [
     "nome", "cpf", "data_nascimento", "matricula", "id_setor",
   ],
-  permissoes: { ver: VER, gerenciar: "ADMIN_GERENCIAR_SERVIDORES" },
+  // A BASE DE PESSOAS NAO E SO DA ADMINISTRACAO
+  //
+  // Esta lista alimenta a tela de Motoristas (Frotas), o campo "responsavel"
+  // de Documentos e Sinistros, e o coordenador do Servico Diario
+  // (Fiscalizacao). Exigindo so ADMIN_VISUALIZAR, o gestor de frotas recebia
+  // 403: a tela de Motoristas vinha vazia e os seletores de responsavel
+  // ficavam sem opcao nenhuma - em silencio, porque a tela ignora a falha
+  // dessas chamadas.
+  //
+  // A alternativa seria dar ADMIN_VISUALIZAR ao gestor de frotas, o que
+  // abriria tambem usuarios, perfis, setores e parametros do sistema - muito
+  // mais do que ele precisa, so para ver uma lista de motoristas.
+  //
+  // FROTAS_GERENCIAR_SERVIDORES ja existia no catalogo de permissoes desde a
+  // primeira versao, com a descricao exata deste caso ("consultar e gerenciar
+  // servidores utilizados no modulo de Frotas"), mas nenhuma linha de codigo
+  // chegava a consultar essa permissao. Agora ela vale.
+  permissoes: {
+    ver: [VER, "FROTAS_VISUALIZAR", "FISCALIZACAO_VISUALIZAR"],
+    gerenciar: ["ADMIN_GERENCIAR_SERVIDORES", "FROTAS_GERENCIAR_SERVIDORES"],
+  },
 });
 
 export const perfis = criarCrud({

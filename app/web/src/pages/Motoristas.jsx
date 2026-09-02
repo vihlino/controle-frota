@@ -23,6 +23,12 @@ export default criarPagina({
   rotuloSalvar: "Salvar motorista",
   iconeAcao: "cnh",
 
+  // Quem gerencia a frota cadastra motorista sem precisar da permissao de
+  // Administracao. CONFIG_SERVIDOR exige ADMIN_GERENCIAR_SERVIDORES, o que
+  // fazia o gestor de frotas nao ver sequer o botao "Novo motorista" nesta
+  // tela - que e a tela dele.
+  permissaoGerenciar: "FROTAS_GERENCIAR_SERVIDORES",
+
   // Trava a lista em quem dirige. O filtro vai na consulta, nao na tela: assim
   // a contagem e a paginacao tambem batem.
   filtrosFixos: { condutor: "true" },

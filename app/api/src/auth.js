@@ -86,10 +86,17 @@ export function autenticar(req, res, next) {
  * @param {string} codigo  O codigo da permissao, ex.: "FROTAS_VISUALIZAR".
  * @returns {Function} O middleware pronto para usar na rota.
  */
-export function exigePermissao(codigo) {
+// Aceita mais de um codigo: basta ter UM deles. Existe porque alguns dados
+// pertencem a mais de um modulo. A base de servidores e o caso claro: e da
+// Administracao, mas o gestor de Frotas precisa dela para saber quem pode
+// dirigir. Exigir a permissao de Administracao para isso obrigaria a dar ao
+// gestor de frotas acesso a usuarios, perfis e parametros do sistema - muito
+// mais do que ele precisa, so para conseguir ver uma lista de motoristas.
+export function exigePermissao(...codigos) {
+  const aceitos = codigos.flat();
   return (req, res, next) => {
     const permissoes = req.usuario?.permissoes || [];
-    if (permissoes.includes(codigo)) return next();
+    if (aceitos.some((c) => permissoes.includes(c))) return next();
     // 403 (proibido) e diferente de 401 (nao autenticado): aqui o sistema sabe
     // quem e a pessoa, ela simplesmente nao tem direito a esta acao.
     res.status(403).json({ erro: "Sem permissao para esta acao" });

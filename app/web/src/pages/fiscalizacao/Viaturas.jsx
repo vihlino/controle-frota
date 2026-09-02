@@ -53,7 +53,8 @@ export default criarPagina({
   rotuloAcao: "Nova viatura",
   iconeAcao: "fisc-viatura",
   rotuloSalvar: "Salvar viatura",
-  permissaoGerenciar: "FROTAS_GERENCIAR_VEICULOS",
+  // A permissao e da FISCALIZACAO: esta e a tela dela. A API aceita as duas.
+  permissaoGerenciar: "FISCALIZACAO_GERENCIAR_VIATURAS",
   // A tela nao tinha coluna de Acoes: sem `formulario`, o gerador entende que
   // e somente leitura e nao desenha o menu. Quem via uma viatura com o dado
   // errado tinha que ir ate Frotas > Veiculos para corrigir.

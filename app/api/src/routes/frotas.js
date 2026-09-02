@@ -46,7 +46,16 @@ export const veiculos = criarCrud({
     "placa", "marca", "modelo", "ano_fabricacao", "ano_modelo", "cor",
     "tipo_veiculo", "tipo_combustivel", "id_setor",
   ],
-  permissoes: { ver: VER, gerenciar: "FROTAS_GERENCIAR_VEICULOS" },
+  // A tela de Viaturas, na Fiscalizacao, e ESTE mesmo cadastro filtrado - uma
+  // viatura e um veiculo da frota vinculado ao setor de Fiscalizacao, nao um
+  // cadastro a parte. Exigindo so FROTAS_VISUALIZAR, o gestor de fiscalizacao
+  // abria "Viaturas" e recebia 403 numa tela do proprio modulo dele.
+  // Gerenciar continua exigindo a permissao de Frotas: quem manda no cadastro
+  // do veiculo e a frota, mesmo quando o veiculo esta na fiscalizacao.
+  permissoes: {
+    ver: [VER, "FISCALIZACAO_VISUALIZAR"],
+    gerenciar: ["FROTAS_GERENCIAR_VEICULOS", "FISCALIZACAO_GERENCIAR_VIATURAS"],
+  },
 });
 
 // ---------- Checklists ----------

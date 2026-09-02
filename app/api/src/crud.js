@@ -69,6 +69,8 @@ export function criarCrud(config) {
 
   // Monta os middlewares de permissao uma vez so. Se a configuracao nao pediu
   // permissao, o array fica vazio e o spread (...) nao adiciona nada.
+  // `ver` e `gerenciar` aceitam um codigo ou uma LISTA de codigos - basta ter
+  // um deles. Serve para o dado que pertence a mais de um modulo.
   const podeVer = permissoes.ver ? [exigePermissao(permissoes.ver)] : [];
   const podeGerenciar = permissoes.gerenciar ? [exigePermissao(permissoes.gerenciar)] : [];
 
