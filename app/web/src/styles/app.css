@@ -712,7 +712,15 @@ button { font: inherit; cursor: pointer; }
 
 /* ---------- campos de formulario ---------- */
 
-.campo { display: flex; flex-direction: column; gap: var(--e-2); }
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+  /* Sem isto o campo nao encolhe dentro de uma grade: input de data e hora
+     tem largura intrinseca grande, e o item de grid nao passa do min-content
+     a menos que se diga explicitamente que pode. */
+  min-width: 0;
+}
 
 /* O rotulo e a informacao ("Nome completo"), entao vem na cor do texto, nao
    em cinza. Cinza fica para o que e apoio: placeholder e texto de ajuda. */
@@ -1523,8 +1531,10 @@ button { font: inherit; cursor: pointer; }
 .qr-dupla {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--e-3);
+  gap: var(--e-2);
 }
+.qr-dupla .campo { min-width: 0; }
+.qr-dupla input { min-width: 0; }
 
 /* KM da saida: valor preenchido + confirmacao Sim/Nao. */
 .qr-km { display: flex; gap: var(--e-2); align-items: stretch; }
@@ -1656,19 +1666,21 @@ button { font: inherit; cursor: pointer; }
   line-height: var(--altura-normal);
   color: var(--texto-2);
 }
-.qr-rodape__botoes { display: flex; flex-direction: column; gap: var(--e-2); }
-.qr-botao { width: 100%; min-height: 50px; font-size: var(--t-md); }
-
-/* Em tela larga os dois botoes cabem lado a lado, com o principal a direita. */
-@media (min-width: 480px) {
-  .qr-rodape__botoes { flex-direction: row; }
-  .qr-rodape__botoes .qr-botao { flex: 1; }
-}
+.qr-rodape__botoes { display: flex; gap: var(--e-2); }
+.qr-botao { min-height: 48px; font-size: var(--t-md); }
+/* O principal fica com a sobra; o secundario ocupa so o que o texto pede.
+   Assim "Continuar para o retorno" cabe numa linha mesmo em tela de 360px. */
+.qr-rodape__botoes .qr-botao { flex: 1; min-width: 0; }
+.qr-rodape__botoes .qr-botao:not(.botao--primario) { flex: 0 1 auto; }
 
 /* Aparelho pequeno (iPhone SE e semelhantes): tudo em uma coluna. */
+/* Aparelho pequeno: so aperta o respiro. Data/hora e os botoes continuam
+   lado a lado - empilhar era o que deixava tudo "enorme". */
 @media (max-width: 380px) {
   .qr-tela { padding: var(--e-3); }
-  .qr-dupla { grid-template-columns: 1fr; }
+  .qr-cartao { padding: var(--e-4); }
+  .campo-data input { padding-right: var(--e-7); }
+  .campo input, .campo select, .campo textarea { padding: var(--e-2); }
 }
 
 .qr-tela__sucesso {

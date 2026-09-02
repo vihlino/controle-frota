@@ -270,10 +270,14 @@ router.post("/chegada/:token", async (req, res, next) => {
     }
     const checklist = aberto.rows[0];
 
-    if (Number(odometro_chegada) < checklist.odometro_saida) {
+    // MAIOR, nao "maior ou igual": um veiculo que saiu e voltou rodou alguma
+    // coisa. KM identico ao da saida e quase sempre erro de digitacao ou uma
+    // retirada desfeita - e nesse caso o certo e cancelar o checklist, nao
+    // fecha-lo com zero.
+    if (Number(odometro_chegada) <= checklist.odometro_saida) {
       await cliente.query("ROLLBACK");
       return res.status(400).json({
-        erro: `O KM de chegada nao pode ser menor que o de saida (${checklist.odometro_saida} km).`,
+        erro: `O KM de chegada precisa ser maior que o de saida (${checklist.odometro_saida} km).`,
       });
     }
 

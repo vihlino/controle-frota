@@ -390,12 +390,27 @@ export default function ChecklistQr() {
               <input
                 id="km" type="number" required inputMode="numeric"
                 placeholder="Ex.: 45230"
-                min={checklistAberto.odometro_saida}
+                /* +1 porque o KM de chegada tem de ser MAIOR que o de saida,
+                   nao igual: veiculo que saiu e voltou rodou alguma coisa. */
+                min={checklistAberto.odometro_saida + 1}
                 value={chegada.odometro}
-                onChange={(e) => setChegada((c) => ({ ...c, odometro: e.target.value }))}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setChegada((c) => ({ ...c, odometro: v }));
+                  // Sem isto o navegador mostra a mensagem PADRAO dele - "o
+                  // valor deve ser maior ou igual a X" - que contradiz a regra.
+                  // setCustomValidity troca por uma nossa e continua bloqueando
+                  // o envio pela validacao nativa do formulario.
+                  e.target.setCustomValidity(
+                    v !== "" && Number(v) <= checklistAberto.odometro_saida
+                      ? `O KM de chegada precisa ser MAIOR que o da saída (${numero(checklistAberto.odometro_saida)} km).`
+                      : ""
+                  );
+                }}
               />
               <span className="campo__ajuda">
-                KM na saída: {numero(checklistAberto.odometro_saida)} km
+                KM na saída: {numero(checklistAberto.odometro_saida)} km.
+                O valor informado precisa ser maior que este.
               </span>
             </div>
           ) : (
@@ -564,7 +579,7 @@ export default function ChecklistQr() {
             {!naChegada && (
               <button type="button" className="botao qr-botao"
                       onClick={() => window.history.back()}>
-                Cancelar checklist
+                Cancelar
               </button>
             )}
             <button className="botao botao--primario qr-botao" disabled={enviando}>
