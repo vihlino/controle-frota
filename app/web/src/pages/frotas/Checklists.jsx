@@ -15,7 +15,7 @@ import Acoes from "../../components/Acoes.jsx";
 import { Texto, Selecao, Data } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
-import { atraso, data, dataHora, hora, numero, rotulo } from "../../lib/formato.js";
+import { atraso, dataHora, hora, numero, rotulo } from "../../lib/formato.js";
 
 const ORDEM_EQUIPAMENTOS = ["MACACO", "ESTEPE", "TRIANGULO", "CHAVE_RODA"];
 
@@ -84,15 +84,6 @@ export default function Checklists() {
       ),
     },
     {
-      chave: "data_abertura", rotulo: "Data do registro", ordenavel: true,
-      render: (c) => (
-        <span className="celula-dupla">
-          <strong>{data(c.data_abertura)}</strong>
-          <span>{hora(c.hora_saida)}</span>
-        </span>
-      ),
-    },
-    {
       chave: "placa", rotulo: "Placa / Veículo", ordenavel: true,
       render: (c) => (
         <span className="celula-dupla">
@@ -102,7 +93,6 @@ export default function Checklists() {
       ),
     },
     { chave: "condutor", rotulo: "Condutor", ordenavel: true },
-    { chave: "percurso", rotulo: "Percurso", render: (c) => c.percurso || "-" },
     {
       chave: "saida", rotulo: "Saida (hora / KM)",
       render: (c) => (
