@@ -336,6 +336,10 @@ export default function ChecklistQr() {
                 <div className="qr-matricula">
                   <input
                     id="matricula" required value={matricula}
+                    // A matricula da CMTT e so numeros: teclado numerico, que
+                    // no patio se digita com uma mao so. enterKeyHint troca o
+                    // "ir" do teclado por "buscar", que e o que a tecla faz.
+                    inputMode="numeric" enterKeyHint="search"
                     autoComplete="off" placeholder="Ex.: 12548"
                     onChange={(e) => { setMatricula(e.target.value); setCondutor(null); }}
                     onBlur={buscarCondutor}
