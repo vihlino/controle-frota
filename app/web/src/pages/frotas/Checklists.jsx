@@ -15,25 +15,12 @@ import Acoes from "../../components/Acoes.jsx";
 import { Texto, Selecao, Data } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
-import { atraso, dataHora, hora, numero, rotulo } from "../../lib/formato.js";
+import { dataHora, hora, numero, rotulo } from "../../lib/formato.js";
 
 const ORDEM_EQUIPAMENTOS = ["MACACO", "ESTEPE", "TRIANGULO", "CHAVE_RODA"];
 
 // Mostra os quatro equipamentos obrigatorios de forma compacta. O que o
 // condutor marcou como ausente fica vermelho.
-/**
- * Mostra a distancia entre o que foi declarado e o que foi enviado.
- * Nao aparece quando nao ha o que comparar.
- */
-function Atraso({ info }) {
-  if (!info) return null;
-  return (
-    <span className="atraso" data-tom={info.tom}>
-      {info.texto}
-    </span>
-  );
-}
-
 function Equipamentos({ itens }) {
   const porNome = Object.fromEntries((itens || []).map((e) => [e.equipamento, e]));
   return (
@@ -77,10 +64,7 @@ export default function Checklists() {
       // duas coisas diferentes com o mesmo nome.
       chave: "criado_em", rotulo: "Enviado em", ordenavel: true,
       render: (c) => (
-        <span className="celula-dupla">
-          <strong>{dataHora(c.criado_em)}</strong>
-          <Atraso info={atraso(c.data_abertura, c.hora_saida, c.criado_em)} />
-        </span>
+        <strong>{dataHora(c.criado_em)}</strong>
       ),
     },
     {
@@ -122,10 +106,7 @@ export default function Checklists() {
         !c.data_finalizacao ? (
           <span className="texto-fraco">Em aberto</span>
         ) : (
-          <span className="celula-dupla">
-            <strong>{dataHora(c.data_finalizacao)}</strong>
-            <Atraso info={atraso(c.data_devolucao, c.hora_chegada, c.data_finalizacao)} />
-          </span>
+          <strong>{dataHora(c.data_finalizacao)}</strong>
         ),
     },
     {

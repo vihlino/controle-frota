@@ -28,39 +28,6 @@ export function dataHora(valor) {
 }
 
 /**
- * Diferenca entre o que o condutor DECLAROU e o instante em que ele ENVIOU.
- *
- * E isto que responde "fecharam o checklist na hora certa?". O condutor pode
- * declarar que chegou as 18h e so enviar as 9h do dia seguinte - o registro
- * fica certo, mas o preenchimento foi tardio, e isso precisa aparecer.
- *
- * @param {string} dataDeclarada  "2026-08-21"
- * @param {string} horaDeclarada  "18:00:00"
- * @param {string} enviadoEm      timestamp do banco
- * @returns {{minutos: number, texto: string, tom: string}|null}
- */
-export function atraso(dataDeclarada, horaDeclarada, enviadoEm) {
-  if (!dataDeclarada || !horaDeclarada || !enviadoEm) return null;
-
-  const declarado = new Date(
-    `${String(dataDeclarada).slice(0, 10)}T${String(horaDeclarada).slice(0, 8)}`
-  );
-  const enviado = new Date(String(enviadoEm).slice(0, 19));
-  if (isNaN(declarado) || isNaN(enviado)) return null;
-
-  const minutos = Math.round((enviado - declarado) / 60000);
-  // Ate 15 minutos e preenchimento no ato: ninguem digita instantaneamente.
-  if (minutos <= 15) return { minutos, texto: "No horário", tom: "verde" };
-  if (minutos < 60) return { minutos, texto: `${minutos} min depois`, tom: "ambar" };
-
-  const horas = Math.floor(minutos / 60);
-  if (horas < 24) return { minutos, texto: `${horas}h depois`, tom: "ambar" };
-
-  const dias = Math.floor(horas / 24);
-  return { minutos, texto: `${dias}d depois`, tom: "vermelho" };
-}
-
-/**
  * Quantos dias faltam ate a data. Negativo se ja passou.
  * Compara so a parte da data - hora nao interessa para validade.
  */
