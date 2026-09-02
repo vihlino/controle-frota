@@ -81,15 +81,42 @@ const SENHA = process.env.SEED_SENHA || "sitra@2026";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const caminhoSqlPrincipal = path.resolve(
-  __dirname,
-  "../db/001_sitra_v1.sql"
-);
+const pastaDb = path.resolve(__dirname, "../db");
 
-const caminhoSqlTelas = path.resolve(
-  __dirname,
-  "../db/002_sitra_telas.sql"
-);
+const caminhoSqlPrincipal = path.join(pastaDb, "001_sitra_v1.sql");
+
+/**
+ * Lista as migracoes na ordem, lendo a pasta em vez de manter uma lista
+ * escrita a mao - antes, cada migracao nova exigia lembrar de editar este
+ * arquivo, e foi assim que a 003 a 006 ficaram de fora.
+ *
+ * Entram so os arquivos no padrao NNN_nome.sql. Isso deixa de fora atalhos
+ * como `aplicar_003_a_006.sql`, que repetem migracoes ja listadas.
+ *
+ * @param {number} apartirDe  Numero minimo. 2 pula o 001, que so roda em
+ *                            banco vazio (ele nao e idempotente).
+ */
+async function listarMigracoes(apartirDe = 2) {
+  const arquivos = await fs.readdir(pastaDb);
+  return arquivos
+    .filter((f) => /^\d{3}_.+\.sql$/.test(f))
+    .filter((f) => Number(f.slice(0, 3)) >= apartirDe)
+    .sort()
+    .map((f) => ({ nome: f, caminho: path.join(pastaDb, f) }));
+}
+
+/**
+ * Le uma migracao e RETIRA o BEGIN/COMMIT dela.
+ *
+ * Por que: a inicializacao inteira roda dentro de uma transacao (ver
+ * inicializarBanco). Um COMMIT no meio do arquivo confirmaria a transacao de
+ * FORA antes da hora - e ai um erro numa migracao seguinte nao desfaria mais
+ * as anteriores, que e justamente a protecao que a transacao existe para dar.
+ */
+async function lerMigracao(caminho) {
+  const sql = await fs.readFile(caminho, "utf8");
+  return sql.replace(/^\s*(BEGIN|COMMIT)\s*;\s*$/gim, "");
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -116,12 +143,15 @@ async function inicializarEstrutura(cliente) {
 
     console.log("Banco SITRA ja possui a estrutura principal.");
 
-    // Mesmo com a estrutura existente, sempre reaplicamos o 002
-    // porque ele e idempotente (IF NOT EXISTS, CREATE OR REPLACE VIEW)
-    // e pode ter falhado em uma inicializacao anterior.
-    const sqlTelas = await fs.readFile(caminhoSqlTelas, "utf8");
-    console.log("Reaplicando 002_sitra_telas.sql (idempotente)...");
-    await cliente.query(sqlTelas);
+    // Reaplica TODAS as migracoes da 002 em diante. Todas sao idempotentes
+    // (IF NOT EXISTS, DROP CONSTRAINT IF EXISTS, CREATE OR REPLACE), entao
+    // rodar de novo nao duplica nada - e a que faltava e aplicada sozinha.
+    // E isto que dispensa rodar psql na mao a cada deploy.
+    const migracoes = await listarMigracoes(2);
+    for (const m of migracoes) {
+      console.log(`Aplicando ${m.nome} (idempotente)...`);
+      await cliente.query(await lerMigracao(m.caminho));
+    }
 
     return;
 
@@ -139,11 +169,6 @@ async function inicializarEstrutura(cliente) {
 
   const sqlPrincipal = await fs.readFile(
     caminhoSqlPrincipal,
-    "utf8"
-  );
-
-  const sqlTelas = await fs.readFile(
-    caminhoSqlTelas,
     "utf8"
   );
 
@@ -174,9 +199,10 @@ async function inicializarEstrutura(cliente) {
    * posteriormente para acompanhar as telas do SITRA.
    */
 
-  console.log("Executando 002_sitra_telas.sql...");
-
-  await cliente.query(sqlTelas);
+  for (const m of await listarMigracoes(2)) {
+    console.log(`Executando ${m.nome}...`);
+    await cliente.query(await lerMigracao(m.caminho));
+  }
 
   console.log(
     "Estrutura principal do banco criada com sucesso."

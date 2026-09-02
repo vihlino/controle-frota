@@ -15,7 +15,8 @@
 # │
 # └── db/
 #     ├── 001_sitra_v1.sql
-#     └── 002_sitra_telas.sql
+#     ├── 002_sitra_telas.sql
+#     └── ... as demais migracoes NNN_*.sql
 
 FROM node:20-alpine
 
@@ -44,9 +45,11 @@ COPY api/ .
 #
 # /app/db/001_sitra_v1.sql
 # /app/db/002_sitra_telas.sql
+# /app/db/003_... e as demais
 #
-# O futuro inicializador do banco podera ler esses arquivos
-# para criar a estrutura do PostgreSQL quando necessario.
+# O initDatabase.js le essa pasta no start e aplica as migracoes que
+# faltarem. E por isso que a pasta inteira e copiada, e nao arquivos
+# escolhidos a dedo: migracao nova nao exige mexer neste Dockerfile.
 COPY db/ ./db/
 
 # A API usa a porta definida pelo Render atraves da variavel PORT.
