@@ -24,7 +24,7 @@
  * reproduz esse calculo, para a tela mostrar exatamente o mesmo numero - senao
  * o condutor digitaria um KM que parece valido e levaria erro.
  */
-import { Router } from "express";
+import { Router, json } from "express";
 import crypto from "node:crypto";
 import QRCode from "qrcode";
 import { query, pool } from "../db.js";
@@ -351,6 +351,142 @@ router.get("/imagem/:idVeiculo", autenticar, async (req, res, next) => {
     });
 
     res.json({ ...rows[0], url, imagem });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// ============================================================================
+// FOTOS DO CHECKLIST
+// ============================================================================
+// O binario fica no Postgres, nao em disco: o servico da API no Render usa
+// disco efemero, entao arquivo gravado ali some no proximo deploy.
+//
+// O navegador ja envia a imagem REDUZIDA (lado maior 1600px, JPEG). Aqui so
+// conferimos o formato, o tipo e o tamanho antes de gravar.
+
+const TIPOS_ACEITOS = ["image/jpeg", "image/png", "image/webp"];
+const LIMITE_FOTO = 3 * 1024 * 1024; // 3 MB, o mesmo do CHECK no banco
+const MAX_FOTOS = 6;
+
+// O corpo destas rotas carrega uma imagem em base64, que passa do limite de
+// 1mb aplicado ao resto da API. O limite maior vale SO aqui.
+const corpoDeFoto = json({ limit: "8mb" });
+
+/**
+ * Converte a data URL que o navegador manda em { tipo, buffer }.
+ * Devolve null se o formato nao for o esperado.
+ */
+function lerDataUrl(dataUrl) {
+  if (typeof dataUrl !== "string") return null;
+  const m = /^data:([a-z/+.-]+);base64,([A-Za-z0-9+/=]+)$/i.exec(dataUrl.trim());
+  if (!m) return null;
+  const tipo = m[1].toLowerCase();
+  if (!TIPOS_ACEITOS.includes(tipo)) return null;
+  const buffer = Buffer.from(m[2], "base64");
+  if (!buffer.length || buffer.length > LIMITE_FOTO) return null;
+  return { tipo, buffer };
+}
+
+/**
+ * Anexa fotos ao checklist ABERTO do veiculo. Publica, como o resto do fluxo
+ * do QR Code: a credencial e o token.
+ *
+ * Corpo: { momento: "SAIDA" | "CHEGADA", fotos: [dataUrl, ...] }
+ */
+router.post("/foto/:token", corpoDeFoto, async (req, res, next) => {
+  const cliente = await pool.connect();
+  try {
+    const momento = String(req.body?.momento || "").toUpperCase();
+    const fotos = Array.isArray(req.body?.fotos) ? req.body.fotos : [];
+
+    if (!["SAIDA", "CHEGADA"].includes(momento)) {
+      return res.status(400).json({ erro: "Momento invalido." });
+    }
+    if (!fotos.length) return res.status(400).json({ erro: "Nenhuma foto recebida." });
+    if (fotos.length > MAX_FOTOS) {
+      return res.status(400).json({ erro: `No maximo ${MAX_FOTOS} fotos por envio.` });
+    }
+
+    await cliente.query("BEGIN");
+
+    // Na SAIDA o checklist esta ABERTO. Na CHEGADA ele acabou de ser fechado,
+    // entao pegamos o mais recente do veiculo.
+    const { rows } = await cliente.query(
+      `SELECT c.id_checklist
+         FROM qr_code q
+         JOIN checklist_frotas c ON c.id_veiculo = q.id_veiculo
+        WHERE q.token = $1
+          AND ($2 = 'CHEGADA' OR c.status = 'ABERTO')
+        ORDER BY c.id_checklist DESC
+        LIMIT 1`,
+      [req.params.token, momento]
+    );
+    if (!rows[0]) {
+      await cliente.query("ROLLBACK");
+      return res.status(404).json({ erro: "Nenhum checklist para este veiculo." });
+    }
+    const idChecklist = rows[0].id_checklist;
+
+    const gravadas = [];
+    for (const dataUrl of fotos) {
+      const arquivo = lerDataUrl(dataUrl);
+      if (!arquivo) {
+        await cliente.query("ROLLBACK");
+        return res.status(400).json({
+          erro: "Formato de imagem nao aceito. Use JPEG, PNG ou WebP ate 3 MB.",
+        });
+      }
+      const r = await cliente.query(
+        `INSERT INTO checklist_frotas_foto (id_checklist, momento, tipo, bytes, conteudo)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id_foto`,
+        [idChecklist, momento, arquivo.tipo, arquivo.buffer.length, arquivo.buffer]
+      );
+      gravadas.push(r.rows[0].id_foto);
+    }
+
+    await cliente.query("COMMIT");
+    res.status(201).json({ id_checklist: idChecklist, fotos: gravadas });
+  } catch (e) {
+    await cliente.query("ROLLBACK").catch(() => {});
+    next(e);
+  } finally {
+    cliente.release();
+  }
+});
+
+/**
+ * Lista as fotos de um checklist (so os metadados - o binario vem na rota
+ * abaixo, uma por vez, para o navegador poder cachear cada imagem).
+ */
+router.get("/fotos/checklist/:idChecklist", autenticar, async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT id_foto, momento, tipo, bytes, criado_em
+         FROM checklist_frotas_foto
+        WHERE id_checklist = $1
+        ORDER BY momento DESC, id_foto`,
+      [Number(req.params.idChecklist)]
+    );
+    res.json(rows);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/**
+ * Serve o binario de uma foto.
+ */
+router.get("/foto/arquivo/:idFoto", autenticar, async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      "SELECT tipo, conteudo FROM checklist_frotas_foto WHERE id_foto = $1",
+      [Number(req.params.idFoto)]
+    );
+    if (!rows[0]) return res.status(404).json({ erro: "Foto nao encontrada." });
+    res.setHeader("Content-Type", rows[0].tipo);
+    res.setHeader("Cache-Control", "private, max-age=31536000, immutable");
+    res.send(rows[0].conteudo);
   } catch (e) {
     next(e);
   }

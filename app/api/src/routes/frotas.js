@@ -62,9 +62,11 @@ export const checklists = criarCrud({
            (checklist_frotas.odometro_chegada - checklist_frotas.odometro_saida) AS km_rodado,
            (SELECT COALESCE(jsonb_agg(jsonb_build_object(
                      'equipamento', e.equipamento, 'conforme', e.conforme,
-                     'observacao', e.observacao)), '[]'::jsonb)
+                     'momento', e.momento, 'observacao', e.observacao)), '[]'::jsonb)
               FROM checklist_frotas_equipamento e
-             WHERE e.id_checklist = checklist_frotas.id_checklist) AS equipamentos`,
+             WHERE e.id_checklist = checklist_frotas.id_checklist) AS equipamentos,
+           (SELECT COUNT(*) FROM checklist_frotas_foto f
+             WHERE f.id_checklist = checklist_frotas.id_checklist) AS total_fotos`,
   from: `checklist_frotas
          JOIN servidor ON servidor.id_servidor = checklist_frotas.id_servidor
          JOIN veiculo  ON veiculo.id_veiculo   = checklist_frotas.id_veiculo`,
@@ -77,15 +79,17 @@ export const checklists = criarCrud({
   },
   ordenaveis: {
     data_abertura: "checklist_frotas.data_abertura",
+    criado_em: "checklist_frotas.criado_em",
+    data_finalizacao: "checklist_frotas.data_finalizacao",
     placa: "veiculo.placa",
     condutor: "servidor.nome",
     km_rodado: "(checklist_frotas.odometro_chegada - checklist_frotas.odometro_saida)",
   },
-  ordemPadrao: "checklist_frotas.data_abertura DESC, checklist_frotas.hora_saida",
+  ordemPadrao: "checklist_frotas.criado_em DESC",
   campos: [
     "id_veiculo", "id_servidor", "data_abertura", "hora_saida", "data_devolucao",
     "hora_chegada", "odometro_saida", "odometro_chegada", "observacoes", "status",
-    "percurso", "local_saida", "data_finalizacao",
+    "percurso", "local_saida", "data_finalizacao", "observacoes_chegada",
   ],
   obrigatorios: ["id_veiculo", "id_servidor", "odometro_saida"],
   permissoes: { ver: VER, gerenciar: "FROTAS_GERENCIAR_VEICULOS" },

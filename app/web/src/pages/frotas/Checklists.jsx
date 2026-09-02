@@ -15,12 +15,25 @@ import Acoes from "../../components/Acoes.jsx";
 import { Texto, Selecao, Data } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
-import { data, hora, numero, rotulo } from "../../lib/formato.js";
+import { atraso, data, dataHora, hora, numero, rotulo } from "../../lib/formato.js";
 
 const ORDEM_EQUIPAMENTOS = ["MACACO", "ESTEPE", "TRIANGULO", "CHAVE_RODA"];
 
 // Mostra os quatro equipamentos obrigatorios de forma compacta. O que o
 // condutor marcou como ausente fica vermelho.
+/**
+ * Mostra a distancia entre o que foi declarado e o que foi enviado.
+ * Nao aparece quando nao ha o que comparar.
+ */
+function Atraso({ info }) {
+  if (!info) return null;
+  return (
+    <span className="atraso" data-tom={info.tom}>
+      {info.texto}
+    </span>
+  );
+}
+
 function Equipamentos({ itens }) {
   const porNome = Object.fromEntries((itens || []).map((e) => [e.equipamento, e]));
   return (
@@ -59,7 +72,19 @@ export default function Checklists() {
 
   const colunas = [
     {
-      chave: "data_abertura", rotulo: "Enviado em", ordenavel: true,
+      // "Enviado em" e o instante em que o condutor MANDOU o registro. Antes
+      // esta coluna mostrava data_abertura, que e a data DECLARADA de saida -
+      // duas coisas diferentes com o mesmo nome.
+      chave: "criado_em", rotulo: "Enviado em", ordenavel: true,
+      render: (c) => (
+        <span className="celula-dupla">
+          <strong>{dataHora(c.criado_em)}</strong>
+          <Atraso info={atraso(c.data_abertura, c.hora_saida, c.criado_em)} />
+        </span>
+      ),
+    },
+    {
+      chave: "data_abertura", rotulo: "Data do registro", ordenavel: true,
       render: (c) => (
         <span className="celula-dupla">
           <strong>{data(c.data_abertura)}</strong>
@@ -96,6 +121,20 @@ export default function Checklists() {
           <span className="celula-dupla">
             <strong>{hora(c.hora_chegada)}</strong>
             <span>{numero(c.odometro_chegada)} km</span>
+          </span>
+        ),
+    },
+    {
+      // Quando a CHEGADA foi enviada. Comparado com a chegada declarada, e o
+      // que mostra se o checklist foi fechado na hora ou dias depois.
+      chave: "data_finalizacao", rotulo: "Fechado em", ordenavel: true,
+      render: (c) =>
+        !c.data_finalizacao ? (
+          <span className="texto-fraco">Em aberto</span>
+        ) : (
+          <span className="celula-dupla">
+            <strong>{dataHora(c.data_finalizacao)}</strong>
+            <Atraso info={atraso(c.data_devolucao, c.hora_chegada, c.data_finalizacao)} />
           </span>
         ),
     },

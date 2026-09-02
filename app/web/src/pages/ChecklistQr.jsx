@@ -23,6 +23,7 @@ import { useParams } from "react-router-dom";
 import Icone from "../components/Icone.jsx";
 import { api } from "../lib/api.js";
 import { numero } from "../lib/formato.js";
+import { reduzirImagem, pesoLegivel } from "../lib/imagem.js";
 
 // Os quatro itens que o condutor confere. O icone e so apoio visual - quem
 // manda no que vale e o codigo, que e o mesmo gravado no banco.
@@ -85,7 +86,11 @@ export default function ChecklistQr() {
   });
 
   const [equipamentos, setEquipamentos] = useState(equipamentosIniciais);
-  const [foto, setFoto] = useState(null);
+  // Fotos ja reduzidas, prontas para enviar. Guardamos a dataUrl para
+  // mostrar a miniatura sem ler o arquivo de novo.
+  const [fotos, setFotos] = useState([]);
+  const [preparandoFoto, setPreparandoFoto] = useState(false);
+  const MAX_FOTOS = 6;
 
   useEffect(() => {
     api(`/qrcode/ler/${token}`)
@@ -120,6 +125,59 @@ export default function ChecklistQr() {
         : equipamentos[codigo].observacao || "Item ausente na conferência.",
     }));
 
+  async function escolherFotos(evento) {
+    const escolhidos = Array.from(evento.target.files || []);
+    evento.target.value = ""; // permite escolher o mesmo arquivo de novo
+    if (!escolhidos.length) return;
+
+    const cabem = MAX_FOTOS - fotos.length;
+    if (cabem <= 0) {
+      setErro(`Você já anexou o máximo de ${MAX_FOTOS} fotos.`);
+      return;
+    }
+
+    setPreparandoFoto(true);
+    setErro("");
+    try {
+      const novas = [];
+      for (const arquivo of escolhidos.slice(0, cabem)) {
+        novas.push(await reduzirImagem(arquivo));
+      }
+      setFotos((f) => [...f, ...novas]);
+    } catch (e) {
+      setErro(e.message);
+    } finally {
+      setPreparandoFoto(false);
+    }
+  }
+
+  function removerFoto(indice) {
+    setFotos((f) => f.filter((_, i) => i !== indice));
+  }
+
+  /**
+   * Envia as fotos DEPOIS que o checklist foi gravado - elas precisam de um
+   * id_checklist para se prender.
+   *
+   * Uma falha aqui NAO derruba o checklist: o registro em si ja esta salvo, e
+   * perder a foto e muito menos grave que perder a saida do veiculo. O usuario
+   * e avisado do que aconteceu.
+   */
+  async function enviarFotos(momento) {
+    if (!fotos.length) return;
+    try {
+      await api(`/qrcode/foto/${token}`, {
+        method: "POST",
+        body: { momento, fotos: fotos.map((f) => f.dataUrl) },
+      });
+    } catch (e) {
+      setErro(
+        `O checklist foi registrado, mas as fotos não subiram (${e.message}). ` +
+        "Fale com a administração se precisar anexá-las."
+      );
+    }
+  }
+
   async function registrarSaida(e) {
     e.preventDefault();
     if (!condutor) {
@@ -138,6 +196,7 @@ export default function ChecklistQr() {
           equipamentos: listaEquipamentos(),
         },
       });
+      await enviarFotos("SAIDA");
       setConcluido("saida");
     } catch (e) {
       setErro(e.message);
@@ -162,6 +221,7 @@ export default function ChecklistQr() {
           equipamentos: listaEquipamentos(),
         },
       });
+      await enviarFotos("CHEGADA");
       setConcluido("chegada");
     } catch (e) {
       setErro(e.message);
@@ -446,19 +506,45 @@ export default function ChecklistQr() {
         </section>
 
         <section className="qr-cartao">
-          <h2 className="qr-cartao__titulo">Foto (opcional)</h2>
-          <label className="qr-foto">
-            <input type="file" accept="image/*" capture="environment"
-                   onChange={(e) => setFoto(e.target.files?.[0] || null)} />
-            <Icone nome="baixar" tamanho={26} />
-            <span>{foto ? foto.name : "Tirar foto ou escolher do aparelho"}</span>
-          </label>
-          {/* O envio de arquivo ainda nao existe na API (ver README, em
-              "Pendencias conhecidas"). Ate existir, a tela diz a verdade em
-              vez de fingir que guardou. */}
-          <p className="qr-cartao__nota qr-cartao__nota--alerta">
-            O envio de fotos ainda não está disponível. Registre o ocorrido nas
-            observações acima.
+          <h2 className="qr-cartao__titulo">Fotos (opcional)</h2>
+          <p className="qr-cartao__nota">
+            Registre avarias ou o estado do veículo. Até {MAX_FOTOS} fotos.
+          </p>
+
+          {fotos.length > 0 && (
+            <div className="qr-fotos">
+              {fotos.map((f, i) => (
+                <figure className="qr-foto-item" key={i}>
+                  <img src={f.dataUrl} alt={`Foto ${i + 1}`} />
+                  <button type="button" className="qr-foto-item__remover"
+                          onClick={() => removerFoto(i)}
+                          aria-label={`Remover foto ${i + 1}`}>
+                    <Icone nome="fechar" tamanho={16} />
+                  </button>
+                  <figcaption>{pesoLegivel(f.bytes)}</figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
+
+          {fotos.length < MAX_FOTOS && (
+            <label className="qr-foto" data-ocupado={preparandoFoto}>
+              <input type="file" accept="image/*" capture="environment" multiple
+                     onChange={escolherFotos} disabled={preparandoFoto} />
+              <Icone nome={preparandoFoto ? "ajuda" : "mais"} tamanho={26} />
+              <span>
+                {preparandoFoto
+                  ? "Preparando a imagem..."
+                  : fotos.length
+                    ? "Adicionar outra foto"
+                    : "Tirar foto ou escolher do aparelho"}
+              </span>
+            </label>
+          )}
+
+          <p className="qr-cartao__nota">
+            A foto é reduzida no próprio aparelho antes de subir, para não
+            gastar sua internet.
           </p>
         </section>
 
