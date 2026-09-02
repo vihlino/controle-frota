@@ -115,7 +115,7 @@ router.get("/ler/:token", async (req, res, next) => {
     if (!veiculo.qr_ativo) return res.status(410).json({ erro: "QR Code desativado." });
 
     const aberto = await query(
-      `SELECT c.*, s.nome AS condutor, s.matricula
+      `SELECT c.*, s.nome AS condutor, s.matricula, s.data_nascimento
          FROM checklist_frotas c
          JOIN servidor s ON s.id_servidor = c.id_servidor
         WHERE c.id_veiculo = $1 AND c.status = 'ABERTO'
@@ -142,7 +142,7 @@ router.get("/ler/:token", async (req, res, next) => {
 router.get("/condutor/:matricula", async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT id_servidor, nome, matricula, cnh, categoria_cnh
+      `SELECT id_servidor, nome, matricula, cnh, categoria_cnh, data_nascimento
          FROM servidor WHERE matricula = $1 AND status = TRUE`,
       [String(req.params.matricula).trim()]
     );
@@ -159,8 +159,8 @@ router.post("/saida/:token", async (req, res, next) => {
   try {
     const { matricula, odometro_saida, percurso, local_saida, observacoes, equipamentos } = req.body;
 
-    if (!matricula || odometro_saida === undefined || !percurso) {
-      return res.status(400).json({ erro: "Informe matricula, KM de saida e percurso." });
+    if (!matricula || odometro_saida === undefined) {
+      return res.status(400).json({ erro: "Informe a matricula e o KM de saida." });
     }
 
     await cliente.query("BEGIN");
@@ -221,8 +221,8 @@ router.post("/saida/:token", async (req, res, next) => {
     for (const item of equipamentos || []) {
       await cliente.query(
         `INSERT INTO checklist_frotas_equipamento
-           (id_checklist, equipamento, conforme, observacao)
-         VALUES ($1, $2, $3, $4)`,
+           (id_checklist, equipamento, conforme, observacao, momento)
+         VALUES ($1, $2, $3, $4, 'SAIDA')`,
         [checklist.rows[0].id_checklist, item.equipamento, !!item.conforme, item.observacao || null]
       );
     }
@@ -246,7 +246,10 @@ router.post("/saida/:token", async (req, res, next) => {
 router.post("/chegada/:token", async (req, res, next) => {
   const cliente = await pool.connect();
   try {
-    const { odometro_chegada, observacoes } = req.body;
+    const {
+      odometro_chegada, observacoes, percurso,
+      data_chegada, hora_chegada, equipamentos,
+    } = req.body;
     if (odometro_chegada === undefined) {
       return res.status(400).json({ erro: "Informe o KM de chegada." });
     }
@@ -277,15 +280,37 @@ router.post("/chegada/:token", async (req, res, next) => {
     const { rows } = await cliente.query(
       `UPDATE checklist_frotas
           SET odometro_chegada = $2,
-              data_devolucao = CURRENT_DATE,
-              hora_chegada = CURRENT_TIME,
+              data_devolucao = COALESCE($3::date, CURRENT_DATE),
+              hora_chegada   = COALESCE($4::time, CURRENT_TIME),
               data_finalizacao = CURRENT_TIMESTAMP,
               status = 'FINALIZADO',
-              observacoes = COALESCE($3, observacoes)
+              percurso = COALESCE($5, percurso),
+              observacoes_chegada = $6
         WHERE id_checklist = $1
         RETURNING *`,
-      [checklist.id_checklist, Number(odometro_chegada), observacoes || null]
+      [
+        checklist.id_checklist,
+        Number(odometro_chegada),
+        data_chegada || null,
+        hora_chegada || null,
+        percurso || null,
+        observacoes || null,
+      ]
     );
+
+    // Conferencia dos equipamentos na volta. E o que permite saber se um item
+    // sumiu durante o uso: a mesma lista foi gravada na saida com momento
+    // 'SAIDA'.
+    for (const item of equipamentos || []) {
+      await cliente.query(
+        `INSERT INTO checklist_frotas_equipamento
+           (id_checklist, equipamento, conforme, observacao, momento)
+         VALUES ($1, $2, $3, $4, 'CHEGADA')
+         ON CONFLICT (id_checklist, equipamento, momento) DO UPDATE
+           SET conforme = EXCLUDED.conforme, observacao = EXCLUDED.observacao`,
+        [checklist.id_checklist, item.equipamento, !!item.conforme, item.observacao || null]
+      );
+    }
 
     await cliente.query(
       "UPDATE veiculo SET status = 'DISPONIVEL', quilometragem_atual = $2 WHERE id_veiculo = $1",

@@ -1281,159 +1281,261 @@ button { font: inherit; cursor: pointer; }
 
 /* ---------- tela publica do checklist (QR Code no celular) ---------- */
 
+/* ==========================================================================
+   Checklist publico do QR Code
+   ==========================================================================
+   Esta tela abre no CELULAR do condutor, em aparelho de qualquer tamanho.
+   Por isso: uma coluna so, alvos de toque grandes (44px e o minimo confortavel
+   para o dedo) e nenhuma largura fixa. Em tela larga ela apenas centraliza,
+   sem esticar - formulario esticado e mais dificil de ler, nao mais facil.
+   ========================================================================== */
+
 .qr-tela {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 16px 16px 40px;
   min-height: 100vh;
   background: var(--fundo);
+  padding: var(--e-4);
+  padding-bottom: var(--e-9);
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
 }
+
 .qr-tela__topo {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--e-3);
   background: var(--lateral-fundo);
   color: #fff;
+  padding: var(--e-4);
   border-radius: var(--raio);
-  padding: 16px 18px;
-  margin-bottom: 16px;
 }
-.qr-tela__topo img { width: 36px; height: 36px; }
-.qr-tela__topo strong { display: block; font-size: 17px; }
-.qr-tela__topo span { font-size: 12.5px; color: var(--lateral-texto-2); }
+.qr-tela__topo img { width: 34px; height: 34px; flex: none; }
+.qr-tela__topo strong { display: block; font-size: var(--t-lg); line-height: 1.25; }
+.qr-tela__topo span { font-size: var(--t-sm); color: var(--lateral-texto-2); }
 
+/* Faixa de confirmacao da leitura do QR. */
 .qr-tela__aviso {
   display: flex;
-  gap: 12px;
   align-items: flex-start;
+  gap: var(--e-3);
   background: var(--verde-suave);
-  color: var(--verde);
+  color: var(--verde-texto);
   border-radius: var(--raio);
-  padding: 14px 16px;
-  margin-bottom: 16px;
-  font-size: 14px;
+  padding: var(--e-4);
 }
-.qr-tela__aviso p { margin: 3px 0 0; font-size: 13px; }
-.qr-tela__aviso--erro { background: var(--vermelho-suave); color: var(--vermelho); }
+.qr-tela__aviso > .icone { flex: none; margin-top: 1px; }
+.qr-tela__aviso strong {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  font-size: var(--t-md);
+}
+.qr-tela__aviso-check { color: var(--verde); }
+.qr-tela__aviso p {
+  margin: var(--e-1) 0 0;
+  font-size: var(--t-base);
+  line-height: var(--altura-normal);
+  color: var(--texto-2);
+}
+.qr-tela__aviso--erro {
+  background: var(--vermelho-suave);
+  color: var(--vermelho-texto);
+}
+.qr-tela__aviso--erro p { color: var(--vermelho-texto); }
 
 .qr-cartao {
   background: var(--superficie);
   border: 1px solid var(--borda);
   border-radius: var(--raio);
-  padding: 20px;
-  margin-bottom: 16px;
+  padding: var(--e-5);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--e-4);
 }
 .qr-cartao__titulo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: var(--t-lg);
+  font-weight: var(--peso-semi);
   margin: 0;
+  color: var(--texto);
 }
-.qr-cartao__nota { font-size: 13.5px; color: var(--texto-2); margin: -6px 0 0; line-height: 1.5; }
-.qr-passo {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--amarelo);
-  color: #0d0d0d;
-  display: grid;
-  place-items: center;
-  font-size: 13px;
+.qr-cartao__nota {
+  font-size: var(--t-base);
+  line-height: var(--altura-normal);
+  color: var(--texto-2);
+  margin: calc(var(--e-3) * -1) 0 0;
 }
+.qr-cartao__nota--alerta { color: var(--ambar-texto); }
 
+/* Dados do veiculo: rotulo em cima, valor embaixo. Em duas colunas quando
+   cabe, uma quando nao cabe. */
 .qr-dados {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--e-4);
   margin: 0;
 }
 .qr-dados dt {
-  font-size: 11px;
+  font-size: var(--t-xs);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--caixa-alta-espaco);
   color: var(--texto-3);
-  margin-bottom: 3px;
+  margin-bottom: var(--e-1);
 }
-.qr-dados dd { margin: 0; font-size: 14.5px; font-weight: 600; }
+.qr-dados dd { margin: 0; font-size: var(--t-md); font-weight: var(--peso-semi); }
 
-.qr-matricula { display: flex; gap: 10px; }
+/* Matricula: campo + botao lado a lado. */
+.qr-matricula { display: flex; gap: var(--e-2); }
 .qr-matricula input { flex: 1; min-width: 0; }
+.qr-matricula .botao { flex: none; }
+
+/* Cartao do condutor identificado. */
 .qr-condutor {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--verde-suave);
-  color: var(--verde);
+  align-items: flex-start;
+  gap: var(--e-3);
+  background: var(--azul-suave);
+  color: var(--azul-texto);
   border-radius: var(--raio-sm);
-  padding: 11px 14px;
-  font-size: 14px;
+  padding: var(--e-3) var(--e-4);
+}
+.qr-condutor > .icone { flex: none; margin-top: 2px; }
+.qr-condutor strong { display: block; font-size: var(--t-md); color: var(--texto); }
+.qr-condutor span {
+  display: block;
+  font-size: var(--t-base);
+  color: var(--texto-2);
+  margin-top: 1px;
+}
+.qr-condutor--fixo { background: var(--superficie-3); color: var(--texto-2); }
+
+/* Data e hora dividem a linha. */
+.qr-dupla {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--e-3);
 }
 
-.qr-equipamentos {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 14px;
-}
-.qr-equipamento {
-  border: 1px solid var(--borda);
-  border-radius: var(--raio);
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.qr-equipamento[data-ausente="true"] { border-color: var(--vermelho); background: var(--vermelho-suave); }
-.qr-equipamento__botoes { display: flex; gap: 8px; }
-.qr-equipamento__botoes button {
-  flex: 1;
+/* KM da saida: valor preenchido + confirmacao Sim/Nao. */
+.qr-km { display: flex; gap: var(--e-2); align-items: stretch; }
+.qr-km input { flex: 1; min-width: 0; }
+.qr-km input[readonly] { background: var(--superficie-3); color: var(--texto-2); }
+.qr-km__confirma { display: flex; gap: var(--e-1); flex: none; }
+.qr-km__confirma button {
+  min-width: 52px;
   border: 1px solid var(--borda-forte);
   background: var(--superficie);
-  color: var(--texto-2);
   border-radius: var(--raio-sm);
-  padding: 9px;
-  font-size: 13.5px;
+  font-size: var(--t-md);
+  font-weight: var(--peso-medio);
+  color: var(--texto-2);
+  transition: all var(--transicao);
 }
-.qr-equipamento__botoes button[data-ativo="true"] {
-  border-color: var(--verde);
-  background: var(--verde-suave);
-  color: var(--verde);
-  font-weight: 600;
-}
-.qr-equipamento__botoes button[data-ativo="true"][data-perigo="sim"] {
-  border-color: var(--vermelho);
-  background: var(--vermelho-suave);
-  color: var(--vermelho);
+.qr-km__confirma button[data-ativo="true"] {
+  border-color: var(--marca);
+  background: var(--marca-suave);
+  color: var(--marca-texto);
 }
 
-.qr-rodape {
-  background: var(--azul-suave);
-  color: var(--azul);
-  border-radius: var(--raio);
-  padding: 16px 18px;
-  font-size: 13.5px;
-  line-height: 1.5;
+/* Equipamentos: alvos grandes, para o dedo. */
+/* Sempre 2 x 2. Com auto-fit, a largura da tela decidia entre 2, 3 e 4
+   colunas - e em 3 o quarto item ficava sozinho numa linha. Quatro itens
+   pedem uma grade fixa. */
+.qr-equipamentos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--e-3);
 }
-.qr-rodape p { margin: 0 0 14px; }
-.qr-botao { width: 100%; height: 50px; font-size: 15px; }
+.qr-equipamento { display: flex; flex-direction: column; gap: var(--e-2); }
+.qr-equipamento__alvo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--e-2);
+  padding: var(--e-4) var(--e-3);
+  min-height: 108px;
+  border: 1.5px solid var(--verde);
+  background: var(--verde-suave);
+  border-radius: var(--raio);
+  text-align: center;
+  transition: all var(--transicao);
+}
+.qr-equipamento__figura { color: var(--verde-texto); }
+.qr-equipamento__nome {
+  font-size: var(--t-base);
+  font-weight: var(--peso-semi);
+  color: var(--texto);
+  line-height: 1.2;
+}
+.qr-equipamento__marca { color: var(--verde); line-height: 0; }
+
+.qr-equipamento[data-ausente="true"] .qr-equipamento__alvo {
+  border-color: var(--vermelho);
+  background: var(--vermelho-suave);
+}
+.qr-equipamento[data-ausente="true"] .qr-equipamento__figura,
+.qr-equipamento[data-ausente="true"] .qr-equipamento__marca {
+  color: var(--vermelho);
+}
+.qr-equipamento__obs { width: 100%; }
+
+/* Foto: area de toque inteira, nao so o botao do navegador. */
+.qr-foto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--e-2);
+  padding: var(--e-6);
+  border: 1.5px dashed var(--borda-forte);
+  border-radius: var(--raio);
+  color: var(--texto-2);
+  font-size: var(--t-base);
+  text-align: center;
+  cursor: pointer;
+}
+.qr-foto input { display: none; }
+
+.qr-rodape { display: flex; flex-direction: column; gap: var(--e-4); }
+.qr-rodape__aviso {
+  background: var(--marca-fraca);
+  border: 1px solid var(--marca-suave);
+  border-radius: var(--raio);
+  padding: var(--e-4);
+}
+.qr-rodape__aviso strong { display: block; color: var(--marca-texto); font-size: var(--t-md); }
+.qr-rodape__aviso p {
+  margin: var(--e-1) 0 0;
+  font-size: var(--t-base);
+  line-height: var(--altura-normal);
+  color: var(--texto-2);
+}
+.qr-rodape__botoes { display: flex; flex-direction: column; gap: var(--e-2); }
+.qr-botao { width: 100%; min-height: 50px; font-size: var(--t-md); }
+
+/* Em tela larga os dois botoes cabem lado a lado, com o principal a direita. */
+@media (min-width: 480px) {
+  .qr-rodape__botoes { flex-direction: row; }
+  .qr-rodape__botoes .qr-botao { flex: 1; }
+}
+
+/* Aparelho pequeno (iPhone SE e semelhantes): tudo em uma coluna. */
+@media (max-width: 380px) {
+  .qr-tela { padding: var(--e-3); }
+  .qr-dupla { grid-template-columns: 1fr; }
+}
 
 .qr-tela__sucesso {
   background: var(--superficie);
   border: 1px solid var(--borda);
   border-radius: var(--raio);
-  padding: 44px 24px;
+  padding: var(--e-9) var(--e-5);
   text-align: center;
   color: var(--verde);
 }
-.qr-tela__sucesso h1 { font-size: 24px; margin: 14px 0 8px; color: var(--texto); }
-.qr-tela__sucesso p { color: var(--texto-2); font-size: 14.5px; margin: 0 0 6px; }
-.qr-tela__veiculo { font-weight: 600; color: var(--texto) !important; margin-top: 14px !important; }
+.qr-tela__sucesso h1 { font-size: var(--t-2xl); margin: var(--e-4) 0 var(--e-2); color: var(--texto); }
+.qr-tela__sucesso p { color: var(--texto-2); font-size: var(--t-md); margin: 0 0 var(--e-1); }
+.qr-tela__veiculo { font-weight: var(--peso-semi); color: var(--texto) !important; margin-top: var(--e-4) !important; }
 
 /* ---------- perfis e permissoes ---------- */
 
