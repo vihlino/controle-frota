@@ -107,7 +107,11 @@ export default function ChecklistQr() {
     setErro("");
     setBuscando(true);
     try {
-      setCondutor(await api(`/qrcode/condutor/${m}`));
+      // encodeURIComponent: a matricula vai DENTRO do caminho da URL. Uma
+      // matricula com espaco, barra, ponto ou acento montaria um endereco
+      // invalido e o servidor responderia "nao encontrada" sem nem chegar a
+      // consultar o banco.
+      setCondutor(await api(`/qrcode/condutor/${encodeURIComponent(m)}`));
     } catch (e) {
       setCondutor(null);
       setErro(e.message);
@@ -331,10 +335,14 @@ export default function ChecklistQr() {
                 <label htmlFor="matricula">Matrícula do condutor *</label>
                 <div className="qr-matricula">
                   <input
-                    id="matricula" required value={matricula} inputMode="numeric"
+                    id="matricula" required value={matricula}
                     autoComplete="off" placeholder="Ex.: 12548"
                     onChange={(e) => { setMatricula(e.target.value); setCondutor(null); }}
                     onBlur={buscarCondutor}
+                    onKeyDown={(e) => {
+                      // Enter busca em vez de enviar o formulario pela metade.
+                      if (e.key === "Enter") { e.preventDefault(); buscarCondutor(); }
+                    }}
                   />
                   <button type="button" className="botao" onClick={buscarCondutor}
                           disabled={buscando || !matricula.trim()}>

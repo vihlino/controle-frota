@@ -139,15 +139,75 @@ router.get("/ler/:token", async (req, res, next) => {
 });
 
 // Confere a matricula do condutor antes de abrir o checklist.
+// Busca do condutor pela matricula, no patio, pelo celular.
+//
+// POR QUE A COMPARACAO NAO E `matricula = $1`
+// -------------------------------------------
+// Era, e por isso a tela "nao puxava" ninguem. A igualdade exata exige que o
+// que a pessoa digita seja caractere por caractere o que esta gravado, e no
+// cadastro real isso quase nunca acontece:
+//
+//   gravado "012548"  -> a pessoa digita "12548"   (zero a esquerda)
+//   gravado "12548 "  -> sobrou um espaco na importacao
+//   gravado "12.548"  -> alguem cadastrou com ponto
+//   gravado "A-1234"  -> a pessoa digita "a1234"
+//
+// Nenhum desses e erro de quem esta segurando o celular, mas todos davam
+// "Matricula nao encontrada" - e a saida do veiculo parava ali.
+//
+// A normalizacao joga os dois lados no mesmo formato: so letras e numeros,
+// maiusculas, sem zero a esquerda. Continua sendo comparacao exata DEPOIS de
+// normalizar, entao nao ha risco de trazer o servidor errado por semelhanca.
+const NORMALIZAR = `NULLIF(regexp_replace(upper(regexp_replace($1, '[^a-zA-Z0-9]', '', 'g')), '^0+', ''), '')`;
+const NORMALIZAR_COLUNA = `NULLIF(regexp_replace(upper(regexp_replace(matricula, '[^a-zA-Z0-9]', '', 'g')), '^0+', ''), '')`;
+
 router.get("/condutor/:matricula", async (req, res, next) => {
   try {
+    const digitada = String(req.params.matricula || "").trim();
+    if (!digitada) return res.status(400).json({ erro: "Informe a matricula." });
+
+    // O status NAO entra no WHERE de proposito. Um servidor inativo tem que
+    // ser ENCONTRADO para poder ser recusado com o motivo certo: dizer
+    // "matricula nao encontrada" a quem esta com a chave na mao manda a pessoa
+    // conferir o numero que ja esta certo, quando o que houve foi uma baixa no
+    // cadastro. Sao problemas diferentes e levam a acoes diferentes.
     const { rows } = await query(
-      `SELECT id_servidor, nome, matricula, cnh, categoria_cnh, data_nascimento
-         FROM servidor WHERE matricula = $1 AND status = TRUE`,
-      [String(req.params.matricula).trim()]
+      `SELECT id_servidor, nome, matricula, cnh, categoria_cnh,
+              data_nascimento, status, condutor
+         FROM servidor
+        WHERE matricula = $1 OR ${NORMALIZAR_COLUNA} = ${NORMALIZAR}
+        ORDER BY (matricula = $1) DESC`,
+      [digitada]
     );
-    if (!rows[0]) return res.status(404).json({ erro: "Matricula nao encontrada." });
-    res.json(rows[0]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ erro: "Matricula nao encontrada." });
+    }
+
+    // Duas matriculas diferentes podem virar a mesma coisa depois de
+    // normalizadas ("012548" e "12.548"). Escolher uma calada seria atribuir a
+    // saida do veiculo a pessoa errada, e este registro e o que responde
+    // "quem estava com o carro" depois de um sinistro ou de uma multa.
+    // Quando ha duvida, quem decide e quem esta ali - nao o servidor.
+    const exata = rows.find((r) => r.matricula === digitada);
+    if (!exata && rows.length > 1) {
+      return res.status(409).json({
+        erro:
+          "Mais de um servidor com matricula parecida: " +
+          rows.map((r) => r.matricula).join(", ") +
+          ". Digite a matricula exatamente como esta no cracha.",
+      });
+    }
+
+    const s = exata || rows[0];
+
+    if (!s.status) {
+      return res.status(409).json({
+        erro: `A matricula ${s.matricula} esta inativa no cadastro. Procure a administracao.`,
+      });
+    }
+
+    res.json(s);
   } catch (e) {
     next(e);
   }
