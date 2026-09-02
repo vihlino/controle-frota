@@ -1149,6 +1149,11 @@ button { font: inherit; cursor: pointer; }
 
 /* ---------- tela de QR Code do veiculo ---------- */
 
+/* O respiro entre o cartao de cima e o "Como utilizar" vinha do
+   margin-bottom da .grade-2, que saiu junto quando os dois cartoes viraram
+   um so. Sem isto, os dois ficam colados. */
+.qr-cartao-principal { margin-bottom: var(--e-5); }
+
 /* Dados e QR Code dividem UM cartao. A separacao e uma linha de 1px, nao dois
    cartoes com sombra e borda repetidas no meio. */
 .qr-painel {

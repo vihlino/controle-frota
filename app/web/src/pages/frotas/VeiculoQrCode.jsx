@@ -1,5 +1,5 @@
 /**
- * VeiculoQrCode.jsx - Gera e mostra o QR Code do veiculo.
+ * VeiculoQrCode.jsx - Gera e mostra o QR Code do veículo.
  *
  * A imagem vem pronta do servidor em PNG base64, e o código aponta para a tela
  * publica de checklist. Da para baixar e imprimir, que e como o adesivo chega
@@ -29,7 +29,7 @@ export default function VeiculoQrCode() {
   useEffect(() => {
     definirCabecalho({
       titulo: "QR Code do Veículo",
-      legenda: "Acesso rapido ao checklist deste veiculo.",
+      legenda: "Acesso rápido ao checklist deste veículo.",
     });
   }, [definirCabecalho]);
 
@@ -99,7 +99,7 @@ export default function VeiculoQrCode() {
             ]}
           />
           <h1>QR Code do Veículo</h1>
-          <p>Use o QR Code abaixo para acesso rapido ao checklist deste veiculo.</p>
+          <p>Use o QR Code abaixo para acesso rápido ao checklist deste veículo.</p>
         </div>
         <button className="botao" onClick={() => navegar("/frotas/veiculos")}>
           <Icone nome="seta-esquerda" tamanho={16} /> Voltar para veículos
@@ -108,7 +108,7 @@ export default function VeiculoQrCode() {
 
       {/* Informacoes e QR Code num cartao so, separados por uma linha sutil -
           eram dois cartoes soltos, com sombra e borda repetidas no meio. */}
-      <Cartao>
+      <Cartao className="qr-cartao-principal">
         <div className="qr-painel">
           <section className="qr-painel__dados">
             <h2 className="qr-painel__titulo">Informações do Veículo</h2>
