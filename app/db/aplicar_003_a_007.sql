@@ -1,13 +1,13 @@
 -- ============================================================================
--- SITRA - migracoes 003 a 006, em um arquivo so
+-- SITRA - migracoes 003 a 007, em um arquivo so
 -- ============================================================================
 --
 -- COMO RODAR
 --
---   psql "<sua string de conexao>" -f aplicar_003_a_006.sql
+--   psql "<sua string de conexao>" -f aplicar_003_a_007.sql
 --
 --   ou, com o banco em Docker:
---     docker cp aplicar_003_a_006.sql sitra-postgres:/tmp/m.sql
+--     docker cp aplicar_003_a_007.sql sitra-postgres:/tmp/m.sql
 --     docker exec sitra-postgres psql -U sitra -d sitra -f /tmp/m.sql
 --
 -- O QUE ESPERAR
@@ -33,6 +33,7 @@
 --   005  datas da CNH no servidor; telefone, email e cargo deixam de ser
 --        obrigatorios.
 --   006  coluna `condutor`, marcando quem dirige.
+--   007  fuso horario do banco em America/Sao_Paulo.
 --
 -- ============================================================================
 
@@ -196,6 +197,35 @@ UPDATE servidor SET condutor = TRUE
 
 CREATE INDEX IF NOT EXISTS idx_servidor_condutor
     ON servidor (condutor) WHERE condutor = TRUE;
+
+-- ==========================================================================
+-- 007_fuso_horario.sql  |  Fuso horario do banco
+-- ==========================================================================
+-- O Postgres do Render roda em UTC. A API ja manda `SET TIME ZONE` em cada
+-- conexao (ver api/src/db.js), mas isso so vale para a API.
+--
+-- Este ajuste e a rede de seguranca: vale para QUALQUER conexao - psql, um
+-- cliente grafico, uma rotina de backup, um relatorio puxado direto do banco.
+-- Sem ele, o mesmo registro apareceria com horas diferentes conforme a
+-- ferramenta usada, que e o tipo de divergencia dificil de rastrear depois.
+--
+-- current_database() em vez do nome fixo: o banco se chama "sitra" no Docker
+-- local, mas o Render gera outro nome.
+DO $$
+BEGIN
+    EXECUTE format(
+        'ALTER DATABASE %I SET timezone TO %L',
+        current_database(),
+        'America/Sao_Paulo'
+    );
+END
+$$;
+
+
+-- Vale a partir da PROXIMA conexao: ALTER DATABASE nao muda a sessao atual.
+-- Para conferir, reconecte e rode:
+--     SHOW timezone;              -> America/Sao_Paulo
+--     SELECT CURRENT_TIMESTAMP;   -> horario de Brasilia
 
 COMMIT;
 

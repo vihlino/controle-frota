@@ -167,10 +167,12 @@ async function inicializarEstrutura(cliente) {
    * -------------------------------------------------------------------------
    */
 
-  const sqlPrincipal = await fs.readFile(
-    caminhoSqlPrincipal,
-    "utf8"
-  );
+  // lerMigracao (e nao readFile) tambem aqui: o 001 tem BEGIN na linha 26 e
+  // COMMIT na 1925. Lido cru, aquele COMMIT encerrava a transacao de FORA no
+  // meio da inicializacao - e dali em diante nada mais seria desfeito por um
+  // erro. O Postgres avisava com "there is already a transaction in progress"
+  // e "there is no transaction in progress", que so aparecem no log.
+  const sqlPrincipal = await lerMigracao(caminhoSqlPrincipal);
 
   /*
    * -------------------------------------------------------------------------

@@ -43,12 +43,43 @@ pg.types.setTypeParser(1700, (v) => (v === null ? null : Number(v)));
  * mantem algumas abertas e vai emprestando. Todas as credenciais vem do
  * arquivo .env, nunca escritas aqui no codigo.
  */
+/*
+ * ---------------------------------------------------------------------------
+ * Fuso horario
+ * ---------------------------------------------------------------------------
+ * O SITRA e usado no Brasil, mas o Postgres do Render roda em UTC. Sem ajuste,
+ * CURRENT_DATE, CURRENT_TIME e CURRENT_TIMESTAMP gravam tres horas adiantados.
+ *
+ * O efeito nao e so um relogio errado: um checklist enviado as 22h de um dia
+ * seria gravado como 1h do dia SEGUINTE. O relatorio diario perderia o
+ * registro, e a comparacao entre o horario declarado e o horario do envio
+ * (a coluna "Fechado em") acusaria 3h de atraso onde nao houve nenhum.
+ *
+ * Sao 38 usos de CURRENT_* no banco e 33 na API. Ajustar a CONEXAO conserta
+ * todos de uma vez; editar cada chamada seria interminavel e fatalmente
+ * incompleto.
+ */
+const FUSO = process.env.TZ || "America/Sao_Paulo";
+
 export const pool = new pg.Pool({
   host: process.env.PGHOST || "localhost",
   port: Number(process.env.PGPORT || 5432),
   database: process.env.PGDATABASE || "sitra",
   user: process.env.PGUSER || "sitra",
   password: process.env.PGPASSWORD,
+});
+
+/*
+ * Cada conexao nova do pool nasce no fuso do Brasil.
+ *
+ * O evento "connect" dispara uma vez por conexao FISICA - nao a cada
+ * consulta - entao o custo e desprezivel. E vale para conexoes que o pool
+ * abrir depois, inclusive as que substituem alguma que caiu.
+ */
+pool.on("connect", (cliente) => {
+  cliente.query(`SET TIME ZONE '${FUSO}'`).catch((e) => {
+    console.error("Nao foi possivel aplicar o fuso horario na conexao:", e.message);
+  });
 });
 
 /**

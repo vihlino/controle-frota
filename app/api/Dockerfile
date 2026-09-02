@@ -20,6 +20,17 @@
 
 FROM node:20-alpine
 
+# ---------------------------------------------------------------------------
+# Fuso horario
+# ---------------------------------------------------------------------------
+# O SITRA e usado no Brasil; o container do Render nasce em UTC.
+#
+# A imagem Alpine NAO traz o banco de fusos horarios. Sem o pacote tzdata,
+# definir TZ=America/Sao_Paulo nao da erro nenhum - o Node simplesmente
+# continua em UTC, em silencio. Por isso o apk add vem antes do ENV.
+RUN apk add --no-cache tzdata
+ENV TZ=America/Sao_Paulo
+
 # Todos os arquivos da API serao organizados dentro de /app
 # no container.
 WORKDIR /app

@@ -78,6 +78,18 @@ services:
 
     envVars:
 
+      # ----------------------------------------------------------------------
+      # FUSO HORARIO
+      # ----------------------------------------------------------------------
+      # O container do Render nasce em UTC, tres horas a frente do Brasil.
+      # Sem isto, um checklist enviado as 22h seria gravado como 1h do dia
+      # SEGUINTE - o relatorio diario perderia o registro.
+      #
+      # O valor tambem esta fixo no Dockerfile; aqui ele fica visivel no painel
+      # do Render e pode ser trocado sem refazer a imagem.
+      - key: TZ
+        value: America/Sao_Paulo
+
       # Login inicial utilizado pelo seed do sistema.
       - key: SEED_LOGIN
         sync: false
