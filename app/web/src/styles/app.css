@@ -1577,14 +1577,14 @@ button { font: inherit; cursor: pointer; }
   gap: var(--e-2) var(--e-5);
 }
 .qr-dupla .campo { flex: 0 0 auto; min-width: 0; }
+/* Largura do conteudo, mas ALTURA E FONTE de campo normal. Encolhi demais na
+   primeira tentativa: com 36px e fonte 12 os dois viravam duas pastilhas
+   miudas ao lado do KM, que tem 40px e fonte 14 - pareciam outra coisa, de
+   outra tela. O que estava errado era so a largura esticada. */
 .qr-dupla input {
   width: auto;
   min-width: 0;
-  min-height: 36px;
-  padding: var(--e-1) var(--e-3);
-  font-size: var(--t-sm);
 }
-.qr-dupla label { font-size: var(--t-sm); }
 
 /* KM da saida: valor preenchido + confirmacao Sim/Nao. */
 .qr-km { display: flex; gap: var(--e-2); align-items: stretch; }
@@ -1616,30 +1616,38 @@ button { font: inherit; cursor: pointer; }
   grid-template-columns: 1fr 1fr;
   gap: var(--e-3);
 }
-.qr-equipamento { display: flex; flex-direction: column; gap: var(--e-2); }
-.qr-equipamento__alvo {
+/* Cada item numa LINHA, nao num quadrado.
+   Empilhados (icone em cima, nome no meio, marca embaixo) os quatro itens
+   ocupavam mais de meia tela de celular, e a pessoa tinha que rolar para
+   descobrir que ainda havia checklist depois deles. Deitados, os mesmos
+   quatro cabem em pouco mais de 100px, com a area de toque ainda grande -
+   metade da largura da tela por 52px de altura, de sobra para um toque com
+   luva. */
+.qr-equipamento {
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: var(--e-2);
-  padding: var(--e-4) var(--e-3);
-  min-height: 108px;
+  padding: var(--e-2) var(--e-3);
+  min-height: 52px;
+  width: 100%;
   border: 1.5px solid var(--verde);
   background: var(--verde-suave);
   border-radius: var(--raio);
-  text-align: center;
+  text-align: left;
   transition: all var(--transicao);
 }
-.qr-equipamento__figura { color: var(--verde-texto); }
+.qr-equipamento__figura { color: var(--verde-texto); line-height: 0; flex: none; }
 .qr-equipamento__nome {
-  font-size: var(--t-base);
+  flex: 1;
+  min-width: 0;
+  font-size: var(--t-sm);
   font-weight: var(--peso-semi);
   color: var(--texto);
   line-height: 1.2;
 }
-.qr-equipamento__marca { color: var(--verde); line-height: 0; }
+.qr-equipamento__marca { color: var(--verde); line-height: 0; flex: none; }
 
-.qr-equipamento[data-ausente="true"] .qr-equipamento__alvo {
+.qr-equipamento[data-ausente="true"] {
   border-color: var(--vermelho);
   background: var(--vermelho-suave);
 }
@@ -1647,7 +1655,14 @@ button { font: inherit; cursor: pointer; }
 .qr-equipamento[data-ausente="true"] .qr-equipamento__marca {
   color: var(--vermelho);
 }
-.qr-equipamento__obs { width: 100%; }
+
+/* Os "o que houve" dos itens em falta, em largura inteira, abaixo da grade. */
+.qr-ausentes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+  margin-top: var(--e-4);
+}
 
 /* Foto: area de toque inteira, nao so o botao do navegador. */
 .qr-foto {

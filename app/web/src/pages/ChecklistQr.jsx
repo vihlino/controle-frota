@@ -126,6 +126,9 @@ export default function ChecklistQr() {
     }
   }
 
+  // Os itens marcados como ausentes, na ordem da grade.
+  const ausentes = EQUIPAMENTOS.filter(({ codigo }) => !equipamentos[codigo].conforme);
+
   const listaEquipamentos = () =>
     EQUIPAMENTOS.map(({ codigo }) => ({
       equipamento: codigo,
@@ -518,40 +521,55 @@ export default function ChecklistQr() {
             {EQUIPAMENTOS.map(({ codigo, rotulo, icone }) => {
               const item = equipamentos[codigo];
               return (
-                <div className="qr-equipamento" key={codigo} data-ausente={!item.conforme}>
-                  <button
-                    type="button" className="qr-equipamento__alvo"
-                    aria-pressed={item.conforme}
-                    onClick={() =>
-                      setEquipamentos((e) => ({
-                        ...e, [codigo]: { ...item, conforme: !item.conforme },
-                      }))
-                    }
-                  >
-                    <span className="qr-equipamento__figura">
-                      <Icone nome={icone} tamanho={30} />
-                    </span>
-                    <span className="qr-equipamento__nome">{rotulo}</span>
-                    <span className="qr-equipamento__marca">
-                      <Icone nome={item.conforme ? "check" : "fechar"} tamanho={20} />
-                    </span>
-                  </button>
-                  {!item.conforme && (
-                    <input
-                      className="qr-equipamento__obs"
-                      placeholder="O que houve com este item?"
-                      value={item.observacao}
-                      onChange={(ev) =>
-                        setEquipamentos((e) => ({
-                          ...e, [codigo]: { ...item, observacao: ev.target.value },
-                        }))
-                      }
-                    />
-                  )}
-                </div>
+                <button
+                  type="button" key={codigo}
+                  className="qr-equipamento"
+                  data-ausente={!item.conforme}
+                  aria-pressed={item.conforme}
+                  onClick={() =>
+                    setEquipamentos((e) => ({
+                      ...e, [codigo]: { ...item, conforme: !item.conforme },
+                    }))
+                  }
+                >
+                  <span className="qr-equipamento__figura">
+                    <Icone nome={icone} tamanho={22} />
+                  </span>
+                  <span className="qr-equipamento__nome">{rotulo}</span>
+                  <span className="qr-equipamento__marca">
+                    <Icone nome={item.conforme ? "check" : "fechar"} tamanho={18} />
+                  </span>
+                </button>
               );
             })}
           </div>
+
+          {/* O "o que houve" sai da grade e vem para baixo, em largura inteira.
+              Dentro da grade ele herdava meia tela: a pergunta era cortada no
+              meio ("O que houve com este item") e sobrava espaco para umas
+              poucas palavras - num campo que existe justamente para a pessoa
+              explicar a falta de um equipamento obrigatorio. Aqui embaixo cada
+              um tem a linha toda e diz de qual item esta falando. */}
+          {ausentes.length > 0 && (
+            <div className="qr-ausentes">
+              {ausentes.map(({ codigo, rotulo }) => (
+                <div className="campo" key={codigo}>
+                  <label htmlFor={`obs-${codigo}`}>{rotulo} — o que houve?</label>
+                  <input
+                    id={`obs-${codigo}`}
+                    placeholder="Ex.: item nao estava no veiculo"
+                    value={equipamentos[codigo].observacao}
+                    onChange={(ev) =>
+                      setEquipamentos((e) => ({
+                        ...e,
+                        [codigo]: { ...e[codigo], observacao: ev.target.value },
+                      }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="qr-cartao">
