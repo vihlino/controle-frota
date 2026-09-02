@@ -60,11 +60,17 @@ async function alertasCalculados() {
   const itens = [];
 
   // --- CNH de condutor ---
+  // condutor = TRUE porque o aviso existe para o gestor de FROTAS: a CNH
+  // vencida de quem nao dirige nao impede nada, e so tiraria a atencao de
+  // quem impede. A migracao 006 marcou como condutor todo mundo que ja tinha
+  // CNH cadastrada, entao ninguem some daqui por causa deste filtro - so nao
+  // entra quem foi marcado explicitamente como "nao e condutor".
   const cnh = await query(
     `SELECT id_servidor, nome, matricula, cnh_data_validade,
             (cnh_data_validade - CURRENT_DATE) AS dias
        FROM servidor
       WHERE status = TRUE
+        AND condutor = TRUE
         AND cnh_data_validade IS NOT NULL
         AND cnh_data_validade <= CURRENT_DATE + 30
       ORDER BY cnh_data_validade
