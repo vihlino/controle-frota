@@ -35,10 +35,11 @@ export default function PaginaLista({
 }) {
   const { definirCabecalho } = useOutletContext();
 
-  // O painel de filtros comeca aberto. O botao "Filtros" recolhe e devolve,
-  // para quem quer a tabela inteira na tela. Os filtros aplicados continuam
-  // valendo com o painel fechado - por isso o contador ao lado do botao.
-  const [filtrosAbertos, setFiltrosAbertos] = useState(true);
+  // Nao existe mais botao "Filtros". A busca e os seletores aplicam sozinhos,
+  // a cada tecla; um botao para "abrir os filtros" que ja estao abertos e
+  // aplicando nao decide nada - so ocupa espaco e faz duvidar se algo ficou
+  // por aplicar. Ficou so o "Limpar", que faz uma coisa que ninguem consegue
+  // fazer sozinho: zerar todos os campos de uma vez.
 
   useEffect(() => {
     definirCabecalho({ titulo, legenda: descricao });
@@ -69,15 +70,9 @@ export default function PaginaLista({
       {secao}
 
       {filtros && (
-        <div className="cartao filtros" data-aberto={filtrosAbertos}>
-          {filtrosAbertos && filtros}
-          {/* "Filtros" abre os filtros avancados; "Limpar" zera todos os
-              campos. Os dois ficam sempre no fim da barra, em toda tela. */}
+        <div className="cartao filtros" data-aberto="true">
+          {filtros}
           <div className="filtros__acoes">
-            <button className="botao" onClick={() => setFiltrosAbertos((v) => !v)}
-                    aria-expanded={filtrosAbertos}>
-              <Icone nome="filtros" tamanho={15} /> Filtros
-            </button>
             <button className="botao" onClick={limpar}>
               <Icone nome="limpar-filtros" tamanho={15} /> Limpar
             </button>

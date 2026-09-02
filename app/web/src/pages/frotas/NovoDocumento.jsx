@@ -36,7 +36,12 @@ export default function NovoDocumento() {
   useEffect(() => {
     definirCabecalho({ titulo: "Novo documento", legenda: "Cadastre um novo documento para a frota." });
     api("/frotas/veiculos/opcoes").then(setVeiculos).catch(() => {});
-    api("/admin/servidores/opcoes").then(setServidores).catch(() => {});
+    api("/admin/servidores/opcoes")
+      // Array.isArray: uma resposta fora do formato esperado faria
+      // `servidores.map` derrubar a tela inteira, e o .catch abaixo nao pega
+      // isso - ele so ve falha de rede.
+      .then((r) => setServidores(Array.isArray(r) ? r : []))
+      .catch(() => {});
   }, [definirCabecalho]);
 
   const campo = (nome) => ({

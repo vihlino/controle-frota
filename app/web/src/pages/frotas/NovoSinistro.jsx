@@ -64,7 +64,12 @@ export default function NovoSinistro() {
   useEffect(() => {
     definirCabecalho({ titulo: "Novo sinistro", legenda: "Registre um novo sinistro ocorrido com veículo da frota." });
     api("/frotas/veiculos/opcoes").then(setVeiculos).catch(() => {});
-    api("/admin/servidores/opcoes").then(setServidores).catch(() => {});
+    api("/admin/servidores/opcoes")
+      // Array.isArray: uma resposta fora do formato esperado faria
+      // `servidores.map` derrubar a tela inteira, e o .catch abaixo nao pega
+      // isso - ele so ve falha de rede.
+      .then((r) => setServidores(Array.isArray(r) ? r : []))
+      .catch(() => {});
   }, [definirCabecalho]);
 
   const campo = (nome) => ({

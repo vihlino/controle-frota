@@ -44,6 +44,7 @@ import qrcode from "./routes/qrcode.js";
 import detalhes from "./routes/detalhes.js";
 import setores from "./routes/setores.js";
 import alertas from "./routes/alertas.js";
+import sistema from "./routes/sistema.js";
 
 import { pool } from "./db.js";
 import { inicializarBanco } from "./initDatabase.js";
@@ -178,6 +179,7 @@ async function iniciarServidor() {
   app.use("/api/setores", setores);
 
   app.use("/api/alertas", alertas);
+  app.use("/api/sistema", sistema);
 
   /*
    * -------------------------------------------------------------------------

@@ -22,7 +22,18 @@ button { font: inherit; cursor: pointer; }
   grid-template-columns: var(--lateral-largura) 1fr;
   min-height: 100vh;
 }
-.app[data-lateral="recolhida"] { --lateral-largura: 76px; }
+/* No desktop nao ha estado nenhum: a lateral e fixa e sempre visivel. O
+   recolher foi removido - escondia os nomes dos modulos sem devolver espaco
+   que fizesse falta. */
+
+/* Fundo escuro atras da gaveta no celular. */
+.lateral__fundo {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 39;
+  display: none;
+}
 
 .conteudo { min-width: 0; display: flex; flex-direction: column; }
 .pagina { padding: 24px 28px 40px; }
@@ -138,6 +149,10 @@ button { font: inherit; cursor: pointer; }
   display: flex;
 }
 .topo__botao-menu:hover { background: var(--superficie-2); }
+/* O botao so existe onde ha o que alternar: no celular. No desktop a lateral
+   e fixa, e um botao que nao muda nada e pior do que botao nenhum. */
+.topo__botao-menu { display: none; }
+@media (max-width: 900px) { .topo__botao-menu { display: flex; } }
 .topo__titulo { font-size: 21px; font-weight: 700; line-height: 1.2; }
 .topo__legenda { font-size: 13.5px; color: var(--texto-2); margin-top: 2px; }
 .topo__busca {
@@ -949,7 +964,22 @@ button { font: inherit; cursor: pointer; }
   .login { grid-template-columns: 1fr; }
   .login__marca { padding: 36px 28px; }
   .app { grid-template-columns: 1fr; }
-  .lateral { display: none; }
+
+  /* No celular a lateral vira gaveta: sai da tela e volta pelo botao do topo.
+     `display: none` a apagava de vez, e o botao do topo nao trazia nada. */
+  .lateral {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 264px;
+    max-width: 82vw;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform .18s ease;
+  }
+  .app[data-menu="aberto"] .lateral { transform: translateX(0); }
+  .app[data-menu="aberto"] .lateral__fundo { display: block; }
   .vencimentos { grid-template-columns: 1fr; }
   .pagina { padding: 18px 16px 32px; }
   .topo { padding: 0 16px; }
@@ -958,19 +988,19 @@ button { font: inherit; cursor: pointer; }
 
 /* ---------- KPI: variantes de tom ---------- */
 
-/* Os tons do circulo de icone do KPI. "neutro" e o padrao, ja definido em
-   .kpi__icone. "marca" existe so para a tela de login e cabecalhos de marca -
-   nao use em numero de dashboard. */
-.kpi__icone[data-tom="verde"]    { background: var(--verde-suave);    color: var(--verde-texto); }
-.kpi__icone[data-tom="vermelho"] { background: var(--vermelho-suave); color: var(--vermelho-texto); }
-.kpi__icone[data-tom="ambar"]    { background: var(--ambar-suave);    color: var(--ambar-texto); }
-.kpi__icone[data-tom="azul"]     { background: var(--azul-suave);     color: var(--azul-texto); }
-.kpi__icone[data-tom="roxo"]     { background: var(--roxo-suave);     color: var(--roxo-texto); }
-.kpi__icone[data-tom="marca"]    { background: var(--marca-suave);    color: var(--marca-texto); }
-
-/* apelidos antigos, para as telas ainda nao migradas */
-.kpi__icone[data-tom="amarelo"]  { background: var(--ambar-suave);    color: var(--ambar-texto); }
-.kpi__icone[data-tom="laranja"]  { background: var(--ambar-suave);    color: var(--ambar-texto); }
+/* UM tom so para todos os circulos de icone: amarelo claro, icone preto.
+   Antes cada KPI tinha a sua cor - verde, azul, ambar, roxo, vermelho. Numa
+   fileira de cinco ou seis cartoes isso vira um arco-iris: o olho tenta ler
+   significado em cada cor e nao ha o que ler, porque "Total de Veiculos" nao
+   e melhor nem pior que "Em Operacao". A informacao esta no NUMERO; o circulo
+   e so onde o icone mora.
+   O `tom` continua chegando do componente e e ignorado aqui de proposito -
+   apagar a prop de todas as telas de uma vez seria mudanca grande sem ganho. */
+.kpi__icone,
+.kpi__icone[data-tom] {
+  background: var(--marca-claro);
+  color: #0d0d0d;
+}
 
 /* ---------- trilha ---------- */
 
@@ -2039,3 +2069,36 @@ button { font: inherit; cursor: pointer; }
   color: #fff;
 }
 .botao--perigo:hover:not(:disabled) { filter: brightness(0.94); }
+
+/* ============================================================
+   AVISO FORTE - um fato que muda a decisao de quem le
+   Nao e o mesmo que um erro: nada quebrou. E um alerta que precisa ser lido
+   antes dos numeros que vem abaixo dele.
+   ============================================================ */
+.aviso-forte {
+  display: flex;
+  gap: var(--e-3);
+  align-items: flex-start;
+  background: var(--ambar-suave);
+  border: 1px solid var(--ambar);
+  border-radius: var(--raio);
+  padding: var(--e-4);
+  margin-bottom: var(--e-5);
+  color: var(--ambar-texto);
+}
+.aviso-forte strong { color: var(--texto); }
+.aviso-forte p {
+  margin: var(--e-2) 0 0;
+  font-size: var(--t-sm);
+  line-height: 1.5;
+  color: var(--texto-2);
+}
+.aviso-forte .icone { flex: none; margin-top: 2px; }
+
+/* Frase curta que explica para que serve a tabela logo abaixo. */
+.cartao__nota {
+  margin: 0 0 var(--e-3);
+  font-size: var(--t-sm);
+  color: var(--texto-2);
+  line-height: 1.5;
+}

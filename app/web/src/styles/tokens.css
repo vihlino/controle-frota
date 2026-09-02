@@ -44,6 +44,7 @@
   --marca:        #FFA800;
   --marca-forte:  #E09200;  /* hover do botao primario */
   --marca-suave:  #FEF3C7;  /* fundo de badge / circulo de icone */
+  --marca-claro:  #FFF2CC;  /* circulo de icone do KPI - amarelo calmo */
   --marca-fraca:  #FFFBEB;  /* fundo de faixa, linha destacada */
   --marca-texto:  #B45309;  /* texto ambar sobre fundo claro (passa em AA) */
 

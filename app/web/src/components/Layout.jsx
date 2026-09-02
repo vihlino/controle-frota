@@ -15,17 +15,26 @@ import Topo from "./Topo.jsx";
 // O titulo e a legenda do topo mudam por página; cada pagina publica os seus
 // atraves do contexto do Outlet.
 export default function Layout() {
-  const [recolhida, setRecolhida] = useState(false);
+  // No desktop a lateral e FIXA: e o mapa do sistema, e recolher escondia os
+  // nomes dos modulos sem devolver nada em troca - a tela ja tem largura de
+  // sobra. `menuAberto` vale so no celular, onde a lateral sai da tela e
+  // precisa de um jeito de voltar; comeca fechado porque no celular a tela
+  // pertence ao conteudo.
+  const [menuAberto, setMenuAberto] = useState(false);
   const [cabecalho, setCabecalho] = useState({ titulo: "SITRA", legenda: "" });
 
   return (
-    <div className="app" data-lateral={recolhida ? "recolhida" : "aberta"}>
-      <Lateral recolhida={recolhida} />
+    <div className="app" data-menu={menuAberto ? "aberto" : "fechado"}>
+      <Lateral />
+      {/* Fundo escuro que fecha o menu no celular ao tocar fora dele. */}
+      {menuAberto && (
+        <div className="lateral__fundo" onClick={() => setMenuAberto(false)} />
+      )}
       <div className="conteudo">
         <Topo
           titulo={cabecalho.titulo}
           legenda={cabecalho.legenda}
-          aoAlternarMenu={() => setRecolhida((v) => !v)}
+          aoAlternarMenu={() => setMenuAberto((v) => !v)}
         />
         <main className="pagina">
           <Outlet context={{ definirCabecalho: setCabecalho }} />

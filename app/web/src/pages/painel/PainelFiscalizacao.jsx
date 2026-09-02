@@ -140,14 +140,17 @@ export default function PainelFiscalizacao({ dados }) {
 
       <Cartao titulo="Ações rápidas">
         <div className="acoes-rapidas">
-          <Link className="acao-rapida" to="/fiscalizacao/servico-diario">
+          <Link className="acao-rapida" to="/fiscalizacao/servico-diario?novo=1">
             <Icone nome="calendar" tamanho={20} /> + Serviço Diário
           </Link>
-          <Link className="acao-rapida" to="/fiscalizacao/ocorrencias">
+          <Link className="acao-rapida" to="/fiscalizacao/ocorrencias?novo=1">
             <Icone nome="fisc-ocorrencias" tamanho={20} /> + Ocorrência
           </Link>
+          {/* Sem "+": esta tela so LISTA os checklists, que nascem no celular
+              pelo QR Code do veiculo. Um "+" prometeria um cadastro que nao
+              existe aqui. */}
           <Link className="acao-rapida" to="/fiscalizacao/checklists">
-            <Icone nome="checklist" tamanho={20} /> + Checklist
+            <Icone nome="checklist" tamanho={20} /> Ver Checklists
           </Link>
           <Link className="acao-rapida" to="/fiscalizacao/equipes">
             <Icone nome="fisc-servidores" tamanho={20} /> Ver Equipes

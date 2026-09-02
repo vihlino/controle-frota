@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Cartao from "../../components/Cartao.jsx";
+import Icone from "../../components/Icone.jsx";
 import Kpi from "../../components/Kpi.jsx";
 import Selo from "../../components/Selo.jsx";
 import { dataHora, numero } from "../../lib/formato.js";
@@ -94,33 +95,29 @@ export default function PainelTi({ dados }) {
           </div>
         </Cartao>
 
-        <Cartao titulo="Último backup">
-          <div style={{ padding: "8px 0" }}>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", textAlign: "center", padding: "16px 0" }}>
-              <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--amarelo)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>
-                ☁
-              </div>
-              <div style={{ fontWeight: 700, fontSize: "15px" }}>Hoje, 03:00</div>
-              <div style={{ fontSize: "12px", color: "var(--texto-3)" }}>21/08/2026 03:00:15</div>
+        {/* Este cartao mostrava "Ultimo backup: hoje, 03:00 - 2,45 GB" com os
+            valores escritos fixos aqui dentro: nao havia rotina de backup
+            nenhuma no sistema. Quem lesse aquilo concluiria que os dados da
+            CMTT estavam salvos, e so descobriria o contrario no dia em que
+            precisasse deles. Numero inventado numa tela de TI e pior do que
+            numero nenhum. */}
+        <Cartao titulo="Guarda dos dados">
+          <div className="aviso-forte" style={{ marginBottom: 0 }}>
+            <Icone nome="alert-triangle" tamanho={20} />
+            <div>
+              <strong>O SITRA não executa backup.</strong>
+              <p>
+                Não há rotina de cópia agendada dentro do sistema. A guarda dos
+                dados é feita pelo serviço que hospeda o banco, conforme o plano
+                contratado.
+              </p>
             </div>
-            <div className="lista-os">
-              <div className="lista-os__item">
-                <span className="lista-os__desc">Tipo</span>
-                <span className="lista-os__valor">Backup automático</span>
-              </div>
-              <div className="lista-os__item">
-                <span className="lista-os__desc">Tamanho</span>
-                <span className="lista-os__valor">2,45 GB</span>
-              </div>
-              <div className="lista-os__item">
-                <span className="lista-os__desc">Próximo backup</span>
-                <span className="lista-os__valor">Amanhã, 03:00</span>
-              </div>
-            </div>
-            <button className="botao botao--primario" style={{ width: "100%", marginTop: "16px" }}>
-              Gerenciar Backups
-            </button>
           </div>
+          <Link className="botao botao--primario"
+                style={{ width: "100%", marginTop: "16px", justifyContent: "center" }}
+                to="/admin/backups">
+            Ver situação dos dados
+          </Link>
         </Cartao>
       </div>
 

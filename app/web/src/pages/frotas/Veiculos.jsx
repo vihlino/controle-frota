@@ -8,7 +8,7 @@
  * (amarelo), Indisponivel (vermelho).
  */
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
@@ -52,10 +52,25 @@ export default function Veículos() {
   const [salvando, setSalvando] = useState(false);
 
   const podeGerenciar = podeVer("FROTAS_GERENCIAR_VEICULOS");
+  const [parametros, definirParametros] = useSearchParams();
 
   useEffect(() => {
     api("/setores").then(setSetores).catch(() => {});
   }, []);
+
+  // ?novo=1 abre a janela de cadastro assim que a tela carrega, para o atalho
+  // "+ Cadastrar veiculo" do painel cair direto no formulario em vez de parar
+  // na listagem. O parametro sai da URL na hora: se ficasse, a janela abriria
+  // sozinha a cada F5 e ao voltar pelo historico.
+  useEffect(() => {
+    if (!parametros.get("novo") || !podeGerenciar) return;
+    setFormulario(VAZIO);
+    setErroForm("");
+    setEditando("novo");
+    const limpo = new URLSearchParams(parametros);
+    limpo.delete("novo");
+    definirParametros(limpo, { replace: true });
+  }, [parametros, definirParametros, podeGerenciar]);
 
   function abrirNovo() {
     setFormulario(VAZIO);

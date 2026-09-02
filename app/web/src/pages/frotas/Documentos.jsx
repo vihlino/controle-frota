@@ -47,7 +47,12 @@ export default function Documentos() {
   const { podeVer } = useSessao();
   const [parâmetros] = useSearchParams();
   const lista = useLista("frotas/documentos", {
-    busca: "", veiculo: parâmetros.get("veiculo") || "", status: "", categoria: "",
+    busca: "",
+    veiculo: parâmetros.get("veiculo") || "",
+    // O cartao "Proximos vencimentos" do painel manda ?status=VENCENDO, para
+    // a lista ja abrir mostrando exatamente o que o cartao contou.
+    status: parâmetros.get("status") || "",
+    categoria: "",
   });
   const [veículos, setVeículos] = useState([]);
   const [servidores, setServidores] = useState([]);
@@ -61,7 +66,12 @@ export default function Documentos() {
 
   useEffect(() => {
     api("/frotas/veiculos/opcoes").then(setVeículos).catch(() => {});
-    api("/admin/servidores/opcoes").then(setServidores).catch(() => {});
+    api("/admin/servidores/opcoes")
+      // Array.isArray: uma resposta fora do formato esperado faria
+      // `servidores.map` derrubar a tela inteira, e o .catch abaixo nao pega
+      // isso - ele so ve falha de rede.
+      .then((r) => setServidores(Array.isArray(r) ? r : []))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {

@@ -12,7 +12,7 @@ import Icone from "./Icone.jsx";
 import { MENU } from "./menu.js";
 import { useSessao } from "../lib/sessao.jsx";
 
-export default function Lateral({ recolhida }) {
+export default function Lateral() {
   const { podeVer } = useSessao();
 
   function rotuloDashboard() {
@@ -34,7 +34,7 @@ export default function Lateral({ recolhida }) {
     <aside className="lateral">
       <div className="lateral__marca">
         <img src="/icons/logo-sitra.svg" alt="" />
-        {!recolhida && (
+        {(
           <div>
             <div className="lateral__nome">SITRA</div>
             <div className="lateral__sub">
@@ -49,19 +49,18 @@ export default function Lateral({ recolhida }) {
       <nav className="lateral__menu">
         {blocos.map((bloco, i) => (
           <div key={bloco.grupo || i}>
-            {bloco.grupo && !recolhida && <div className="lateral__grupo">{bloco.grupo}</div>}
+            {bloco.grupo && <div className="lateral__grupo">{bloco.grupo}</div>}
             {bloco.itens.map((item) => (
               <NavLink
                 key={item.para}
                 to={item.para}
                 end={item.fim}
-                title={recolhida ? (item.para === "/dashboard" ? rotuloDashboard() : item.rotulo) : undefined}
                 className={({ isActive }) =>
                   `lateral__item ${isActive ? "lateral__item--ativo" : ""}`
                 }
               >
                 <Icone nome={item.icone} tamanho={20} />
-                {!recolhida && (
+                {(
                   <span className="lateral__rotulo">
                     {item.para === "/dashboard" ? rotuloDashboard() : item.rotulo}
                   </span>
@@ -76,7 +75,7 @@ export default function Lateral({ recolhida }) {
           baixo, separada do menu - nao e mais um item da lista. */}
       <Link to="/ajuda" className="lateral__ajuda" title="Ajuda">
         <Icone nome="ajuda" tamanho={20} />
-        {!recolhida && (
+        {(
           <>
             <span className="lateral__rotulo">Ajuda</span>
             <Icone nome="chevron-right" tamanho={16} className="lateral__ajuda-seta" />

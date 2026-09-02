@@ -22,7 +22,8 @@
  * com QR Code e historico), Checklists (coluna de equipamentos), Relatórios
  * (fluxo de geracao), Usuários (senha separada) e Perfis (matriz de permissões).
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import PaginaLista from "./PaginaLista.jsx";
 import Icone from "./Icone.jsx";
 import Modal from "./Modal.jsx";
@@ -90,6 +91,7 @@ export default function criarPagina(config) {
 
     const podeGerenciar = !config.permissaoGerenciar || podeVer(config.permissaoGerenciar);
     const temFormulario = !!config.formulario;
+    const [parametros, definirParametros] = useSearchParams();
 
     // Carrega as listas que alimentam os <select> declarados na configuração.
     // Roda uma vez so: essas listas mudam pouco.
@@ -137,7 +139,7 @@ export default function criarPagina(config) {
       return config.formulario.filter((c) => !c.secao);
     }
 
-    function abrir(registro) {
+    const abrir = useCallback(function abrir(registro) {
       // Comeca com todos os campos vazios (ou com o padrao declarado), para o
       // React nao reclamar de campo que muda de "nao controlado" para
       // "controlado" quando o usuário digita.
@@ -160,7 +162,22 @@ export default function criarPagina(config) {
       setFormulario(reg ? { ...base, ...reg } : base);
       setErroForm("");
       setEditando(registro ? registro[config.id] : "novo");
-    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // ?novo=1 abre a janela de cadastro assim que a tela carrega. E o que
+    // permite um atalho do painel ("+ Cadastrar veiculo") cair direto no
+    // formulario em vez de parar na listagem, onde a pessoa ainda teria que
+    // procurar o botao. O parametro e consumido na hora - senao ele ficaria na
+    // URL e a janela voltaria a abrir sozinha a cada F5.
+    useEffect(() => {
+      if (!parametros.get("novo")) return;
+      if (!temFormulario || !podeGerenciar) return;
+      abrir(null);
+      const limpo = new URLSearchParams(parametros);
+      limpo.delete("novo");
+      definirParametros(limpo, { replace: true });
+    }, [parametros, definirParametros, temFormulario, podeGerenciar, abrir]);
 
     /** Converte "dd/mm/yyyy" para "yyyy-mm-dd" se necessario. */
     function normalizarData(v) {

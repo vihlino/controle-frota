@@ -28,8 +28,6 @@ export default function PainelFrotas({ dados }) {
              nota={`${porcentagem(kpis.emOperacao.percentual)} da frota`} tom="azul" />
         <Kpi icone="kpi-wrench"    rotulo="Em manutenção"      valor={kpis.emManutencao.valor}
              nota={`${porcentagem(kpis.emManutencao.percentual)} da frota`} tom="ambar" />
-        <Kpi icone="alert-triangle" rotulo="Indisponível"      valor={kpis.indisponiveis.valor}
-             nota={`${porcentagem(kpis.indisponiveis.percentual)} da frota`} tom="vermelho" />
         <Kpi icone="checklist"     rotulo="Checklists de hoje" valor={kpis.checklistsHoje.valor}
              nota={difChecklists >= 0
                ? `↑ ${numero(Math.abs(difChecklists))} em relação a ontem`
@@ -95,8 +93,15 @@ export default function PainelFrotas({ dados }) {
       </div>
 
       <div className="grade-2">
+        {/* O link ja leva a lista FILTRADA por Vencendo. Mandar para a lista
+            inteira obrigaria a refazer na mao o filtro que o cartao acabou de
+            aplicar - e quem clica aqui quer justamente esses documentos. */}
         <Cartao titulo="Próximos vencimentos"
-                acao={<Link className="cartao__acao" to="/frotas/documentos">Ver todos</Link>}>
+                acao={
+                  <Link className="cartao__acao" to="/frotas/documentos?status=VENCENDO">
+                    Ver documentos <span aria-hidden="true">→</span>
+                  </Link>
+                }>
           <div className="vencimentos">
             {vencimentos.map((f) => (
               <div className="vencimento" key={f.dias} data-faixa={f.dias}>
@@ -121,8 +126,12 @@ export default function PainelFrotas({ dados }) {
           </div>
         </Cartao>
 
-        <Cartao titulo="Manutenções / OS em aberto"
-                acao={<Link className="cartao__acao" to="/frotas/manutencoes">Ver todas as OS</Link>}>
+        <Cartao titulo="Manutenções em aberto"
+                acao={
+                  <Link className="cartao__acao" to="/frotas/manutencoes">
+                    Ver todas as OS <span aria-hidden="true">→</span>
+                  </Link>
+                }>
           <div className="lista-os">
             {ordensServico.map((os) => {
               const rotulo = ROTULOS_OS[os.status] || { titulo: os.status, descricao: "" };
@@ -143,21 +152,22 @@ export default function PainelFrotas({ dados }) {
       </div>
 
       <Cartao titulo="Ações rápidas">
+        {/* Cada atalho abre o FORMULARIO, nao a lista. Antes todos paravam na
+            listagem e a pessoa ainda tinha que achar o botao de cadastrar -
+            o atalho nao encurtava nada. As telas que cadastram por janela
+            recebem ?novo=1, lido pelo gerador de paginas. */}
         <div className="acoes-rapidas">
-          <Link className="acao-rapida" to="/frotas/veiculos">
+          <Link className="acao-rapida" to="/frotas/veiculos?novo=1">
             <Icone nome="kpi-car" tamanho={20} /> + Cadastrar veículo
           </Link>
-          <Link className="acao-rapida" to="/frotas/inspecoes">
+          <Link className="acao-rapida" to="/frotas/inspecoes/nova">
             <Icone nome="calendar" tamanho={20} /> + Nova inspeção
           </Link>
-          <Link className="acao-rapida" to="/frotas/manutencoes">
+          <Link className="acao-rapida" to="/frotas/manutencoes/agendar">
             <Icone nome="kpi-wrench" tamanho={20} /> + Nova OS
           </Link>
-          <Link className="acao-rapida" to="/frotas/documentos">
+          <Link className="acao-rapida" to="/frotas/documentos/novo">
             <Icone nome="nav-gestao" tamanho={20} /> + Adicionar documento
-          </Link>
-          <Link className="acao-rapida" to="/frotas/checklists">
-            <Icone nome="kpi-steering" tamanho={20} /> Movimentação
           </Link>
           <Link className="acao-rapida" to="/frotas/relatorios">
             <Icone nome="chart-line" tamanho={20} /> Relatórios

@@ -4,6 +4,7 @@
  * equipes e quantas ocorrências aquele serviço teve.
  */
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
@@ -14,14 +15,17 @@ import { api } from "../../lib/api.js";
 import { data, hora, numero } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
 
+// Os valores tem que ser os mesmos que a tabela `servico_diario` aceita
+// (chk_servico_turno e chk_servico_status). A tela oferecia tres turnos e a
+// situacao "Em andamento"; o banco so conhece dois turnos, e recusava o
+// cadastro inteiro com "violates check constraint chk_servico_status".
 const TURNOS = [
-  { valor: "MATUTINO", rotulo: "Matutino" },
-  { valor: "VESPERTINO", rotulo: "Vespertino" },
+  { valor: "DIURNO", rotulo: "Diurno" },
   { valor: "NOTURNO", rotulo: "Noturno" },
 ];
 const SITUACOES = [
   { valor: "ABERTO", rotulo: "Aberto" },
-  { valor: "EM_ANDAMENTO", rotulo: "Em andamento" },
+  { valor: "EM_SERVICO", rotulo: "Em serviço" },
   { valor: "ENCERRADO", rotulo: "Encerrado" },
 ];
 
@@ -33,16 +37,32 @@ export default function ServiçoDiário() {
   const [servidores, setServidores] = useState([]);
   const [criando, setCriando] = useState(false);
   const [formulario, setFormulario] = useState({
-    data: "", turno: "MATUTINO", id_coordenador: "", hora_inicio: "07:00",
+    data: "", turno: "DIURNO", id_coordenador: "", hora_inicio: "07:00",
   });
   const [erroForm, setErroForm] = useState("");
   const [salvando, setSalvando] = useState(false);
 
   const podeGerenciar = podeVer("FISCALIZACAO_GERENCIAR_SERVICO");
+  const [parametros, definirParametros] = useSearchParams();
 
   useEffect(() => {
-    api("/admin/servidores/opcoes").then(setServidores).catch(() => {});
+    api("/admin/servidores/opcoes")
+      // Array.isArray: uma resposta fora do formato esperado faria
+      // `servidores.map` derrubar a tela inteira, e o .catch abaixo nao pega
+      // isso - ele so ve falha de rede.
+      .then((r) => setServidores(Array.isArray(r) ? r : []))
+      .catch(() => {});
   }, []);
+
+  // ?novo=1: o atalho "+ Servico Diario" do painel abre a janela de cadastro
+  // direto. O parametro e consumido para a janela nao reabrir a cada F5.
+  useEffect(() => {
+    if (!parametros.get("novo") || !podeGerenciar) return;
+    setCriando(true);
+    const limpo = new URLSearchParams(parametros);
+    limpo.delete("novo");
+    definirParametros(limpo, { replace: true });
+  }, [parametros, definirParametros, podeGerenciar]);
 
   async function salvar(e) {
     e.preventDefault();

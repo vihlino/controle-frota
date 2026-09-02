@@ -41,6 +41,7 @@ import Motoristas from "./pages/Motoristas.jsx";
 import Perfis from "./pages/admin/Perfis.jsx";
 import Setores from "./pages/admin/Setores.jsx";
 import Parametros from "./pages/admin/Parametros.jsx";
+import Backups from "./pages/admin/Backups.jsx";
 
 import LogsAcesso from "./pages/auditoria/LogsAcesso.jsx";
 import LogsAcoes from "./pages/auditoria/LogsAcoes.jsx";
@@ -119,6 +120,7 @@ export default function App() {
         <Route path="/admin/perfis" element={<ComPermissao codigo="PERFIL_VISUALIZAR"><Perfis /></ComPermissao>} />
         <Route path="/admin/setores" element={<ComPermissao codigo={ADMIN}><Setores /></ComPermissao>} />
         <Route path="/admin/parametros" element={<ComPermissao codigo={ADMIN}><Parametros /></ComPermissao>} />
+        <Route path="/admin/backups" element={<ComPermissao codigo={ADMIN}><Backups /></ComPermissao>} />
 
         <Route path="/auditoria/acessos" element={<ComPermissao codigo={AUDIT}><LogsAcesso /></ComPermissao>} />
         <Route path="/auditoria/acoes" element={<ComPermissao codigo={AUDIT}><LogsAcoes /></ComPermissao>} />

@@ -54,8 +54,7 @@ export const MENU = [
       { rotulo: "Perfis e Permissões",   para: "/admin/perfis",     icone: "perfis" },
       { rotulo: "Setores",               para: "/admin/setores",    icone: "setores" },
       { rotulo: "Parâmetros do Sistema", para: "/admin/parametros", icone: "nav-administracao" },
-      // Ainda nao existe: cai no EmConstrucao pelo path="*" do App.jsx.
-      { rotulo: "Configurações",         para: "/admin/configuracoes", icone: "administracao-alt" },
+      { rotulo: "Backups e dados",       para: "/admin/backups",    icone: "administracao-alt" },
     ],
   },
   {
