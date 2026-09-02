@@ -36,7 +36,7 @@ export default function Modal({ titulo, legenda, largura = 640, aoFechar, rodape
             {legenda && <p className="modal__legenda">{legenda}</p>}
           </div>
           <button className="modal__fechar" onClick={aoFechar} aria-label="Fechar">
-            <Icone nome="minus" tamanho={18} />
+            <Icone nome="fechar" tamanho={18} />
           </button>
         </header>
         <div className="modal__corpo">{children}</div>

@@ -12,7 +12,7 @@ import { Outlet } from "react-router-dom";
 import Lateral from "./Lateral.jsx";
 import Topo from "./Topo.jsx";
 
-// O titulo e a legenda do topo mudam por pagina; cada pagina publica os seus
+// O titulo e a legenda do topo mudam por página; cada pagina publica os seus
 // atraves do contexto do Outlet.
 export default function Layout() {
   const [recolhida, setRecolhida] = useState(false);

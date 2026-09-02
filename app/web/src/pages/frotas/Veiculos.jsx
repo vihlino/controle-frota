@@ -160,7 +160,7 @@ export default function Veículos() {
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={abrirNovo}>
-            <Icone nome="minus" tamanho={16} /> Novo veículo
+            <Icone nome="mais" tamanho={16} /> Novo veículo
           </button>
         )
       }

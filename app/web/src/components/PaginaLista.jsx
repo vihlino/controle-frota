@@ -7,7 +7,7 @@
  * Não tem logica de dados: recebe pronto o objeto vindo do useLista. Assim o
  * "como aparece" fica aqui e o "de onde vem" fica la.
  */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import Icone from "./Icone.jsx";
 import Trilha from "./Trilha.jsx";
@@ -34,6 +34,11 @@ export default function PaginaLista({
   children,
 }) {
   const { definirCabecalho } = useOutletContext();
+
+  // O painel de filtros comeca aberto. O botao "Filtros" recolhe e devolve,
+  // para quem quer a tabela inteira na tela. Os filtros aplicados continuam
+  // valendo com o painel fechado - por isso o contador ao lado do botao.
+  const [filtrosAbertos, setFiltrosAbertos] = useState(true);
 
   useEffect(() => {
     definirCabecalho({ titulo, legenda: descricao });
@@ -64,11 +69,17 @@ export default function PaginaLista({
       {secao}
 
       {filtros && (
-        <div className="cartao filtros">
-          {filtros}
+        <div className="cartao filtros" data-aberto={filtrosAbertos}>
+          {filtrosAbertos && filtros}
+          {/* "Filtros" abre os filtros avancados; "Limpar" zera todos os
+              campos. Os dois ficam sempre no fim da barra, em toda tela. */}
           <div className="filtros__acoes">
+            <button className="botao" onClick={() => setFiltrosAbertos((v) => !v)}
+                    aria-expanded={filtrosAbertos}>
+              <Icone nome="filtros" tamanho={15} /> Filtros
+            </button>
             <button className="botao" onClick={limpar}>
-              <Icone nome="minus" tamanho={15} /> Limpar
+              <Icone nome="limpar-filtros" tamanho={15} /> Limpar
             </button>
           </div>
         </div>

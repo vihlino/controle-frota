@@ -9,7 +9,7 @@
  * O QUE ESTE AQUI RESOLVE
  * -----------------------
  * Toda tela de listagem do SITRA precisa de: filtros, ordenacao, pagina atual,
- * quantos itens por pagina, chamar a API quando qualquer um desses muda,
+ * quantos itens por página, chamar a API quando qualquer um desses muda,
  * mostrar "carregando", tratar erro e recarregar depois de salvar algo.
  *
  * Em vez de repetir isso em 20 telas, elas chamam:

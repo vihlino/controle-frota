@@ -185,7 +185,7 @@ export default function Documentos() {
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={() => navegar("/frotas/documentos/novo")}>
-            <Icone nome="minus" tamanho={16} /> Novo documento
+            <Icone nome="mais" tamanho={16} /> Novo documento
           </button>
         )
       }

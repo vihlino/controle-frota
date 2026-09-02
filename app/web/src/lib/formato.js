@@ -42,16 +42,16 @@ export function porcentagem(valor) {
 }
 
 const ROTULOS_STATUS = {
-  DISPONIVEL: { texto: "Disponivel", tom: "verde" },
+  DISPONIVEL: { texto: "Disponível", tom: "verde" },
   EM_USO: { texto: "Em uso", tom: "azul" },
   EM_MANUTENCAO: { texto: "Em manutenção", tom: "amarelo" },
-  INATIVO: { texto: "Indisponivel", tom: "vermelho" },
+  INATIVO: { texto: "Indisponível", tom: "vermelho" },
   ABERTO: { texto: "Em aberto", tom: "azul" },
   FINALIZADO: { texto: "Finalizado", tom: "verde" },
-  EM_ANALISE: { texto: "Em analise", tom: "amarelo" },
+  EM_ANALISE: { texto: "Em análise", tom: "amarelo" },
   RESOLVIDA: { texto: "Resolvida", tom: "verde" },
   CANCELADA: { texto: "Cancelada", tom: "vermelho" },
-  VALIDO: { texto: "Valido", tom: "verde" },
+  VALIDO: { texto: "Válido", tom: "verde" },
   VENCENDO: { texto: "Vencendo", tom: "laranja" },
   VENCIDO: { texto: "Vencido", tom: "vermelho" },
 };
@@ -61,11 +61,11 @@ export function status(valor) {
 }
 
 const DIAS = [
-  "Domingo", "Segunda-feira", "Terca-feira", "Quarta-feira",
-  "Quinta-feira", "Sexta-feira", "Sabado",
+  "Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira",
+  "Quinta-feira", "Sexta-feira", "Sábado",
 ];
 const MESES = [
-  "Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho",
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 

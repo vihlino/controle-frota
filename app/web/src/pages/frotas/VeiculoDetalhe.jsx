@@ -50,7 +50,7 @@ export default function VeículoDetalhe() {
     ["Modelo", veículo.modelo],
     ["Renavam", veículo.renavam || "-"],
     ["Chassi", veículo.chassi || "-"],
-    ["Ano de fabricacao", veículo.ano_fabricacao],
+    ["Ano de fabricação", veículo.ano_fabricacao],
     ["Ano modelo", veículo.ano_modelo],
     ["Cor", veículo.cor],
     ["Tipo de veículo", veículo.tipo_veiculo],

@@ -734,13 +734,27 @@ button { font: inherit; cursor: pointer; }
 .trilha { font-size: 13.5px; color: var(--texto-2); display: flex; gap: 8px; align-items: center; }
 .trilha strong { color: var(--texto); font-weight: 600; }
 
+/* Barra de filtros. Os campos ficam mais estreitos que antes (210px -> 170px)
+   para caber mais de um por linha em tela media - com 210px, "Buscar", "Setor"
+   e "Situacao" ocupavam a largura toda e empurravam os botoes para baixo. */
 .filtros {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--e-3);
   align-items: end;
-  padding: 18px 20px;
-  margin-bottom: 16px;
+  padding: var(--e-4) var(--e-5);
+  margin-bottom: var(--e-4);
+}
+/* Com o painel recolhido sobra so a fileira de botoes. */
+.filtros[data-aberto="false"] {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--e-3) var(--e-5);
+}
+.filtros__acoes {
+  display: flex;
+  gap: var(--e-2);
+  align-items: end;
 }
 
 /* ---------- paginacao ---------- */
@@ -901,7 +915,6 @@ button { font: inherit; cursor: pointer; }
 
 /* ---------- filtros ---------- */
 
-.filtros__acoes { display: flex; gap: 10px; align-items: end; }
 .campo[data-largo="sim"] { grid-column: 1 / -1; }
 .campo textarea {
   border: 1px solid var(--borda-forte);
@@ -1134,6 +1147,39 @@ button { font: inherit; cursor: pointer; }
 
 /* ---------- QR Code (tela de gestao) ---------- */
 
+/* ---------- tela de QR Code do veiculo ---------- */
+
+/* Dados e QR Code dividem UM cartao. A separacao e uma linha de 1px, nao dois
+   cartoes com sombra e borda repetidas no meio. */
+.qr-painel {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: var(--e-8);
+}
+.qr-painel__dados { padding-right: var(--e-8); border-right: 1px solid var(--borda); }
+.qr-painel__titulo {
+  font-size: var(--t-lg);
+  font-weight: var(--peso-semi);
+  color: var(--texto);
+  margin: 0 0 var(--e-5);
+}
+.qr-painel__titulo--com-icone {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+.qr-painel__titulo--com-icone .icone { color: var(--marca-texto); }
+
+@media (max-width: 900px) {
+  .qr-painel { grid-template-columns: 1fr; gap: var(--e-6); }
+  .qr-painel__dados {
+    padding-right: 0;
+    padding-bottom: var(--e-6);
+    border-right: none;
+    border-bottom: 1px solid var(--borda);
+  }
+}
+
 .qr { text-align: center; }
 .qr__moldura {
   border: 1px solid var(--borda);
@@ -1143,7 +1189,64 @@ button { font: inherit; cursor: pointer; }
   background: #fff;
 }
 .qr__moldura img { width: 260px; height: 260px; display: block; }
-.qr__texto { font-size: 13.5px; color: var(--texto-2); margin: 16px 0 4px; }
+.qr__texto {
+  font-size: var(--t-base);
+  line-height: var(--altura-normal);
+  color: var(--texto-2);
+  margin: var(--e-4) auto var(--e-5);
+  max-width: 34ch;
+  text-align: center;
+}
+
+/* Campo com o link do checklist e o botao de copiar encostado na ponta. */
+.qr__link { margin-bottom: var(--e-4); text-align: left; }
+.qr__link-rotulo {
+  display: block;
+  font-size: var(--t-xs);
+  font-weight: var(--peso-semi);
+  letter-spacing: var(--caixa-alta-espaco);
+  text-transform: uppercase;
+  color: var(--texto-3);
+  margin-bottom: var(--e-2);
+}
+.qr__link-campo {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  overflow: hidden;
+}
+.qr__link-campo input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  padding: var(--e-3);
+  font-size: var(--t-base);
+  color: var(--texto-2);
+}
+.qr__copiar {
+  flex: none;
+  border: none;
+  background: none;
+  padding: var(--e-3);
+  color: var(--texto-2);
+  display: grid;
+  place-items: center;
+  transition: color var(--transicao), background var(--transicao);
+}
+.qr__copiar:hover { background: var(--superficie-3); color: var(--texto); }
+.qr__copiado {
+  display: block;
+  margin-top: var(--e-2);
+  font-size: var(--t-sm);
+  color: var(--verde-texto);
+}
+
+.qr__baixar { width: 100%; height: 46px; }
+.qr__imprimir { width: 100%; height: 42px; margin-top: var(--e-2); }
 .qr__codigo {
   font-family: ui-monospace, Consolas, monospace;
   font-size: 13px;
@@ -1153,8 +1256,15 @@ button { font: inherit; cursor: pointer; }
 .qr__acoes { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
 .instrucoes { font-size: 14px; color: var(--texto-2); line-height: 1.6; }
-.instrucoes ul { margin: 10px 0; padding-left: 20px; }
-.instrucoes li { margin-bottom: 5px; }
+.instrucoes__lista { list-style: none; margin: var(--e-4) 0 0; padding: 0; }
+.instrucoes__lista li {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  padding: var(--e-2) 0;
+  color: var(--texto);
+}
+.instrucoes__lista .icone { color: var(--azul); flex: none; }
 .instrucoes__nota {
   background: var(--azul-suave);
   color: var(--azul);

@@ -84,7 +84,7 @@ export function Paginacao({ pagina, setPagina, porPagina, setPorPagina, total, p
             <option key={n} value={n}>{n}</option>
           ))}
         </select>{" "}
-        por pagina
+        por página
       </label>
       <div className="paginacao">
         <button onClick={() => setPagina(1)} disabled={pagina === 1}>&laquo;</button>

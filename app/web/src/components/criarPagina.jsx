@@ -240,7 +240,7 @@ export default function criarPagina(config) {
         acao={
           temFormulario && podeGerenciar && (
             <button className="botao botao--primario" onClick={() => abrir(null)}>
-              <Icone nome={config.iconeAcao || "minus"} tamanho={16} /> {config.rotuloAcao}
+              <Icone nome={config.iconeAcao || "mais"} tamanho={16} /> {config.rotuloAcao}
             </button>
           )
         }

@@ -21,8 +21,6 @@ export const MENU = [
       { rotulo: "Manutenções",    para: "/frotas/manutencoes",    icone: "kpi-wrench" },
       { rotulo: "Documentos",     para: "/frotas/documentos",     icone: "documentos" },
       { rotulo: "Sinistros",      para: "/frotas/sinistros",      icone: "sinistro" },
-      // Ainda nao existe: cai no EmConstrucao pelo path="*" do App.jsx.
-      { rotulo: "Movimentações",  para: "/frotas/movimentacoes",  icone: "movements" },
       { rotulo: "Relatórios",     para: "/frotas/relatorios",     icone: "chart-line" },
     ],
   },
