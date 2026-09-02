@@ -195,7 +195,7 @@ export default function Veículos() {
       {editando && (
         <Modal
           titulo={editando === "novo" ? "Novo veículo" : "Editar veículo"}
-          legenda="Os campos marcados sao obrigatorios."
+          legenda="Os campos marcados são obrigatórios."
           largura={760}
           aoFechar={() => setEditando(null)}
           rodape={
@@ -209,30 +209,30 @@ export default function Veículos() {
         >
           {erroForm && <div className="login__erro">{erroForm}</div>}
           <form id="form-veículo" className="formulario-grade" onSubmit={salvar}>
-            <Texto rotulo="Placa *" id="placa" required maxLength={10} {...campo("placa")} />
-            <Texto rotulo="Marca *" id="marca" required {...campo("marca")} />
-            <Texto rotulo="Modelo *" id="modelo" required {...campo("modelo")} />
-            <Texto rotulo="Renavam" id="renavam" {...campo("renavam")} />
-            <Texto rotulo="Chassi" id="chassi" {...campo("chassi")} />
-            <Texto rotulo="Ano de fabricacao *" id="ano_fabricacao" type="number"
-                   min="1900" max="2100" required {...campo("ano_fabricacao")} />
+            <Texto rotulo="Placa *" id="placa" required maxLength={10} {...campo("placa")}  placeholder="Ex.: ABC-1D23"/>
+            <Texto rotulo="Marca *" id="marca" required {...campo("marca")}  placeholder="Ex.: Chevrolet"/>
+            <Texto rotulo="Modelo *" id="modelo" required {...campo("modelo")}  placeholder="Ex.: S10 LS 2.8"/>
+            <Texto rotulo="Renavam" id="renavam" {...campo("renavam")}  placeholder="Ex.: 01234567890"/>
+            <Texto rotulo="Chassi" id="chassi" {...campo("chassi")}  placeholder="Ex.: 9BG1489NK0JC123456"/>
+            <Texto rotulo="Ano de fabricação *" id="ano_fabricacao" type="number"
+                   min="1900" max="2100" required {...campo("ano_fabricacao")}  placeholder="Ex.: 2022"/>
             <Texto rotulo="Ano modelo *" id="ano_modelo" type="number"
-                   min="1900" max="2100" required {...campo("ano_modelo")} />
-            <Texto rotulo="Cor *" id="cor" required {...campo("cor")} />
+                   min="1900" max="2100" required {...campo("ano_modelo")}  placeholder="Ex.: 2022"/>
+            <Texto rotulo="Cor *" id="cor" required {...campo("cor")}  placeholder="Ex.: Branco"/>
             <Selecao rotulo="Tipo de veículo *" id="tipo_veiculo" required
                      opcoes={TIPOS} {...campo("tipo_veiculo")} />
-            <Selecao rotulo="Combustivel *" id="tipo_combustivel" required
+            <Selecao rotulo="Combustível *" id="tipo_combustivel" required
                      opcoes={COMBUSTIVEIS.map((c) => ({ valor: c, rotulo: c }))}
                      {...campo("tipo_combustivel")} />
             <Texto rotulo="Capacidade" id="capacidade" placeholder="Ex.: 5 lugares"
                    {...campo("capacidade")} />
             <Texto rotulo="Quilometragem atual" id="quilometragem_atual" type="number" min="0"
-                   {...campo("quilometragem_atual")} />
+                   {...campo("quilometragem_atual")}  placeholder="Ex.: 45230"/>
             <Selecao rotulo="Setor *" id="id_setor" required vazio="Selecione"
                      opcoes={setores.map((s) => ({ valor: s.id_setor, rotulo: s.nome }))}
                      {...campo("id_setor")} />
             <Selecao rotulo="Situação" id="status" opcoes={SITUACOES} {...campo("status")} />
-            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")} />
+            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")}  placeholder="Ex.: Veículo com adesivagem da CMTT"/>
           </form>
         </Modal>
       )}

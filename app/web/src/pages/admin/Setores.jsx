@@ -41,8 +41,10 @@ export default criarPagina({
     },
   ],
   formulario: [
-    { nome: "nome", rotulo: "Nome do setor *", obrigatorio: true, largo: true },
-    { nome: "descricao", rotulo: "Descricao", tipo: "area", largo: true },
+    { nome: "nome", rotulo: "Nome do setor *", obrigatorio: true, largo: true,
+      dica: "Ex.: Transporte" },
+    { nome: "descricao", rotulo: "Descrição", tipo: "area", largo: true,
+      dica: "Ex.: Setor responsável pela frota administrativa" },
   ],
   aoSalvar: (f) => ({ ...f, status: true }),
 });

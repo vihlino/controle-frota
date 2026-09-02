@@ -389,6 +389,7 @@ export default function ChecklistQr() {
               <label htmlFor="km">KM de chegada *</label>
               <input
                 id="km" type="number" required inputMode="numeric"
+                placeholder="Ex.: 45230"
                 min={checklistAberto.odometro_saida}
                 value={chegada.odometro}
                 onChange={(e) => setChegada((c) => ({ ...c, odometro: e.target.value }))}

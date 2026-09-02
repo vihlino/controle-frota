@@ -230,14 +230,14 @@ export default function Manutenções() {
             <Selecao rotulo="Prioridade *" id="gravidade" required opcoes={PRIORIDADES}
                      {...campo("gravidade")} />
             <Data rotulo="Data agendada" id="data_agendada" {...campo("data_agendada")} />
-            <Texto rotulo="Oficina / Fornecedor" id="oficina" {...campo("oficina")} />
+            <Texto rotulo="Oficina / Fornecedor" id="oficina" {...campo("oficina")}  placeholder="Ex.: Auto Center Silva"/>
             <Texto rotulo="Quilometragem" id="quilometragem" type="number" min="0"
-                   {...campo("quilometragem")} />
+                   {...campo("quilometragem")}  placeholder="Ex.: 45230"/>
             <Texto rotulo="Custo previsto (R$)" id="custo" type="number" min="0" step="0.01"
-                   {...campo("custo")} />
-            <Area rotulo="Descricao do serviço *" id="descricao" largo required
-                  {...campo("descricao")} />
-            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")} />
+                   {...campo("custo")}  placeholder="Ex.: 580,00"/>
+            <Area rotulo="Descrição do serviço *" id="descricao" largo required
+                  {...campo("descricao")}  placeholder="Ex.: Revisão periódica 40.000 km"/>
+            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")}  placeholder="Ex.: Troca de óleo 5W30 e filtro"/>
           </form>
         </Modal>
       )}

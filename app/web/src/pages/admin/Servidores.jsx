@@ -92,12 +92,14 @@ export const CONFIG_SERVIDOR = {
   ],
   formulario: [
     { secao: "Dados pessoais" },
-    { nome: "nome", rotulo: "Nome completo *", obrigatorio: true, largo: true },
-    { nome: "matricula", rotulo: "Matrícula *", obrigatorio: true },
+    { nome: "nome", rotulo: "Nome completo *", obrigatorio: true, largo: true,
+      dica: "Ex.: João Carlos da Silva Pereira" },
+    { nome: "matricula", rotulo: "Matrícula *", obrigatorio: true, dica: "Ex.: 12548" },
     { nome: "cpf", rotulo: "CPF *", obrigatorio: true, dica: "000.000.000-00" },
     { nome: "data_nascimento", rotulo: "Data de nascimento *", tipo: "data", obrigatorio: true },
-    { nome: "email", rotulo: "E-mail corporativo", html: "email" },
-    { nome: "telefone", rotulo: "Telefone" },
+    { nome: "email", rotulo: "E-mail corporativo", html: "email",
+      dica: "Ex.: joao.silva@cmtt.gov.br" },
+    { nome: "telefone", rotulo: "Telefone", dica: "Ex.: (61) 99999-1234" },
 
     { secao: "CNH" },
     {
@@ -106,15 +108,17 @@ export const CONFIG_SERVIDOR = {
       // auxiliar administrativo.
       nome: "condutor", rotulo: "É condutor? *", tipo: "selecao", obrigatorio: true,
       padrao: "false",
+      // Rotulo curto: o texto longo era cortado dentro do campo. A explicacao
+      // fica na ajuda abaixo, onde cabe inteira.
       opcoes: [
-        { valor: "true", rotulo: "Sim — dirige veículo da frota" },
+        { valor: "true", rotulo: "Sim" },
         { valor: "false", rotulo: "Não" },
       ],
-      ajuda: "Só condutores precisam de CNH cadastrada.",
+      ajuda: "Marque \"Sim\" para quem dirige veículo da frota. Só condutores precisam de CNH cadastrada.",
     },
     {
       nome: "cnh", rotulo: "Nº da CNH / Nº de registro *", obrigatorio: true,
-      mostrarSe: ehCondutor,
+      mostrarSe: ehCondutor, dica: "Ex.: 12345678901",
     },
     {
       nome: "categoria_cnh", rotulo: "Categoria *", tipo: "selecao", obrigatorio: true,
@@ -133,7 +137,7 @@ export const CONFIG_SERVIDOR = {
 
     { secao: "Vinculação" },
     { nome: "id_setor", rotulo: "Setor *", tipo: "selecao", opcoes: "setores", obrigatorio: true },
-    { nome: "cargo_funcao", rotulo: "Cargo / Função" },
+    { nome: "cargo_funcao", rotulo: "Cargo / Função", dica: "Ex.: Motorista" },
     {
       nome: "status", rotulo: "Status *", tipo: "selecao", obrigatorio: true, padrao: "true",
       opcoes: [{ valor: "true", rotulo: "Ativo" }, { valor: "false", rotulo: "Inativo" }],

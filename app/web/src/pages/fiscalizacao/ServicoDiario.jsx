@@ -138,7 +138,7 @@ export default function ServiçoDiário() {
             <Selecao rotulo="Coordenador *" id="id_coordenador" required vazio="Selecione"
                      opcoes={servidores.map((s) => ({ valor: s.id_servidor, rotulo: s.nome }))}
                      {...campo("id_coordenador")} />
-            <Texto rotulo="Hora de inicio" id="hora_inicio" type="time" {...campo("hora_inicio")} />
+            <Texto rotulo="Hora de início" id="hora_inicio" type="time" {...campo("hora_inicio")}  placeholder="Ex.: 07:00"/>
           </form>
         </Modal>
       )}

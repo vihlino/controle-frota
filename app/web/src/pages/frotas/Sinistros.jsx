@@ -228,8 +228,8 @@ export default function Sinistros() {
                      {...campo("id_servidor")} />
             <Selecao rotulo="Tipo de sinistro *" id="tipo" required opcoes={TIPOS} {...campo("tipo")} />
             <Data rotulo="Data *" id="data" required {...campo("data")} />
-            <Texto rotulo="Hora *" id="hora" type="time" required {...campo("hora")} />
-            <Texto rotulo="Numero do B.O." id="bo" {...campo("bo")} />
+            <Texto rotulo="Hora *" id="hora" type="time" required {...campo("hora")}  placeholder="Ex.: 08:30"/>
+            <Texto rotulo="Número do B.O." id="bo" {...campo("bo")}  placeholder="Ex.: 202412345678"/>
             <Selecao rotulo="Situação" id="status" opcoes={SITUACOES} {...campo("status")} />
             <Texto rotulo="Local *" id="local" required largo
                    placeholder="Ex.: Av. Brasil, 1250 - Centro" {...campo("local")} />
@@ -245,9 +245,9 @@ export default function Sinistros() {
                 Houve envolvimento de terceiros
               </label>
             </div>
-            <Area rotulo="Descricao do sinistro *" id="descricao" largo required
-                  {...campo("descricao")} />
-            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")} />
+            <Area rotulo="Descrição do sinistro *" id="descricao" largo required
+                  {...campo("descricao")}  placeholder="Ex.: Colisão na lateral direita"/>
+            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")}  placeholder="Ex.: Terceiro avançou a sinalização"/>
           </form>
         </Modal>
       )}

@@ -247,14 +247,14 @@ export default function Documentos() {
             <Selecao rotulo="Categoria" id="categoria"
                      opcoes={CATEGORIAS.map((c) => ({ valor: c, rotulo: c }))}
                      {...campo("categoria")} />
-            <Texto rotulo="No / Referencia" id="numero_documento" {...campo("numero_documento")} />
+            <Texto rotulo="Nº / Referência" id="numero_documento" {...campo("numero_documento")}  placeholder="Ex.: 01567890123"/>
             <Data rotulo="Data de emissao" id="data_emissao" {...campo("data_emissao")} />
             <Data rotulo="Data de vencimento" id="data_validade" {...campo("data_validade")} />
             <Selecao rotulo="Responsavel" id="id_responsavel" vazio="Sem responsavel"
                      opcoes={servidores.map((s) => ({ valor: s.id_servidor, rotulo: s.nome }))}
                      {...campo("id_responsavel")} />
             <Selecao rotulo="Situação" id="status" opcoes={SITUACOES} {...campo("status")} />
-            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")} />
+            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")}  placeholder="Ex.: Renovação anual do licenciamento"/>
           </form>
         </Modal>
       )}

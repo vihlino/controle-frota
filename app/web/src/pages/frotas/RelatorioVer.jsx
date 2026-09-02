@@ -222,8 +222,8 @@ export default function RelatórioVer() {
               Ao atestar, voce confirma que conferiu os {numero(conteudo.linhas.length)}{" "}
               registros deste relatório. O ateste nao pode ser desfeito pela tela.
             </p>
-            <Area rotulo="Observacao (opcional)" id="observacao" value={observacao}
-                  onChange={(e) => setObservacao(e.target.value)} />
+            <Area rotulo="Observação (opcional)" id="observacao" value={observacao}
+                  onChange={(e) = placeholder="Ex.: Conferido e de acordo"> setObservacao(e.target.value)} />
           </form>
         </Modal>
       )}

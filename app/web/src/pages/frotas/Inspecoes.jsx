@@ -233,10 +233,10 @@ export default function Inspeções() {
                      {...campo("tipo")} />
             <Data rotulo="Data da inspeção *" id="data_realizacao" required
                   {...campo("data_realizacao")} />
-            <Texto rotulo="Hora" id="hora_inicio" type="time" {...campo("hora_inicio")} />
+            <Texto rotulo="Hora" id="hora_inicio" type="time" {...campo("hora_inicio")}  placeholder="Ex.: 08:30"/>
             <Texto rotulo="Local" id="local" placeholder="Ex.: Garagem Central"
                    {...campo("local")} />
-            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")} />
+            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")}  placeholder="Ex.: Veículo em boas condições gerais"/>
           </form>
         </Modal>
       )}

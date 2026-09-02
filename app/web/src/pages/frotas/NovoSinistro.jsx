@@ -121,7 +121,7 @@ export default function NovoSinistro() {
                      opcoes={veiculos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}` }))}
                      {...campo("id_veiculo")} />
             <Data rotulo="Data do sinistro *" id="data" required {...campo("data")} />
-            <Texto rotulo="Hora do sinistro" id="hora" type="time" {...campo("hora")} />
+            <Texto rotulo="Hora do sinistro" id="hora" type="time" {...campo("hora")}  placeholder="Ex.: 08:30"/>
             <Selecao rotulo="Tipo de sinistro *" id="tipo" required opcoes={TIPOS} {...campo("tipo")} />
             <Texto rotulo="Local do sinistro *" id="local" required
                    placeholder="Ex.: Av. Brasil, 1250 - Centro" {...campo("local")} />

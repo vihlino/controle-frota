@@ -49,10 +49,13 @@ export default criarPagina({
     },
   ],
   formulario: [
-    { nome: "codigo", rotulo: "Código *", obrigatorio: true },
-    { nome: "nome", rotulo: "Nome do item *", obrigatorio: true },
-    { nome: "valor_pontos", rotulo: "Valor em pontos *", html: "number", obrigatorio: true },
-    { nome: "descricao", rotulo: "Documentacao do item", tipo: "area", largo: true },
+    { nome: "codigo", rotulo: "Código *", obrigatorio: true, dica: "Ex.: PT-012" },
+    { nome: "nome", rotulo: "Nome do item *", obrigatorio: true,
+      dica: "Ex.: Autuação por estacionamento irregular" },
+    { nome: "valor_pontos", rotulo: "Valor em pontos *", html: "number", obrigatorio: true,
+      dica: "Ex.: 5" },
+    { nome: "descricao", rotulo: "Documentação do item", tipo: "area", largo: true,
+      dica: "Ex.: Conforme o manual de Goiânia, item 4.2" },
   ],
   aoSalvar: (f, usuario) => ({
     ...f,

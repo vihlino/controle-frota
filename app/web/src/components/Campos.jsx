@@ -8,6 +8,7 @@
  * num arquivo so.
  */
 // Campos de formulario e de filtro, todos com a mesma casca visual.
+import Icone from "./Icone.jsx";
 
 /**
  * @param {string} [ajuda]  Explicacao curta, mostrada ABAIXO do campo.
@@ -56,10 +57,35 @@ export function Selecao({ rotulo, id, opcoes = [], vazio, largo, ajuda, ...resto
   );
 }
 
+/**
+ * Campo de data com icone de calendario e calendario que abre ao clicar.
+ *
+ * O <input type="date"> ja traz um seletor nativo, mas o gatilho e um icone
+ * minusculo no canto - e diferente em cada navegador. Aqui o icone e nosso e
+ * o clique em QUALQUER ponto do campo abre o calendario, que e o que a pessoa
+ * espera e evita ter que digitar dd/mm/aaaa na mao.
+ *
+ * showPicker() nao existe em todo navegador (Safari antigo, Firefox antigo);
+ * quando falta, o campo continua funcionando como sempre - digitando.
+ */
 export function Data({ rotulo, id, largo, ajuda, ...resto }) {
+  function abrirCalendario(e) {
+    const campo = e.currentTarget;
+    if (typeof campo.showPicker === "function") {
+      // showPicker lanca se o campo estiver desabilitado ou fora da tela.
+      try { campo.showPicker(); } catch { /* segue digitavel */ }
+    }
+  }
+
   return (
     <Campo rotulo={rotulo} htmlFor={id} largo={largo} ajuda={ajuda}>
-      <input id={id} type="date" {...resto} />
+      <span className="campo-data">
+        <input id={id} type="date" onClick={abrirCalendario}
+               onFocus={abrirCalendario} {...resto} />
+        <span className="campo-data__icone">
+          <Icone nome="calendar" tamanho={18} />
+        </span>
+      </span>
     </Campo>
   );
 }

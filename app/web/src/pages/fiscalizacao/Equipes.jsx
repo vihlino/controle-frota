@@ -46,9 +46,10 @@ export default criarPagina({
     },
   ],
   formulario: [
-    { nome: "numero", rotulo: "Numero da equipe *", obrigatorio: true },
+    { nome: "numero", rotulo: "Número da equipe *", obrigatorio: true, dica: "Ex.: EQ-04" },
     { nome: "tipo", rotulo: "Tipo *", tipo: "selecao", opcoes: TIPOS, obrigatorio: true, padrao: "OSTENSIVA" },
-    { nome: "observacoes", rotulo: "Observações", tipo: "area", largo: true },
+    { nome: "observacoes", rotulo: "Observações", tipo: "area", largo: true,
+      dica: "Ex.: Equipe reforçada para o feriado" },
   ],
   aoSalvar: (f) => ({ ...f, status: true }),
 });

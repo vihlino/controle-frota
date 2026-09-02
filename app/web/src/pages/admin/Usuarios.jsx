@@ -221,10 +221,10 @@ export default function Usuários() {
                      onChange={(e) =>
                        setFormulario((f) => ({ ...f, id_perfil: e.target.value }))} />
             <Texto rotulo="Login *" id="login" required value={formulario.login}
-                   onChange={(e) => setFormulario((f) => ({ ...f, login: e.target.value }))} />
+                   onChange={(e) = placeholder="Ex.: joao.silva"> setFormulario((f) => ({ ...f, login: e.target.value }))} />
             <Texto rotulo="Senha inicial *" id="senha" type="password" required minLength={8}
                    value={formulario.senha}
-                   onChange={(e) => setFormulario((f) => ({ ...f, senha: e.target.value }))} />
+                   onChange={(e) = placeholder="Mínimo de 8 caracteres"> setFormulario((f) => ({ ...f, senha: e.target.value }))} />
             <p className="modal__aviso campo--largo">
               A senha precisa ter ao menos 8 caracteres e deve ser trocada pelo
               usuário no primeiro acesso.
@@ -250,7 +250,7 @@ export default function Usuários() {
           {erroForm && <div className="login__erro">{erroForm}</div>}
           <form id="form-senha" onSubmit={trocarSenha}>
             <Texto rotulo="Nova senha *" id="nova_senha" type="password" required minLength={8}
-                   value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} />
+                   value={novaSenha} onChange={(e) = placeholder="Mínimo de 8 caracteres"> setNovaSenha(e.target.value)} />
           </form>
         </Modal>
       )}

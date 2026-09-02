@@ -111,7 +111,7 @@ export default function NovaInspecao() {
                      {...campo("id_veiculo")} />
             <Selecao rotulo="Frequência *" id="tipo" required opcoes={FREQUENCIAS} {...campo("tipo")} />
             <Data rotulo="Data da inspeção *" id="data_realizacao" required {...campo("data_realizacao")} />
-            <Texto rotulo="Hora da inspeção" id="hora_inicio" type="time" {...campo("hora_inicio")} />
+            <Texto rotulo="Hora da inspeção" id="hora_inicio" type="time" {...campo("hora_inicio")}  placeholder="Ex.: 08:30"/>
             <Selecao rotulo="Responsável pela inspeção *" id="id_gestor" required vazio="Selecione o responsável"
                      opcoes={usuarios.map((u) => ({ valor: u.id_usuario, rotulo: u.nome }))}
                      {...campo("id_gestor")} />

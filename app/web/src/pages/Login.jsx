@@ -78,7 +78,7 @@ export default function Login() {
             <input
               id="login"
               value={login}
-              onChange={(e) => setLogin(e.target.value)}
+              onChange={(e) = placeholder="Ex.: joao.silva" > setLogin(e.target.value)}
               autoComplete="username"
               autoFocus
               required
@@ -91,7 +91,7 @@ export default function Login() {
               id="senha"
               type="password"
               value={senha}
-              onChange={(e) => setSenha(e.target.value)}
+              onChange={(e) = placeholder="Sua senha de acesso" > setSenha(e.target.value)}
               autoComplete="current-password"
               required
             />
