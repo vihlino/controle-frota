@@ -147,7 +147,7 @@ export default function Inspeções() {
       chave: "ações", rotulo: "Ações",
       render: (i) => (
         <Acoes
-          ações={[
+          acoes={[
             {
               rotulo: "Visualizar detalhes",
               aoClicar: () => navegar(`/frotas/inspecoes/${i.id_inspecao}`),

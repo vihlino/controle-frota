@@ -202,7 +202,7 @@ export default function criarPagina(config) {
         rotulo: "Ações",
         render: (registro) => (
           <Acoes
-            ações={[
+            acoes={[
               { rotulo: "Editar", aoClicar: () => abrir(registro) },
               ...(config.permiteExcluir
                 ? [{ rotulo: "Excluir", perigo: true, aoClicar: () => excluir(registro) }]

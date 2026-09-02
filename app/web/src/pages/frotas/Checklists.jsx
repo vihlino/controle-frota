@@ -150,7 +150,7 @@ export default function Checklists() {
       chave: "ações", rotulo: "Ações",
       render: (c) => (
         <Acoes
-          ações={[
+          acoes={[
             {
               rotulo: "Visualizar detalhes",
               aoClicar: () => navegar(`/frotas/checklists/${c.id_checklist}`),

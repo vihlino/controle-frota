@@ -137,7 +137,7 @@ export default function Veículos() {
       chave: "ações", rotulo: "Ações",
       render: (v) => (
         <Acoes
-          ações={[
+          acoes={[
             { rotulo: "Visualizar detalhes", aoClicar: () => navegar(`/frotas/veiculos/${v.id_veiculo}`) },
             ...(podeGerenciar ? [{ rotulo: "Editar veículo", aoClicar: () => abrirEdicao(v) }] : []),
             { rotulo: "Historico", aoClicar: () => navegar(`/frotas/checklists?veículo=${v.id_veiculo}`) },

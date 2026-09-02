@@ -221,17 +221,22 @@ button { font: inherit; cursor: pointer; }
 .topo__usuario-nome { font-size: 14.5px; font-weight: 600; text-align: left; }
 .topo__usuario-perfil { font-size: 12.5px; color: var(--texto-2); text-align: left; }
 
+/* O menu e desenhado no <body> pelo MenuSuspenso, com a posicao calculada em
+   JS. Por isso `fixed` e sem top/right aqui: as coordenadas vem por style.
+   Isso e o que impede o menu de ser recortado pela rolagem da tabela - um
+   ancestral com overflow recorta o filho posicionado por maior que seja o
+   z-index. */
 .menu-suspenso {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
+  position: fixed;
   background: var(--superficie);
   border: 1px solid var(--borda);
   border-radius: var(--raio);
-  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.12);
+  box-shadow: var(--sombra-3);
   min-width: 240px;
-  padding: 6px;
-  z-index: 30;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: var(--e-1);
+  z-index: 1000;
 }
 .menu-suspenso__cabecalho {
   padding: 10px 12px;

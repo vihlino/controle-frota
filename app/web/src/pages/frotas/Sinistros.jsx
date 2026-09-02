@@ -145,7 +145,7 @@ export default function Sinistros() {
       chave: "ações", rotulo: "Ações",
       render: (s) => (
         <Acoes
-          ações={[
+          acoes={[
             { rotulo: "Visualizar detalhes", aoClicar: () => navegar(`/frotas/sinistros/${s.id_sinistro}`) },
             { rotulo: "Ver veículo", aoClicar: () => navegar(`/frotas/veiculos/${s.id_veiculo}`) },
           ]}

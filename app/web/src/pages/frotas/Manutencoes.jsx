@@ -145,7 +145,7 @@ export default function Manutenções() {
       chave: "ações", rotulo: "Ações",
       render: (o) => (
         <Acoes
-          ações={[
+          acoes={[
             { rotulo: "Visualizar detalhes", aoClicar: () => navegar(`/frotas/manutencoes/${o.id_os}`) },
             { rotulo: "Ver veículo", aoClicar: () => navegar(`/frotas/veiculos/${o.id_veiculo}`) },
           ]}

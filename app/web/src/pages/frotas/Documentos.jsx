@@ -163,7 +163,7 @@ export default function Documentos() {
       chave: "ações", rotulo: "Ações",
       render: (d) => (
         <Acoes
-          ações={[
+          acoes={[
             { rotulo: "Ver veículo", aoClicar: () => navegar(`/frotas/veiculos/${d.id_veiculo}`) },
             ...(podeGerenciar
               ? [

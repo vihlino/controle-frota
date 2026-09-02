@@ -140,7 +140,7 @@ export default function Usuários() {
       chave: "ações", rotulo: "Ações",
       render: (u) => (
         <Acoes
-          ações={[
+          acoes={[
             {
               rotulo: "Trocar senha",
               aoClicar: () => { setTrocandoSenha(u); setErroForm(""); },

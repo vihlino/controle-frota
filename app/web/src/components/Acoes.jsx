@@ -1,54 +1,54 @@
 /**
- * Ações.jsx - O menu dos tres pontinhos das tabelas.
+ * Acoes.jsx - O menu dos tres pontinhos das tabelas.
  *
- * Recebe uma lista de ações e desenha o menu. A acao marcada com perigo: true
+ * Recebe uma lista de acoes e desenha o menu. A acao marcada com perigo: true
  * aparece em vermelho (exclusoes).
  *
- * Fecha ao clicar fora, com um listener no documento que e sempre removido na
- * limpeza do useEffect.
+ * O menu em si vive no MenuSuspenso, que o desenha fora da tabela para nao
+ * ser recortado pela rolagem horizontal - ver o comentario la.
  */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Icone from "./Icone.jsx";
+import MenuSuspenso from "./MenuSuspenso.jsx";
 
-// Menu dos tres pontinhos das tabelas.
-// ações: [{rotulo, aoClicar, perigo}]
-export default function Ações({ ações }) {
+// acoes: [{rotulo, aoClicar, perigo}]
+export default function Acoes({ acoes }) {
   const [aberto, setAberto] = useState(false);
-  const caixa = useRef(null);
+  const botao = useRef(null);
 
-  useEffect(() => {
-    function aoClicarFora(e) {
-      if (caixa.current && !caixa.current.contains(e.target)) setAberto(false);
-    }
-    document.addEventListener("mousedown", aoClicarFora);
-    return () => document.removeEventListener("mousedown", aoClicarFora);
-  }, []);
+  // useCallback para a identidade da funcao nao mudar a cada render: o
+  // MenuSuspenso a usa em addEventListener e removeEventListener, e uma
+  // funcao nova a cada render faria os ouvintes serem trocados sem parar.
+  const fechar = useCallback(() => setAberto(false), []);
 
   return (
-    <div className="relativo acoes" ref={caixa}>
+    <>
       <button
+        ref={botao}
         className="acoes__botao"
         onClick={() => setAberto((v) => !v)}
         aria-label="Ações do registro"
+        aria-haspopup="menu"
+        aria-expanded={aberto}
       >
         <Icone nome="chevron-down" tamanho={18} />
       </button>
-      {aberto && (
-        <div className="menu-suspenso menu-suspenso--acoes">
-          {ações.map((a) => (
-            <button
-              key={a.rotulo}
-              data-perigo={a.perigo ? "sim" : undefined}
-              onClick={() => {
-                setAberto(false);
-                a.aoClicar();
-              }}
-            >
-              {a.rotulo}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+
+      <MenuSuspenso aberto={aberto} aoFechar={fechar} ancora={botao} largura={200}>
+        {acoes.map((a) => (
+          <button
+            key={a.rotulo}
+            role="menuitem"
+            data-perigo={a.perigo ? "sim" : undefined}
+            onClick={() => {
+              setAberto(false);
+              a.aoClicar();
+            }}
+          >
+            {a.rotulo}
+          </button>
+        ))}
+      </MenuSuspenso>
+    </>
   );
 }
