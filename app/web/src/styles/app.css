@@ -1562,13 +1562,29 @@ button { font: inherit; cursor: pointer; }
 .qr-condutor--fixo { background: var(--superficie-3); color: var(--texto-2); }
 
 /* Data e hora dividem a linha. */
+/* Data e hora do checklist.
+   Eram duas colunas de 1fr: cada campo esticava ate metade da tela, e no
+   celular "02/09/2026" ficava boiando numa caixa de 155px. Sao os dois campos
+   MENOS importantes da tela - vem preenchidos com o relogio do aparelho e na
+   saida a pessoa nem edita - mas ocupavam a mesma largura do KM, que e o dado
+   que ela realmente digita.
+   Agora cada um ocupa so o tamanho do proprio conteudo, e o que sobra fica
+   vazio mesmo. O flex-wrap garante que, num aparelho de 320px com fonte
+   grande, um desce para a linha de baixo em vez de espremer os dois. */
 .qr-dupla {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--e-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2) var(--e-5);
 }
-.qr-dupla .campo { min-width: 0; }
-.qr-dupla input { min-width: 0; }
+.qr-dupla .campo { flex: 0 0 auto; min-width: 0; }
+.qr-dupla input {
+  width: auto;
+  min-width: 0;
+  min-height: 36px;
+  padding: var(--e-1) var(--e-3);
+  font-size: var(--t-sm);
+}
+.qr-dupla label { font-size: var(--t-sm); }
 
 /* KM da saida: valor preenchido + confirmacao Sim/Nao. */
 .qr-km { display: flex; gap: var(--e-2); align-items: stretch; }
