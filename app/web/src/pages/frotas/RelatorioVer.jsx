@@ -223,7 +223,7 @@ export default function RelatórioVer() {
               registros deste relatório. O ateste nao pode ser desfeito pela tela.
             </p>
             <Area rotulo="Observação (opcional)" id="observacao" value={observacao}
-                  onChange={(e) = placeholder="Ex.: Conferido e de acordo"> setObservacao(e.target.value)} />
+                  placeholder="Ex.: Conferido e de acordo" onChange={(e) => setObservacao(e.target.value)} />
           </form>
         </Modal>
       )}
