@@ -47,16 +47,19 @@ services:
     # app/db/
     dockerContext: app
 
-    # Caminho do Dockerfile relativo ao dockerContext.
+    # ATENCAO: o dockerfilePath NAO e relativo ao dockerContext - e relativo a
+    # RAIZ DO REPOSITORIO, igual ao dockerContext. Sao dois caminhos
+    # independentes, ambos contados da raiz.
     #
-    # Como o contexto agora e "app", o Dockerfile esta em:
+    # Com "api/Dockerfile" o Render procurava <raiz>/api/Dockerfile, que nao
+    # existe, e o build morria antes de comecar:
     #
-    # app/api/Dockerfile
+    #   error: invalid local: resolve : lstat
+    #   /opt/render/project/src/api: no such file or directory
     #
-    # e por isso o caminho relativo e apenas:
-    #
-    # api/Dockerfile
-    dockerfilePath: api/Dockerfile
+    # O deploy falhava, o Render mantinha a versao anterior no ar, e o sistema
+    # parecia "nao ter recebido as correcoes".
+    dockerfilePath: app/api/Dockerfile
 
     # ------------------------------------------------------------------------
     # HEALTH CHECK
