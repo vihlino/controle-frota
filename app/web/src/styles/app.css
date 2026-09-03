@@ -1470,7 +1470,37 @@ button { font: inherit; cursor: pointer; }
 }
 .qr__acoes { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
-.instrucoes { font-size: 14px; color: var(--texto-2); line-height: 1.6; }
+/* Texto a esquerda, arte a direita, lado a lado - a arte acompanha o bloco
+   inteiro. A coluna da imagem tem largura maxima para nao roubar espaco do
+   texto, que e quem carrega a instrucao. */
+.instrucoes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 360px);
+  gap: var(--e-6);
+  align-items: center;
+  font-size: 14px;
+  color: var(--texto-2);
+  line-height: 1.6;
+}
+.instrucoes__texto { min-width: 0; }
+.instrucoes__arte { width: 100%; height: auto; display: block; }
+
+/* No celular a arte desce para baixo do texto: lado a lado, num aparelho
+   estreito, as duas colunas ficariam ilegiveis. */
+@media (max-width: 760px) {
+  .instrucoes { grid-template-columns: 1fr; gap: var(--e-4); }
+}
+
+/* Separada do resto por uma linha: e um aviso sobre o adesivo fisico, nao
+   mais um passo da lista acima. */
+.instrucoes__observacao {
+  margin: var(--e-5) 0 0;
+  padding-top: var(--e-4);
+  border-top: 1px solid var(--borda);
+  font-size: var(--t-sm);
+  line-height: 1.55;
+}
+.instrucoes__observacao strong { color: var(--texto); }
 .instrucoes__lista { list-style: none; margin: var(--e-4) 0 0; padding: 0; }
 .instrucoes__lista li {
   display: flex;
@@ -2210,31 +2240,3 @@ button { font: inherit; cursor: pointer; }
 }
 .qr-momento__rotulo { font-size: var(--t-sm); color: var(--texto-2); }
 .qr-momento__valor { font-size: var(--t-md); color: var(--texto); }
-
-/* ============================================================
-   RODAPE DA TELA DE QR CODE
-   Texto a esquerda, arte a direita. No celular a arte desce para baixo do
-   texto - lado a lado, num aparelho estreito, os dois ficariam ilegiveis.
-   ============================================================ */
-.qr-rodape {
-  display: grid;
-  grid-template-columns: 1fr minmax(200px, 320px);
-  gap: var(--e-5);
-  align-items: center;
-  margin-top: var(--e-5);
-  padding-top: var(--e-5);
-  border-top: 1px solid var(--borda);
-}
-.qr-rodape__texto strong { display: block; font-size: var(--t-md); color: var(--texto); }
-.qr-rodape__texto p {
-  margin: var(--e-2) 0 0;
-  font-size: var(--t-sm);
-  color: var(--texto-2);
-  line-height: 1.5;
-  max-width: 52ch;
-}
-.qr-rodape__arte { width: 100%; height: auto; display: block; }
-
-@media (max-width: 700px) {
-  .qr-rodape { grid-template-columns: 1fr; }
-}

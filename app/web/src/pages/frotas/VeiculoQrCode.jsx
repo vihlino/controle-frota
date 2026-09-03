@@ -169,30 +169,30 @@ export default function VeiculoQrCode() {
       </Cartao>
 
       <Cartao>
+        {/* Texto a esquerda, arte a direita - a arte acompanha o bloco INTEIRO,
+            e nao so a ultima frase. Ela mostra em um olhar o que as tres linhas
+            descrevem: o celular lendo o adesivo colado no veiculo. */}
         <div className="instrucoes">
-          <h2 className="qr-painel__titulo qr-painel__titulo--com-icone">
-            <Icone nome="ajuda" tamanho={20} /> Como utilizar
-          </h2>
-          <p>O condutor ou servidor deve escanear o QR Code com o celular para:</p>
-          <ul className="instrucoes__lista">
-            <li><Icone nome="check" tamanho={18} /> Visualizar as informações do veículo</li>
-            <li><Icone nome="check" tamanho={18} /> Preencher o checklist de saída</li>
-            <li><Icone nome="check" tamanho={18} /> Registrar a chegada e fechar o checklist</li>
-          </ul>
-        </div>
+          <div className="instrucoes__texto">
+            <h2 className="qr-painel__titulo qr-painel__titulo--com-icone">
+              <Icone nome="ajuda" tamanho={20} /> Como utilizar
+            </h2>
+            <p>O condutor ou servidor deve escanear o QR Code com o celular para:</p>
+            <ul className="instrucoes__lista">
+              <li><Icone nome="check" tamanho={18} /> Visualizar as informações do veículo</li>
+              <li><Icone nome="check" tamanho={18} /> Preencher o checklist de saída</li>
+              <li><Icone nome="check" tamanho={18} /> Registrar a chegada e fechar o checklist</li>
+            </ul>
 
-        {/* Rodape: a explicacao a esquerda, a arte a direita. A imagem mostra
-            em um olhar o que as tres linhas acima descrevem em texto - o
-            celular lendo o adesivo colado no veiculo. */}
-        <div className="qr-rodape">
-          <div className="qr-rodape__texto">
-            <strong>Cole o adesivo em local visível do veículo.</strong>
-            <p>
+            <p className="instrucoes__observacao">
+              <strong>Observação:</strong> Cole o adesivo em local visível do veículo.
+              <br />
               O mesmo QR Code serve para a saída e para a chegada: o sistema
               reconhece se o veículo está em uso e abre a tela certa.
             </p>
           </div>
-          <img className="qr-rodape__arte" src="/icons/qr-viatura.png"
+
+          <img className="instrucoes__arte" src="/icons/qr-viatura.png"
                alt="Celular lendo o QR Code colado em uma viatura" />
         </div>
       </Cartao>
