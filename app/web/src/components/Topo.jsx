@@ -121,11 +121,10 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
                 onClick={() => setMenuAberto((v) => !v)}
                 aria-haspopup="menu" aria-expanded={menuAberto}>
           <span className="avatar">{iniciais}</span>
-          {/* So o nome. O perfil continua no menu que abre ao clicar, junto
-              com cargo, setor e matricula - o lugar de quem quer conferir
-              quem esta logado. Repetido aqui em cima ele era lido o tempo
-              todo por quem ja sabe. */}
-          <span className="topo__usuario-nome">{usuario?.nome}</span>
+          <span className="topo__usuario-texto">
+            <span className="topo__usuario-nome">{usuario?.nome}</span>
+            <span className="topo__usuario-perfil">{usuario?.perfil}</span>
+          </span>
           <Icone nome="chevron-down" tamanho={16} />
         </button>
 

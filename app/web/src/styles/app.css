@@ -282,31 +282,36 @@ button { font: inherit; cursor: pointer; }
 .topo__usuario {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   background: none;
   border: none;
   color: var(--texto);
-  padding: 5px 7px;
+  padding: 4px 6px;
   border-radius: var(--raio);
 }
 .topo__usuario:hover { background: var(--superficie-2); }
-/* Menor: com uma linha so de texto ao lado, o circulo de 38px ficava maior
-   que o proprio nome e puxava a atencao para as iniciais. */
+/* O bloco do usuario e identificacao, nao conteudo: ele diz "voce esta neste
+   perfil" e sai do caminho. Por isso o circulo acompanha a altura das DUAS
+   linhas de texto ao lado, em vez de puxar a atencao para as iniciais. */
 .avatar {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: var(--lateral-fundo);
   color: #fff;
   display: grid;
   place-items: center;
   flex: none;
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.02em;
 }
-.topo__usuario-nome { font-size: 13.5px; font-weight: 600; text-align: left; }
-.topo__usuario-perfil { font-size: 12.5px; color: var(--texto-2); text-align: left; }
+/* As duas linhas empilhadas, e o circulo do lado acompanhando a altura delas.
+   O bloco e identificacao - diz "voce esta neste perfil" e sai do caminho -
+   entao ele fica menor que o conteudo da tela, e nao do tamanho de um titulo. */
+.topo__usuario-texto { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.topo__usuario-nome { font-size: 12.5px; font-weight: 600; text-align: left; line-height: 1.25; }
+.topo__usuario-perfil { font-size: 11px; color: var(--texto-2); text-align: left; line-height: 1.25; }
 
 /* O menu e desenhado no <body> pelo MenuSuspenso, com a posicao calculada em
    JS. Por isso `fixed` e sem top/right aqui: as coordenadas vem por style.
