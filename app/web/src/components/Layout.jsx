@@ -30,7 +30,7 @@ export default function Layout() {
       {menuAberto && (
         <div className="lateral__fundo" onClick={() => setMenuAberto(false)} />
       )}
-      <div className="conteudo">
+      <div className="conteudo" data-cabecalho={cabecalho.titulo ? "sim" : "nao"}>
         <Topo
           titulo={cabecalho.titulo}
           legenda={cabecalho.legenda}

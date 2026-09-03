@@ -35,8 +35,35 @@ button { font: inherit; cursor: pointer; }
   display: none;
 }
 
-.conteudo { min-width: 0; display: flex; flex-direction: column; }
-.pagina { padding: 24px 28px 40px; }
+/* O topo e a pagina ocupam a MESMA celula da grade, empilhados. Assim a
+   trilha e o titulo comecam no alto da tela e o bloco do usuario fica por
+   cima, a direita - os dois dividindo a mesma faixa, como no desenho.
+   Antes o topo era uma linha propria de 76px com o usuario sozinho a direita:
+   somados os 24px de respiro da pagina, sobravam 100px de vao antes da
+   primeira informacao, em toda tela do sistema. */
+.conteudo {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.conteudo > .topo,
+.conteudo > .pagina { grid-area: 1 / 1; }
+/* align-self: start e obrigatorio aqui. Empilhado na mesma celula, o topo
+   esticaria ate a altura inteira da pagina e o `align-items: center` dele
+   jogaria o sino e o usuario para o MEIO da tela. */
+.conteudo > .topo { align-self: start; }
+
+.pagina { padding: 16px 28px 40px; }
+
+/* No painel o topo tem conteudo proprio (a saudacao e a data) e precisa de
+   uma faixa so dele - senao os KPIs passariam por baixo do texto. */
+.conteudo[data-cabecalho="sim"] .pagina { padding-top: var(--topo-altura); }
+
+/* Reserva a faixa da direita para o sino e o usuario, que agora flutuam sobre
+   o inicio da pagina. Sem isso o botao de acao da tela ("Novo veiculo")
+   entraria embaixo deles. */
+.cabecalho-pagina { padding-right: 300px; }
+@media (max-width: 900px) { .cabecalho-pagina { padding-right: 0; } }
 
 /* ---------- barra lateral ---------- */
 
@@ -134,19 +161,33 @@ button { font: inherit; cursor: pointer; }
   display: flex;
   align-items: center;
   gap: 20px;
-  padding: 0 28px;
-  min-height: var(--topo-altura);
-  /* Sem fundo proprio e sem borda: a barra do topo deixa de ser uma "fita"
-     colada acima da pagina e passa a ser parte dela. O que sustenta a
-     separacao visual agora sao os cartoes, que tem borda propria. */
-  background: var(--fundo);
+  padding: 12px 28px;
+  min-height: 0;
+  /* TRANSPARENTE, e nao branco. O topo esta empilhado por cima do inicio da
+     pagina: com fundo proprio ele pintava por cima da trilha e do titulo, que
+     ficam a esquerda, e os dois sumiam. Quem carrega fundo agora sao o sino e
+     o bloco do usuario - so a area deles precisa esconder o que passa por
+     baixo ao rolar.
+     pointer-events: none deixa o clique atravessar a faixa vazia e chegar no
+     que esta embaixo; os filhos reativam. */
+  background: none;
+  pointer-events: none;
   position: sticky;
   top: 0;
   z-index: 20;
 }
 /* Ocupa o lugar do titulo quando a tela nao publica um, para o sino e o
    usuario continuarem encostados a direita. */
-.topo__vazio { flex: 1; }
+/* Sem titulo, este espacador so precisa empurrar o sino e o usuario para a
+   direita - nao ocupar altura nenhuma. */
+.topo__vazio { flex: 1; height: 0; }
+.topo > * { pointer-events: auto; }
+/* O fundo vive nos blocos, nao na faixa: assim eles escondem o conteudo que
+   passa por baixo ao rolar, sem tapar a trilha e o titulo. */
+.topo__alertas, .topo__usuario, .topo__botao-menu, .topo > div:not(.topo__vazio) {
+  background: var(--fundo);
+  border-radius: var(--raio);
+}
 .topo__botao-menu {
   background: none;
   border: none;
