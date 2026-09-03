@@ -172,8 +172,11 @@ button { font: inherit; cursor: pointer; }
      que esta embaixo; os filhos reativam. */
   background: none;
   pointer-events: none;
-  position: sticky;
-  top: 0;
+  /* NAO e sticky. O bloco do usuario fica no alto da tela e ROLA junto com a
+     pagina, como qualquer outro conteudo. Grudado no topo ele acompanhava a
+     rolagem e ficava boiando sobre a tabela - atrapalhando justamente quando
+     a pessoa esta lendo as linhas de baixo. */
+  position: relative;
   z-index: 20;
 }
 /* Ocupa o lugar do titulo quando a tela nao publica um, para o sino e o
@@ -457,7 +460,9 @@ button { font: inherit; cursor: pointer; }
 .pagina-form__corpo { display: flex; flex-direction: column; gap: 0; }
 .pagina-form__sidebar {
   position: sticky;
-  top: calc(var(--topo-altura) + 16px);
+  /* Antes reservava a altura do topo, que ficava grudado la em cima. Agora o
+     topo rola junto com a pagina e nao ha nada fixo acima - so o respiro. */
+  top: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
