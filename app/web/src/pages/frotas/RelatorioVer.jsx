@@ -48,7 +48,7 @@ export default function RelatórioVer() {
   const podeAtestar = podeVer("RELATORIOS_ATESTAR");
 
   useEffect(() => {
-    definirCabecalho({ titulo: "Relatório", legenda: "Documento oficial gerado pelo SITRA" });
+    definirCabecalho({ titulo: "", legenda: "" });
   }, [definirCabecalho]);
 
   function carregar() {
@@ -116,10 +116,12 @@ export default function RelatórioVer() {
 
       <article className="documento">
         <header className="documento__cabecalho">
-          <img src="/icons/logo-sitra.svg" alt="" className="documento__logo" />
+          {/* Versao escura: o relatorio e impresso em papel branco, e a logo de
+              letras brancas sumiria ali. */}
+          <img src="/icons/logo-sitra-escura.png" alt="SITRA" className="documento__logo" />
           <div className="documento__orgao">
             <strong>CMTT</strong>
-            <span>Companhia Municipal de Transito e Transporte</span>
+            <span>Companhia Municipal de Trânsito e Transporte</span>
           </div>
           <div className="documento__selo">
             <Selo
@@ -133,7 +135,7 @@ export default function RelatórioVer() {
           <h2>{relatório.nome}</h2>
           <dl className="documento__identificacao">
             <div>
-              <dt>Periodo</dt>
+              <dt>Período</dt>
               <dd>{data(relatório.periodo_inicio)} a {data(relatório.periodo_fim)}</dd>
             </div>
             <div><dt>Gerado em</dt><dd>{dataHora(relatório.data_geracao)}</dd></div>
@@ -170,7 +172,7 @@ export default function RelatórioVer() {
             </tbody>
           </table>
           {conteudo.linhas.length === 0 && (
-            <div className="vazio">Nenhum registro encontrado no periodo escolhido.</div>
+            <div className="vazio">Nenhum registro encontrado no período escolhido.</div>
           )}
         </div>
 
@@ -188,16 +190,16 @@ export default function RelatórioVer() {
               </>
             ) : (
               <>
-                <p className="documento__ateste">Aguardando ateste do responsavel</p>
+                <p className="documento__ateste">Aguardando ateste do responsável</p>
                 <p className="documento__assinante">_______________________________</p>
-                <p className="documento__cargo">Nome e cargo do responsavel</p>
+                <p className="documento__cargo">Nome e cargo do responsável</p>
               </>
             )}
           </div>
 
           <div className="documento__orgao-rodape">
             <strong>CMTT</strong>
-            <span>Companhia Municipal de Transito e Transporte</span>
+            <span>Companhia Municipal de Trânsito e Transporte</span>
             <small>Documento gerado automaticamente pelo SITRA.</small>
           </div>
         </footer>

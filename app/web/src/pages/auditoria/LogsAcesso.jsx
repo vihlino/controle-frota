@@ -11,7 +11,7 @@ const EVENTOS = [
   { valor: "LOGOUT", rotulo: "Saida" },
   { valor: "FALHA_LOGIN", rotulo: "Falha de login" },
   { valor: "ALTERACAO_SENHA", rotulo: "Troca de senha" },
-  { valor: "SESSAO_EXPIRADA", rotulo: "Sessao expirada" },
+  { valor: "SESSAO_EXPIRADA", rotulo: "Sessão expirada" },
   { valor: "RECUPERACAO_SENHA", rotulo: "Recuperacao de senha" },
 ];
 const TOM = {
@@ -26,13 +26,13 @@ export default criarPagina({
   descricao: "Entradas, saidas e tentativas de acesso ao sistema.",
   trilha: [{ rotulo: "Auditoria" }, { rotulo: "Logs de Acesso" }],
   unidade: "registros",
-  vazio: "Nenhum acesso registrado no periodo.",
+  vazio: "Nenhum acesso registrado no período.",
   mapaOpcoes: {},
   colunas: [
     { chave: "data_hora", rotulo: "Data e hora", ordenavel: true, render: (l) => dataHora(l.data_hora) },
     {
-      chave: "usuário_nome", rotulo: "Usuário", ordenavel: true,
-      render: (l) => l.usuário_nome || l.login_informado || "-",
+      chave: "usuario_nome", rotulo: "Usuário", ordenavel: true,
+      render: (l) => l.usuario_nome || l.login_informado || "-",
     },
     { chave: "login_informado", rotulo: "Login informado", render: (l) => l.login_informado || "-" },
     {
@@ -60,6 +60,6 @@ export default criarPagina({
       opcoes: [{ valor: "true", rotulo: "Sucesso" }, { valor: "false", rotulo: "Falha" }],
     },
     { nome: "dataDe", rotulo: "De", tipo: "data" },
-    { nome: "dataAte", rotulo: "Ate", tipo: "data" },
+    { nome: "dataAte", rotulo: "Até", tipo: "data" },
   ],
 });

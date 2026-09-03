@@ -43,10 +43,7 @@ export default function ExportarLogs() {
   const [erro, setErro] = useState("");
 
   useEffect(() => {
-    definirCabecalho({
-      titulo: "Exportar Logs",
-      legenda: "Baixe os registros de auditoria em CSV.",
-    });
+    definirCabecalho({ titulo: "", legenda: "" });
   }, [definirCabecalho]);
 
   function parâmetros(porPagina) {
@@ -93,7 +90,7 @@ export default function ExportarLogs() {
         <div>
           <Trilha itens={[{ rotulo: "Auditoria" }, { rotulo: "Exportar Logs" }]} />
           <h1>Exportar Logs</h1>
-          <p>Escolha a origem e o periodo. O arquivo sai em CSV, pronto para o Excel.</p>
+          <p>Escolha a origem e o período. O arquivo sai em CSV, pronto para o Excel.</p>
         </div>
       </div>
 
@@ -105,7 +102,7 @@ export default function ExportarLogs() {
                    value={origem} onChange={(e) => setOrigem(e.target.value)} />
           <Data rotulo="De" id="dataDe" value={periodo.dataDe}
                 onChange={(e) => setPeriodo((p) => ({ ...p, dataDe: e.target.value }))} />
-          <Data rotulo="Ate" id="dataAte" value={periodo.dataAte}
+          <Data rotulo="Até" id="dataAte" value={periodo.dataAte}
                 onChange={(e) => setPeriodo((p) => ({ ...p, dataAte: e.target.value }))} />
         </div>
 

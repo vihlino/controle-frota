@@ -13,7 +13,7 @@ const SITUACOES = [
   { valor: "DISPONIVEL", rotulo: "Regular" },
   { valor: "EM_USO", rotulo: "Em uso" },
   { valor: "EM_MANUTENCAO", rotulo: "Em manutenção" },
-  { valor: "INATIVO", rotulo: "Indisponivel" },
+  { valor: "INATIVO", rotulo: "Indisponível" },
 ];
 const TIPOS = [
   { valor: "AUTOMOVEL", rotulo: "Carro" },

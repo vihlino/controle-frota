@@ -6,9 +6,9 @@ import Selo from "../../components/Selo.jsx";
 import { data, hora } from "../../lib/formato.js";
 
 const TIPOS = [
-  { valor: "ACIDENTE", rotulo: "Acidente de transito" },
+  { valor: "ACIDENTE", rotulo: "Acidente de trânsito" },
   { valor: "APOIO", rotulo: "Apoio operacional" },
-  { valor: "FISCALIZACAO", rotulo: "Fiscalização de transito" },
+  { valor: "FISCALIZACAO", rotulo: "Fiscalização de trânsito" },
   { valor: "ESTACIONAMENTO", rotulo: "Irregularidade de estacionamento" },
   { valor: "EVENTO", rotulo: "Apoio a evento" },
   { valor: "OUTRO", rotulo: "Outro" },
@@ -54,7 +54,7 @@ export default criarPagina({
     { nome: "tipo", rotulo: "Tipo", tipo: "selecao", opcoes: TIPOS, vazio: "Todos" },
     { nome: "status", rotulo: "Situação", tipo: "selecao", opcoes: SITUACOES, vazio: "Todas" },
     { nome: "dataDe", rotulo: "De", tipo: "data" },
-    { nome: "dataAte", rotulo: "Ate", tipo: "data" },
+    { nome: "dataAte", rotulo: "Até", tipo: "data" },
   ],
   formulario: [
     { nome: "tipo", rotulo: "Tipo *", tipo: "selecao", opcoes: TIPOS, obrigatorio: true, padrao: "FISCALIZACAO" },

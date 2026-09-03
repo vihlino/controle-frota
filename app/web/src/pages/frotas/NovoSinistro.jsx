@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Icone from "../../components/Icone.jsx";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import Trilha from "../../components/Trilha.jsx";
 import { Texto, Selecao, Data, Area } from "../../components/Campos.jsx";
@@ -62,7 +63,7 @@ export default function NovoSinistro() {
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
-    definirCabecalho({ titulo: "Novo sinistro", legenda: "Registre um novo sinistro ocorrido com veículo da frota." });
+    definirCabecalho({ titulo: "", legenda: "" });
     api("/frotas/veiculos/opcoes").then(setVeiculos).catch(() => {});
     api("/admin/servidores/opcoes")
       // Array.isArray: uma resposta fora do formato esperado faria
@@ -186,7 +187,7 @@ export default function NovoSinistro() {
         <div className="pagina-acoes">
           <button type="button" className="botao" onClick={() => navegar("/frotas/sinistros")}>Cancelar</button>
           <button type="submit" className="botao botao--primario" disabled={salvando}>
-            {salvando ? "Salvando..." : "Registrar sinistro"}
+            <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : "Registrar sinistro"}
           </button>
         </div>
       </form>

@@ -30,7 +30,7 @@ export default criarPagina({
   confirmarExclusao: (e) => `Excluir a equipe ${e.numero}?`,
   mapaOpcoes: {},
   colunas: [
-    { chave: "numero", rotulo: "Numero", ordenavel: true },
+    { chave: "numero", rotulo: "Número", ordenavel: true },
     { chave: "tipo", rotulo: "Tipo", ordenavel: true },
     { chave: "integrantes", rotulo: "Integrantes", render: (e) => numero(e.integrantes) },
     { chave: "observacoes", rotulo: "Observações", render: (e) => e.observacoes || "-" },

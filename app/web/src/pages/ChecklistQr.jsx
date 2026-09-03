@@ -287,7 +287,7 @@ export default function ChecklistQr() {
   return (
     <div className="qr-tela">
       <header className="qr-tela__topo">
-        <img src="/icons/logo-sitra.svg" alt="" />
+        <img src="/icons/logo-marca.png" alt="SITRA" />
         <div>
           <strong>Checklist do Veículo</strong>
           <span>{naChegada ? "Registro de chegada" : "Registro de saída"}</span>
@@ -557,7 +557,7 @@ export default function ChecklistQr() {
                   <label htmlFor={`obs-${codigo}`}>{rotulo} — o que houve?</label>
                   <input
                     id={`obs-${codigo}`}
-                    placeholder="Ex.: item nao estava no veiculo"
+                    placeholder="Ex.: item não estava no veículo"
                     value={equipamentos[codigo].observacao}
                     onChange={(ev) =>
                       setEquipamentos((e) => ({

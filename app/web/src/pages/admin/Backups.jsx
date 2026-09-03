@@ -27,10 +27,7 @@ export default function Backups() {
   const [erro, setErro] = useState("");
 
   useEffect(() => {
-    definirCabecalho({
-      titulo: "Backups e dados",
-      legenda: "Situação do banco de dados e da guarda das informações.",
-    });
+    definirCabecalho({ titulo: "", legenda: "" });
   }, [definirCabecalho]);
 
   useEffect(() => {

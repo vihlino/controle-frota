@@ -7,7 +7,7 @@
  * escolhida: semanal +7 dias, quinzenal +15, mensal +30.
  */
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
@@ -31,8 +31,9 @@ const DIAS_POR_FREQUENCIA = { SEMANAL: 7, QUINZENAL: 15, MENSAL: 30 };
 export default function Inspeções() {
   const navegar = useNavigate();
   const { podeVer } = useSessao();
+  const [parametros] = useSearchParams();
   const lista = useLista("frotas/inspecoes", {
-    busca: "", veiculo: "", tipo: "", status: "", dataDe: "", dataAte: "",
+    busca: "", veiculo: parametros.get("veiculo") || "", tipo: "", status: "", dataDe: "", dataAte: "",
   });
   const [veículos, setVeículos] = useState([]);
   const [usuários, setUsuários] = useState([]);
@@ -121,7 +122,7 @@ export default function Inspeções() {
       chave: "proxima_inspecao", rotulo: "Próxima inspeção", ordenavel: true,
       render: (i) => data(i.proxima_inspecao || i.proxima_inspeção),
     },
-    { chave: "responsavel", rotulo: "Responsavel", ordenavel: true },
+    { chave: "responsavel", rotulo: "Responsável", ordenavel: true },
     {
       chave: "status", rotulo: "Situação", ordenavel: true,
       render: (i) => (
@@ -181,7 +182,7 @@ export default function Inspeções() {
       vazio="Nenhuma inspeção encontrada com esses filtros."
       filtros={
         <>
-          <Texto rotulo="Buscar" id="busca" placeholder="Placa, responsavel ou numero"
+          <Texto rotulo="Buscar" id="busca" placeholder="Placa, responsável ou número"
                  value={lista.filtros.busca}
                  onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
           <Selecao rotulo="Veículo" id="veículo" vazio="Todos"
@@ -200,7 +201,7 @@ export default function Inspeções() {
                    onChange={(e) => lista.alterarFiltro("status", e.target.value)} />
           <Data rotulo="De" id="dataDe" value={lista.filtros.dataDe}
                 onChange={(e) => lista.alterarFiltro("dataDe", e.target.value)} />
-          <Data rotulo="Ate" id="dataAte" value={lista.filtros.dataAte}
+          <Data rotulo="Até" id="dataAte" value={lista.filtros.dataAte}
                 onChange={(e) => lista.alterarFiltro("dataAte", e.target.value)} />
         </>
       }
@@ -226,7 +227,7 @@ export default function Inspeções() {
                        valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
                      }))}
                      {...campo("id_veículo")} />
-            <Selecao rotulo="Responsavel *" id="id_gestor" required vazio="Selecione"
+            <Selecao rotulo="Responsável *" id="id_gestor" required vazio="Selecione"
                      opcoes={usuários.map((u) => ({ valor: u.id_usuario, rotulo: u.nome }))}
                      {...campo("id_gestor")} />
             <Selecao rotulo="Frequencia *" id="tipo" required opcoes={FREQUENCIAS}

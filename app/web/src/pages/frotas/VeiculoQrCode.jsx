@@ -27,10 +27,7 @@ export default function VeiculoQrCode() {
   const [copiado, setCopiado] = useState(false);
 
   useEffect(() => {
-    definirCabecalho({
-      titulo: "QR Code do Veículo",
-      legenda: "Acesso rápido ao checklist deste veículo.",
-    });
+    definirCabecalho({ titulo: "", legenda: "" });
   }, [definirCabecalho]);
 
   useEffect(() => {
@@ -182,6 +179,21 @@ export default function VeiculoQrCode() {
             <li><Icone nome="check" tamanho={18} /> Preencher o checklist de saída</li>
             <li><Icone nome="check" tamanho={18} /> Registrar a chegada e fechar o checklist</li>
           </ul>
+        </div>
+
+        {/* Rodape: a explicacao a esquerda, a arte a direita. A imagem mostra
+            em um olhar o que as tres linhas acima descrevem em texto - o
+            celular lendo o adesivo colado no veiculo. */}
+        <div className="qr-rodape">
+          <div className="qr-rodape__texto">
+            <strong>Cole o adesivo em local visível do veículo.</strong>
+            <p>
+              O mesmo QR Code serve para a saída e para a chegada: o sistema
+              reconhece se o veículo está em uso e abre a tela certa.
+            </p>
+          </div>
+          <img className="qr-rodape__arte" src="/icons/qr-viatura.png"
+               alt="Celular lendo o QR Code colado em uma viatura" />
         </div>
       </Cartao>
     </>

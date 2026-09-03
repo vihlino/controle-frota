@@ -38,11 +38,8 @@ export default function Login() {
     <div className="login">
       <div className="login__marca">
         <div className="login__logo">
-          <img src="/icons/logo-sitra.svg" alt="" />
-          <div>
-            <div className="login__logo-nome">SITRA</div>
-            <div className="login__logo-sub">Sistema Integrado de Gestão Publica</div>
-          </div>
+          <img src="/icons/logo-sitra.png"
+               alt="SITRA - Sistema Integrado de Transporte e Rotas Administrativas" />
         </div>
         <p className="login__frase">
           Frota, fiscalização e relatórios da CMTT em um so lugar, com registro de
@@ -50,16 +47,16 @@ export default function Login() {
         </p>
         <div className="login__modulos">
           <span className="login__modulo">
-            <Icone nome="nav-frotas" tamanho={18} /> Frotas
+            <Icone nome="nav-frotas" tamanho={18} monocromatico /> Frotas
           </span>
           <span className="login__modulo">
-            <Icone nome="nav-fiscalizacao" tamanho={18} /> Fiscalização
+            <Icone nome="nav-fiscalizacao" tamanho={18} monocromatico /> Fiscalização
           </span>
           <span className="login__modulo">
-            <Icone nome="chart-line" tamanho={18} /> Relatórios
+            <Icone nome="chart-line" tamanho={18} monocromatico /> Relatórios
           </span>
           <span className="login__modulo">
-            <Icone nome="nav-administracao" tamanho={18} /> Administração
+            <Icone nome="nav-administracao" tamanho={18} monocromatico /> Administração
           </span>
         </div>
       </div>

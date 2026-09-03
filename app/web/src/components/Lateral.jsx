@@ -32,20 +32,13 @@ export default function Lateral() {
 
   return (
     <aside className="lateral">
+      {/* A logo oficial ja traz a estrada, o nome e a linha "Sistema Integrado
+          de Transporte e Rotas Administrativas" desenhados juntos. Repetir o
+          nome em texto ao lado dela seria dizer a mesma coisa duas vezes. */}
       <div className="lateral__marca">
-        <img src="/icons/logo-sitra.svg" alt="" />
-        {(
-          <div>
-            <div className="lateral__nome">SITRA</div>
-            <div className="lateral__sub">
-              Sistema Integrado de
-              <br />
-              Gestão Publica
-            </div>
-          </div>
-        )}
+        <img src="/icons/logo-sitra.png"
+             alt="SITRA - Sistema Integrado de Transporte e Rotas Administrativas" />
       </div>
-
       <nav className="lateral__menu">
         {blocos.map((bloco, i) => (
           <div key={bloco.grupo || i}>
@@ -59,7 +52,7 @@ export default function Lateral() {
                   `lateral__item ${isActive ? "lateral__item--ativo" : ""}`
                 }
               >
-                <Icone nome={item.icone} tamanho={20} />
+                <Icone nome={item.icone} tamanho={20} monocromatico />
                 {(
                   <span className="lateral__rotulo">
                     {item.para === "/dashboard" ? rotuloDashboard() : item.rotulo}
@@ -74,11 +67,11 @@ export default function Lateral() {
       {/* Rodape fixo da lateral. Nos mockups a Ajuda fica sempre ancorada em
           baixo, separada do menu - nao e mais um item da lista. */}
       <Link to="/ajuda" className="lateral__ajuda" title="Ajuda">
-        <Icone nome="ajuda" tamanho={20} />
+        <Icone nome="ajuda" tamanho={20} monocromatico />
         {(
           <>
             <span className="lateral__rotulo">Ajuda</span>
-            <Icone nome="chevron-right" tamanho={16} className="lateral__ajuda-seta" />
+            <Icone nome="chevron-right" tamanho={16} className="lateral__ajuda-seta" monocromatico />
           </>
         )}
       </Link>

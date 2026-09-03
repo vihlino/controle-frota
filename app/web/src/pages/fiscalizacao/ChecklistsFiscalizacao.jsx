@@ -21,7 +21,7 @@ export default criarPagina({
   colunas: [
     { chave: "data_abertura", rotulo: "Data", ordenavel: true, render: (c) => data(c.data_abertura) },
     { chave: "placa", rotulo: "Placa", ordenavel: true },
-    { chave: "veículo", rotulo: "Viatura", render: (c) => `${c.marca} ${c.modelo}` },
+    { chave: "veiculo", rotulo: "Viatura", render: (c) => `${c.marca} ${c.modelo}` },
     { chave: "equipe", rotulo: "Equipe", ordenavel: true, render: (c) => c.equipe || "-" },
     { chave: "hora_saida", rotulo: "Saida", render: (c) => hora(c.hora_saida) },
     { chave: "hora_chegada", rotulo: "Chegada", render: (c) => hora(c.hora_chegada) },
@@ -42,6 +42,6 @@ export default criarPagina({
       ],
     },
     { nome: "dataDe", rotulo: "De", tipo: "data" },
-    { nome: "dataAte", rotulo: "Ate", tipo: "data" },
+    { nome: "dataAte", rotulo: "Até", tipo: "data" },
   ],
 });

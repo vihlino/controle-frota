@@ -45,6 +45,6 @@ export default criarPagina({
       ],
     },
     { nome: "dataDe", rotulo: "De", tipo: "data" },
-    { nome: "dataAte", rotulo: "Ate", tipo: "data" },
+    { nome: "dataAte", rotulo: "Até", tipo: "data" },
   ],
 });

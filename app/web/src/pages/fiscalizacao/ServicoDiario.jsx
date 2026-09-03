@@ -133,7 +133,7 @@ export default function ServiçoDiário() {
                    onChange={(e) => lista.alterarFiltro("status", e.target.value)} />
           <Data rotulo="De" id="dataDe" value={lista.filtros.dataDe}
                 onChange={(e) => lista.alterarFiltro("dataDe", e.target.value)} />
-          <Data rotulo="Ate" id="dataAte" value={lista.filtros.dataAte}
+          <Data rotulo="Até" id="dataAte" value={lista.filtros.dataAte}
                 onChange={(e) => lista.alterarFiltro("dataAte", e.target.value)} />
         </>
       }
@@ -146,7 +146,7 @@ export default function ServiçoDiário() {
             <>
               <button className="botao" onClick={() => setCriando(false)}>Cancelar</button>
               <button className="botao botao--primario" form="form-serviço" disabled={salvando}>
-                {salvando ? "Salvando..." : "Criar serviço"}
+                <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : "Criar serviço"}
               </button>
             </>
           }

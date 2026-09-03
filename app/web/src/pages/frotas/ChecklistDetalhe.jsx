@@ -21,10 +21,7 @@ export default function ChecklistDetalhe() {
   const [erro, setErro] = useState("");
 
   useEffect(() => {
-    definirCabecalho({
-      titulo: "Detalhes do checklist",
-      legenda: "Saida, chegada e conferencia de equipamentos.",
-    });
+    definirCabecalho({ titulo: "", legenda: "" });
   }, [definirCabecalho]);
 
   useEffect(() => {
@@ -112,7 +109,7 @@ export default function ChecklistDetalhe() {
         </Cartao>
       </div>
 
-      <Cartao titulo="Equipamentos obrigatorios">
+      <Cartao titulo="Equipamentos obrigatórios">
         <div className="qr-equipamentos">
           {(checklist.equipamentos || []).map((e) => (
             <div className="qr-equipamento" key={e.equipamento} data-ausente={!e.conforme}>

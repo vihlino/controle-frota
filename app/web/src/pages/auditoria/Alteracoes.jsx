@@ -15,7 +15,7 @@ function Diferenca({ antes, depois }) {
   const mudados = Object.keys(depois).filter(
     (chave) => JSON.stringify(antes[chave]) !== JSON.stringify(depois[chave])
   );
-  if (!mudados.length) return <span className="celula-nota">Sem alteracao de dados</span>;
+  if (!mudados.length) return <span className="celula-nota">Sem alteração de dados</span>;
 
   return (
     <div className="diferenca">
@@ -49,14 +49,14 @@ export default criarPagina({
   descricao: "O que mudou em cada registro, com o valor anterior e o novo.",
   trilha: [{ rotulo: "Auditoria" }, { rotulo: "Alterações de Registros" }],
   unidade: "alterações",
-  vazio: "Nenhuma alteracao registrada no periodo.",
+  vazio: "Nenhuma alteração registrada no período.",
   mapaOpcoes: {},
   colunas: [
     { chave: "data_hora", rotulo: "Data e hora", ordenavel: true, render: (a) => dataHora(a.data_hora) },
-    { chave: "usuário_nome", rotulo: "Usuário" },
+    { chave: "usuario_nome", rotulo: "Usuário" },
     { chave: "entidade", rotulo: "Registro", ordenavel: true },
     { chave: "id_registro", rotulo: "No do registro" },
-    { chave: "acao", rotulo: "Acao" },
+    { chave: "acao", rotulo: "Ação" },
     {
       chave: "diferenca", rotulo: "O que mudou",
       render: (a) => <Diferenca antes={a.dados_anteriores} depois={a.dados_novos} />,
@@ -65,6 +65,6 @@ export default criarPagina({
   filtros: [
     { nome: "busca", rotulo: "Buscar", dica: "Registro ou usuário" },
     { nome: "dataDe", rotulo: "De", tipo: "data" },
-    { nome: "dataAte", rotulo: "Ate", tipo: "data" },
+    { nome: "dataAte", rotulo: "Até", tipo: "data" },
   ],
 });

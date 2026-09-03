@@ -63,7 +63,7 @@ export function Paginacao({ pagina, setPagina, porPagina, setPorPagina, total, p
 
   // Mostra a primeira, a ultima e as vizinhas da atual; o resto vira reticencia.
   const visiveis = Array.from({ length: paginas }, (_, i) => i + 1).filter(
-    (n) => n === 1 || n === paginas || Math.abs(n - pagina) <= 2
+    (n) => n === 1 || n === páginas || Math.abs(n - página) <= 2
   );
 
   return (

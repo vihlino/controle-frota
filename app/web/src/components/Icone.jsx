@@ -1,23 +1,24 @@
 /**
  * Icone.jsx - Mostra um icone SVG da pasta public/icons.
  *
- * O PROBLEMA QUE ELE RESOLVE
- * --------------------------
- * Os SVGs entregues pelo Cesar vem com a cor fixa no arquivo:
+ * A COR VEM DO ARQUIVO
+ * --------------------
+ * Os simbolos entregues pelo Cesar tem cor propria e ela e informacao: o
+ * relogio de "Atrasados" e vermelho, o visto de "Concluidas" e verde, o resto
+ * e preto. Antes o componente trocava tudo isso por currentColor, e os tres
+ * viravam a mesma cor do texto ao redor - o vermelho de atraso sumia junto.
+ * Agora o arquivo manda.
  *
- *     <svg ... stroke="#0d0d0d">
+ * QUANDO O FUNDO E ESCURO
+ * -----------------------
+ * Um icone preto desaparece no menu lateral, que e preto. Para esses lugares
+ * existe `monocromatico`: ai sim os pretos do arquivo cedem lugar a
+ * currentColor e o icone acompanha a cor do texto - claro sobre o preto do
+ * menu, escuro sobre o amarelo do item ativo. E a excecao, pedida caso a
+ * caso, e nao mais a regra para o sistema inteiro.
  *
- * Um icone preto fixo some na barra lateral, que e preta. Usar <img> nao
- * ajuda, porque CSS nao alcanca o conteudo de uma imagem.
- *
- * A SOLUCAO
- * ---------
- * Ler o arquivo, trocar o preto por "currentColor" e injetar o SVG direto na
- * pagina. "currentColor" faz o icone assumir a cor do texto ao redor - entao
- * ele fica claro na lateral escura, escuro no fundo claro, e preto dentro de
- * um botao amarelo, sem nenhuma regra extra.
- *
- * USO:  <Icone nome="nav-frotas" tamanho={20} />
+ * USO:  <Icone nome="kpi-car" tamanho={20} />
+ *       <Icone nome="kpi-car" monocromatico />   (menu lateral, login)
  */
 import { useEffect, useState } from "react";
 
@@ -51,12 +52,13 @@ const cache = new Map();
  *
  * @param {string} cor  O valor do atributo fill ou stroke.
  */
-function ehPretoOuEstado(cor) {
+function ehPreto(cor) {
   const c = cor.trim().toLowerCase();
   if (c === "none" || c === "currentcolor") return false;
   if (c === "black") return true;
-  if (c === "#ff0000" || c === "#11ce00") return true;
 
+  // Os arquivos exportados do editor nao usam #000000 limpo: aparecem
+  // #010101, #020202, #0A0A0A, #0F0F0F. Todos sao preto para o olho.
   const m = /^#([0-9a-f]{6})$/.exec(c);
   if (!m) return false;
   const [r, g, b] = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
@@ -74,18 +76,10 @@ async function carregar(nome) {
   const promessa = fetch(`/icons/${nome}.svg`)
     .then((r) => (r.ok ? r.text() : ""))
     .then((texto) =>
-      texto
-        // Troca as cores fixas por currentColor. A regra antiga so cobria
-        // #0d0d0d e #000000; os arquivos exportados do editor vem com pretos
-        // "sujos" - #020202, #0A0A0A, black - que passavam batido e ficavam
-        // pretos fixos, sumindo na lateral escura.
-        .replace(/(stroke|fill)="([^"]+)"/gi, (todo, attr, cor) =>
-          ehPretoOuEstado(cor) ? `${attr}="currentColor"` : todo
-        )
-        // Remove width/height do arquivo, para o tamanho ser decidido aqui
-        // pela prop `tamanho`, e nao pelo que veio do editor de imagem.
-        .replace(/\swidth="[\d.]+"/i, "")
-        .replace(/\sheight="[\d.]+"/i, "")
+      // Remove width/height do arquivo, para o tamanho ser decidido aqui pela
+      // prop `tamanho`, e nao pelo que veio do editor de imagem. As CORES
+      // ficam como estao: elas sao do simbolo.
+      texto.replace(/\swidth="[\d.]+"/i, "").replace(/\sheight="[\d.]+"/i, "")
     )
     .catch(() => ""); // icone que nao existe nao quebra a tela, so nao aparece
 
@@ -99,7 +93,7 @@ async function carregar(nome) {
  * @param {number} [props.tamanho]   Lado do quadrado em pixels (padrao 20)
  * @param {string} [props.className] Classe CSS extra
  */
-export default function Icone({ nome, tamanho = 20, className = "" }) {
+export default function Icone({ nome, tamanho = 20, className = "", monocromatico = false }) {
   // Se o icone ja esta em cache RESOLVIDO, comeca com ele - evita o "pisca"
   // de um espaco vazio antes de aparecer.
   const [svg, setSvg] = useState(() => {
@@ -120,6 +114,16 @@ export default function Icone({ nome, tamanho = 20, className = "" }) {
     };
   }, [nome]);
 
+  // So aqui os pretos do arquivo cedem para currentColor, e apenas nas telas
+  // que pediram - fundo escuro. Feito na hora de desenhar, e nao no cache,
+  // para o MESMO icone poder aparecer colorido numa tela e monocromatico na
+  // outra sem precisar de dois arquivos.
+  const conteudo = monocromatico
+    ? svg.replace(/(stroke|fill)="([^"]+)"/gi, (todo, attr, cor) =>
+        ehPreto(cor) ? `${attr}="currentColor"` : todo
+      )
+    : svg;
+
   return (
     <span
       className={`icone ${className}`}
@@ -131,7 +135,7 @@ export default function Icone({ nome, tamanho = 20, className = "" }) {
       // porque injetar HTML de fonte desconhecida abre porta para XSS. Aqui e
       // seguro: o conteudo vem de arquivos nossos, da nossa propria pasta
       // public/, nunca de dado digitado por usuário.
-      dangerouslySetInnerHTML={{ __html: svg }}
+      dangerouslySetInnerHTML={{ __html: conteudo }}
     />
   );
 }

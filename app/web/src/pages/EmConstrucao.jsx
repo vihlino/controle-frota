@@ -24,7 +24,7 @@ export default function EmConstrucao() {
   const rotulo = rotuloDaRota(pathname);
 
   useEffect(() => {
-    definirCabecalho({ titulo: rotulo, legenda: "Tela ainda nao construida" });
+    definirCabecalho({ titulo: rotulo, legenda: "Tela ainda não construida" });
   }, [definirCabecalho, rotulo]);
 
   return (
@@ -34,7 +34,7 @@ export default function EmConstrucao() {
         <p>
           <strong>{rotulo}</strong> ainda não foi construida.
         </p>
-        <p>A base (login, layout e o padrao de tela) ja esta pronta para receber ela.</p>
+        <p>A base (login, layout e o padrão de tela) já esta pronta para receber ela.</p>
       </div>
     </Cartao>
   );

@@ -20,7 +20,7 @@ import { data, numero } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
 
 const SITUACOES = [
-  { valor: "VALIDO", rotulo: "Valido" },
+  { valor: "VALIDO", rotulo: "Válido" },
   { valor: "VENCENDO", rotulo: "Vencendo" },
   { valor: "VENCIDO", rotulo: "Vencido" },
   { valor: "INATIVO", rotulo: "Inativo" },
@@ -149,8 +149,8 @@ export default function Documentos() {
         </span>
       ),
     },
-    { chave: "numero_documento", rotulo: "No / Referencia", render: (d) => d.numero_documento || "-" },
-    { chave: "data_emissao", rotulo: "Emissao", ordenavel: true, render: (d) => data(d.data_emissao) },
+    { chave: "numero_documento", rotulo: "No / Referência", render: (d) => d.numero_documento || "-" },
+    { chave: "data_emissao", rotulo: "Emissão", ordenavel: true, render: (d) => data(d.data_emissao) },
     {
       chave: "data_validade", rotulo: "Vencimento", ordenavel: true,
       render: (d) => {
@@ -163,11 +163,11 @@ export default function Documentos() {
         );
       },
     },
-    { chave: "responsavel", rotulo: "Responsavel", render: (d) => d.responsavel || "-" },
+    { chave: "responsavel", rotulo: "Responsável", render: (d) => d.responsavel || "-" },
     { chave: "status", rotulo: "Situação", ordenavel: true, render: (d) => <Selo valor={d.status} /> },
     {
       chave: "bloqueia_veiculo", rotulo: "Bloqueia",
-      render: (d) => (d.bloqueia_veiculo ? <Selo texto="Bloqueia" tom="vermelho" /> : "-"),
+      render: (d) => (d.bloqueia_veículo ? <Selo texto="Bloqueia" tom="vermelho" /> : "-"),
     },
     {
       chave: "ações", rotulo: "Ações",
@@ -191,7 +191,7 @@ export default function Documentos() {
     <PaginaLista
       trilha={[{ rotulo: "Frotas" }, { rotulo: "Documentos" }]}
       titulo="Documentos"
-      descricao="Gerencie todos os documentos da frota em um unico lugar."
+      descricao="Gerencie todos os documentos da frota em um único lugar."
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={() => navegar("/frotas/documentos/novo")}>
@@ -214,7 +214,7 @@ export default function Documentos() {
       vazio="Nenhum documento encontrado com esses filtros."
       filtros={
         <>
-          <Texto rotulo="Buscar" id="busca" placeholder="Placa, tipo ou numero"
+          <Texto rotulo="Buscar" id="busca" placeholder="Placa, tipo ou número"
                  value={lista.filtros.busca}
                  onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
           <Selecao rotulo="Veículo" id="veículo" vazio="Todos os veículos"
@@ -240,7 +240,7 @@ export default function Documentos() {
             <>
               <button className="botao" onClick={() => setEditando(null)}>Cancelar</button>
               <button className="botao botao--primario" form="form-doc" disabled={salvando}>
-                {salvando ? "Salvando..." : "Salvar documento"}
+                <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : "Salvar documento"}
               </button>
             </>
           }
@@ -258,9 +258,9 @@ export default function Documentos() {
                      opcoes={CATEGORIAS.map((c) => ({ valor: c, rotulo: c }))}
                      {...campo("categoria")} />
             <Texto rotulo="Nº / Referência" id="numero_documento" {...campo("numero_documento")}  placeholder="Ex.: 01567890123"/>
-            <Data rotulo="Data de emissao" id="data_emissao" {...campo("data_emissao")} />
+            <Data rotulo="Data de emissão" id="data_emissao" {...campo("data_emissao")} />
             <Data rotulo="Data de vencimento" id="data_validade" {...campo("data_validade")} />
-            <Selecao rotulo="Responsavel" id="id_responsavel" vazio="Sem responsavel"
+            <Selecao rotulo="Responsável" id="id_responsavel" vazio="Sem responsável"
                      opcoes={servidores.map((s) => ({ valor: s.id_servidor, rotulo: s.nome }))}
                      {...campo("id_responsavel")} />
             <Selecao rotulo="Situação" id="status" opcoes={SITUACOES} {...campo("status")} />

@@ -28,10 +28,7 @@ export default function InspeçãoDetalhe() {
   const [erro, setErro] = useState("");
 
   useEffect(() => {
-    definirCabecalho({
-      titulo: "Detalhes da inspeção",
-      legenda: "Itens verificados, resultado e historico.",
-    });
+    definirCabecalho({ titulo: "", legenda: "" });
   }, [definirCabecalho]);
 
   useEffect(() => {
@@ -49,7 +46,7 @@ export default function InspeçãoDetalhe() {
       rotulo: "Data da inspeção", valor: data(inspeção.data_realizacao),
       nota: hora(inspeção.hora_inicio), icone: "calendar",
     },
-    { rotulo: "Responsavel", valor: inspeção.responsavel, icone: "user" },
+    { rotulo: "Responsável", valor: inspeção.responsavel, icone: "user" },
     {
       rotulo: "Situação",
       valor: inspeção.status === "ABERTA" ? "Pendente" : "Concluida",
@@ -128,9 +125,9 @@ export default function InspeçãoDetalhe() {
               <tr>
                 <th>Item verificado</th>
                 <th className="coluna-marca">Conforme</th>
-                <th className="coluna-marca">Atencao</th>
-                <th className="coluna-marca">Nao conforme</th>
-                <th>Observacao</th>
+                <th className="coluna-marca">Atenção</th>
+                <th className="coluna-marca">Não conforme</th>
+                <th>Observação</th>
               </tr>
             </thead>
             <tbody>
@@ -164,7 +161,7 @@ export default function InspeçãoDetalhe() {
           </p>
         </Cartao>
 
-        <Cartao titulo="Historico da inspeção">
+        <Cartao titulo="Histórico da inspeção">
           <ol className="linha-tempo">
             <li>
               <span className="linha-tempo__ponto" data-tom="verde" />

@@ -56,7 +56,9 @@ button { font: inherit; cursor: pointer; }
   gap: 12px;
   padding: 22px 20px 26px;
 }
-.lateral__marca img { width: 40px; height: 40px; flex: none; }
+/* A logo e uma imagem so, na proporcao dela: largura livre, altura pelo
+   conteudo. Fixar 40x40 esmagaria a marca inteira num quadrado. */
+.lateral__marca img { width: 100%; max-width: 200px; height: auto; display: block; }
 .lateral__nome {
   font-size: 26px;
   font-weight: 700;
@@ -134,12 +136,17 @@ button { font: inherit; cursor: pointer; }
   gap: 20px;
   padding: 0 28px;
   min-height: var(--topo-altura);
-  background: var(--superficie);
-  border-bottom: 1px solid var(--borda);
+  /* Sem fundo proprio e sem borda: a barra do topo deixa de ser uma "fita"
+     colada acima da pagina e passa a ser parte dela. O que sustenta a
+     separacao visual agora sao os cartoes, que tem borda propria. */
+  background: var(--fundo);
   position: sticky;
   top: 0;
   z-index: 20;
 }
+/* Ocupa o lugar do titulo quando a tela nao publica um, para o sino e o
+   usuario continuarem encostados a direita. */
+.topo__vazio { flex: 1; }
 .topo__botao-menu {
   background: none;
   border: none;
@@ -153,8 +160,10 @@ button { font: inherit; cursor: pointer; }
    e fixa, e um botao que nao muda nada e pior do que botao nenhum. */
 .topo__botao-menu { display: none; }
 @media (max-width: 900px) { .topo__botao-menu { display: flex; } }
-.topo__titulo { font-size: 21px; font-weight: 700; line-height: 1.2; }
-.topo__legenda { font-size: 13.5px; color: var(--texto-2); margin-top: 2px; }
+/* A saudacao do painel ("Boa tarde, Luciano!") ocupava 21px de titulo grande
+   numa barra que existe para dar contexto, nao para ser a manchete da tela. */
+.topo__titulo { font-size: 16.5px; font-weight: 600; line-height: 1.25; }
+.topo__legenda { font-size: 12.5px; color: var(--texto-2); margin-top: 1px; }
 .topo__busca {
   margin-left: auto;
   display: flex;
@@ -303,7 +312,16 @@ button { font: inherit; cursor: pointer; }
   font-weight: 600;
   color: var(--amarelo-escuro);
 }
+/* O padding de cima e ZERO porque, normalmente, quem da esse respiro e o
+   .cartao__topo logo acima - o cabecalho com o titulo do cartao.
+   Quando o cartao NAO recebe titulo, o Cartao.jsx nao desenha o cabecalho e o
+   corpo vira o primeiro filho: ai o conteudo encostava na borda de cima. Era
+   o que acontecia nas telas de QR Code, que trazem o proprio titulo dentro do
+   corpo - por isso "Informacoes do Veiculo" e "Como utilizar" apareciam
+   colados no topo, enquanto Detalhes do Veiculo, que passa titulo, estava
+   certo. */
 .cartao__corpo { padding: 0 20px 18px; }
+.cartao__corpo:first-child { padding-top: 20px; }
 
 /* ---------- KPIs ---------- */
 
@@ -909,7 +927,7 @@ button { font: inherit; cursor: pointer; }
   gap: 18px;
 }
 .login__logo { display: flex; align-items: center; gap: 16px; }
-.login__logo img { width: 64px; height: 64px; }
+.login__logo img { width: 100%; max-width: 340px; height: auto; display: block; }
 .login__logo-nome { font-size: 44px; font-weight: 700; letter-spacing: 0.06em; line-height: 1; }
 .login__logo-sub {
   font-size: 12px;
@@ -2151,3 +2169,31 @@ button { font: inherit; cursor: pointer; }
 }
 .qr-momento__rotulo { font-size: var(--t-sm); color: var(--texto-2); }
 .qr-momento__valor { font-size: var(--t-md); color: var(--texto); }
+
+/* ============================================================
+   RODAPE DA TELA DE QR CODE
+   Texto a esquerda, arte a direita. No celular a arte desce para baixo do
+   texto - lado a lado, num aparelho estreito, os dois ficariam ilegiveis.
+   ============================================================ */
+.qr-rodape {
+  display: grid;
+  grid-template-columns: 1fr minmax(200px, 320px);
+  gap: var(--e-5);
+  align-items: center;
+  margin-top: var(--e-5);
+  padding-top: var(--e-5);
+  border-top: 1px solid var(--borda);
+}
+.qr-rodape__texto strong { display: block; font-size: var(--t-md); color: var(--texto); }
+.qr-rodape__texto p {
+  margin: var(--e-2) 0 0;
+  font-size: var(--t-sm);
+  color: var(--texto-2);
+  line-height: 1.5;
+  max-width: 52ch;
+}
+.qr-rodape__arte { width: 100%; height: auto; display: block; }
+
+@media (max-width: 700px) {
+  .qr-rodape { grid-template-columns: 1fr; }
+}

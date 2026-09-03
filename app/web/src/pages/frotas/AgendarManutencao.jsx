@@ -36,7 +36,7 @@ export default function AgendarManutencao() {
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
-    definirCabecalho({ titulo: "Agendar manutenção", legenda: "Preencha as informações para agendar uma nova manutenção." });
+    definirCabecalho({ titulo: "", legenda: "" });
     api("/frotas/veiculos/opcoes").then(setVeiculos).catch(() => {});
   }, [definirCabecalho]);
 

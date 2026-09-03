@@ -186,7 +186,7 @@ export default function Sinistros() {
       vazio="Nenhum sinistro encontrado com esses filtros."
       filtros={
         <>
-          <Texto rotulo="Buscar" id="busca" placeholder="Placa, local, numero ou B.O."
+          <Texto rotulo="Buscar" id="busca" placeholder="Placa, local, número ou B.O."
                  value={lista.filtros.busca}
                  onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
           <Selecao rotulo="Veículo" id="veiculo" vazio="Todos os veículos"
@@ -201,7 +201,7 @@ export default function Sinistros() {
                    onChange={(e) => lista.alterarFiltro("status", e.target.value)} />
           <Data rotulo="De" id="dataDe" value={lista.filtros.dataDe}
                 onChange={(e) => lista.alterarFiltro("dataDe", e.target.value)} />
-          <Data rotulo="Ate" id="dataAte" value={lista.filtros.dataAte}
+          <Data rotulo="Até" id="dataAte" value={lista.filtros.dataAte}
                 onChange={(e) => lista.alterarFiltro("dataAte", e.target.value)} />
         </>
       }
@@ -209,14 +209,14 @@ export default function Sinistros() {
       {registrando && (
         <Modal
           titulo="Registrar sinistro"
-          legenda="Quando necessario, mude a situação do veículo depois do registro."
+          legenda="Quando necessário, mude a situação do veículo depois do registro."
           largura={720}
           aoFechar={() => setRegistrando(false)}
           rodape={
             <>
               <button className="botao" onClick={() => setRegistrando(false)}>Cancelar</button>
               <button className="botao botao--primario" form="form-sinistro" disabled={salvando}>
-                {salvando ? "Salvando..." : "Registrar sinistro"}
+                <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : "Registrar sinistro"}
               </button>
             </>
           }

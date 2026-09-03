@@ -32,7 +32,7 @@ export default function VeículoDetalhe() {
   const [erro, setErro] = useState("");
 
   useEffect(() => {
-    definirCabecalho({ titulo: "Detalhes do veículo", legenda: "Ficha completa e historico." });
+    definirCabecalho({ titulo: "", legenda: "" });
   }, [definirCabecalho]);
 
   useEffect(() => {
@@ -112,7 +112,7 @@ export default function VeículoDetalhe() {
           </dl>
         </Cartao>
 
-        <Cartao titulo="Historico do veículo">
+        <Cartao titulo="Histórico do veículo">
           <ol className="linha-tempo linha-tempo--rolagem">
             {historico.map((h, i) => {
               const origem = ROTULO_ORIGEM[h.origem] || { texto: h.origem, tom: "azul" };
@@ -140,18 +140,21 @@ export default function VeículoDetalhe() {
         <p className="texto-corrido">{veículo.observacoes || "Nenhuma observacao registrada."}</p>
       </Cartao>
 
+      {/* Os quatro atalhos levam o veiculo no endereco (?veiculo=id) e a tela
+          de destino abre JA filtrada. Antes iam para a lista inteira: o atalho
+          "deste veiculo" mostrava os registros de todos. */}
       <Cartao titulo="Atalhos deste veículo">
         <div className="acoes-rapidas">
-          <Link className="acao-rapida" to={`/frotas/checklists?veículo=${id}`}>
+          <Link className="acao-rapida" to={`/frotas/checklists?veiculo=${id}`}>
             <Icone nome="checklist" tamanho={20} /> Checklists
           </Link>
-          <Link className="acao-rapida" to={`/frotas/documentos?veículo=${id}`}>
+          <Link className="acao-rapida" to={`/frotas/documentos?veiculo=${id}`}>
             <Icone nome="nav-gestao" tamanho={20} /> Documentos
           </Link>
-          <Link className="acao-rapida" to="/frotas/inspecoes">
+          <Link className="acao-rapida" to={`/frotas/inspecoes?veiculo=${id}`}>
             <Icone nome="calendar" tamanho={20} /> Inspeções
           </Link>
-          <Link className="acao-rapida" to="/frotas/manutencoes">
+          <Link className="acao-rapida" to={`/frotas/manutencoes?veiculo=${id}`}>
             <Icone nome="kpi-wrench" tamanho={20} /> Manutenções
           </Link>
         </div>

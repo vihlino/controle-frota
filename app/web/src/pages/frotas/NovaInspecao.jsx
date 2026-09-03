@@ -28,7 +28,7 @@ export default function NovaInspecao() {
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
-    definirCabecalho({ titulo: "Nova inspeção", legenda: "Agende uma nova inspeção periódica para o veículo." });
+    definirCabecalho({ titulo: "", legenda: "" });
     api("/frotas/veiculos/opcoes").then(setVeiculos).catch(() => {});
     api("/usuarios?porPagina=200").then((r) => setUsuarios(r.itens)).catch(() => {});
   }, [definirCabecalho]);

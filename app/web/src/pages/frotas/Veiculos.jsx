@@ -24,7 +24,7 @@ const SITUACOES = [
   { valor: "DISPONIVEL", rotulo: "Regular" },
   { valor: "EM_USO", rotulo: "Em uso" },
   { valor: "EM_MANUTENCAO", rotulo: "Em manutenção" },
-  { valor: "INATIVO", rotulo: "Indisponivel" },
+  { valor: "INATIVO", rotulo: "Indisponível" },
 ];
 const TIPOS = [
   { valor: "AUTOMOVEL", rotulo: "Carro" },
@@ -155,8 +155,8 @@ export default function Veículos() {
           acoes={[
             { rotulo: "Visualizar detalhes", aoClicar: () => navegar(`/frotas/veiculos/${v.id_veiculo}`) },
             ...(podeGerenciar ? [{ rotulo: "Editar veículo", aoClicar: () => abrirEdicao(v) }] : []),
-            { rotulo: "Historico", aoClicar: () => navegar(`/frotas/checklists?veículo=${v.id_veiculo}`) },
-            { rotulo: "Documentos", aoClicar: () => navegar(`/frotas/documentos?veículo=${v.id_veiculo}`) },
+            { rotulo: "Histórico", aoClicar: () => navegar(`/frotas/checklists?veiculo=${v.id_veiculo}`) },
+            { rotulo: "Documentos", aoClicar: () => navegar(`/frotas/documentos?veiculo=${v.id_veiculo}`) },
             { rotulo: "QR Code", aoClicar: () => navegar(`/frotas/veiculos/${v.id_veiculo}/qrcode`) },
             ...(podeGerenciar
               ? [{ rotulo: "Excluir veículo", perigo: true, aoClicar: () => excluir(v) }]
@@ -217,37 +217,46 @@ export default function Veículos() {
             <>
               <button className="botao" onClick={() => setEditando(null)}>Cancelar</button>
               <button className="botao botao--primario" form="form-veículo" disabled={salvando}>
-                {salvando ? "Salvando..." : "Salvar veículo"}
+                <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : "Salvar veículo"}
               </button>
             </>
           }
         >
           {erroForm && <div className="login__erro">{erroForm}</div>}
           <form id="form-veículo" className="formulario-grade" onSubmit={salvar}>
-            <Texto rotulo="Placa *" id="placa" required maxLength={10} {...campo("placa")}  placeholder="Ex.: ABC-1D23"/>
-            <Texto rotulo="Marca *" id="marca" required {...campo("marca")}  placeholder="Ex.: Chevrolet"/>
-            <Texto rotulo="Modelo *" id="modelo" required {...campo("modelo")}  placeholder="Ex.: S10 LS 2.8"/>
-            <Texto rotulo="Renavam" id="renavam" {...campo("renavam")}  placeholder="Ex.: 01234567890"/>
-            <Texto rotulo="Chassi" id="chassi" {...campo("chassi")}  placeholder="Ex.: 9BG1489NK0JC123456"/>
+            {/* Tres blocos, na ordem em que a pessoa tem a informacao na mao:
+                o que esta no documento do veiculo, depois onde ele fica dentro
+                da CMTT, e por fim o que nao cabe em campo nenhum. Os campos
+                sem "*" sao opcionais - e isso esta dito no proprio rotulo, e
+                nao so na validacao, para a pessoa saber ANTES de travar. */}
+            <h3 className="formulario__secao">Dados gerais</h3>
+            <Texto rotulo="Placa *" id="placa" required maxLength={10} {...campo("placa")} placeholder="Ex.: ABC-1D23" />
+            <Texto rotulo="Marca *" id="marca" required {...campo("marca")} placeholder="Ex.: Chevrolet" />
+            <Texto rotulo="Modelo *" id="modelo" required {...campo("modelo")} placeholder="Ex.: S10 LS 2.8" />
+            <Texto rotulo="Renavam (opcional)" id="renavam" {...campo("renavam")} placeholder="Ex.: 01234567890" />
+            <Texto rotulo="Chassi (opcional)" id="chassi" {...campo("chassi")} placeholder="Ex.: 9BG1489NK0JC123456" />
             <Texto rotulo="Ano de fabricação *" id="ano_fabricacao" type="number"
-                   min="1900" max="2100" required {...campo("ano_fabricacao")}  placeholder="Ex.: 2022"/>
+                   min="1900" max="2100" required {...campo("ano_fabricacao")} placeholder="Ex.: 2022" />
             <Texto rotulo="Ano modelo *" id="ano_modelo" type="number"
-                   min="1900" max="2100" required {...campo("ano_modelo")}  placeholder="Ex.: 2022"/>
-            <Texto rotulo="Cor *" id="cor" required {...campo("cor")}  placeholder="Ex.: Branco"/>
-            <Selecao rotulo="Tipo de veículo *" id="tipo_veiculo" required
-                     opcoes={TIPOS} {...campo("tipo_veiculo")} />
-            <Selecao rotulo="Combustível *" id="tipo_combustivel" required
+                   min="1900" max="2100" required {...campo("ano_modelo")} placeholder="Ex.: 2022" />
+            <Texto rotulo="Cor (opcional)" id="cor" {...campo("cor")} placeholder="Ex.: Branco" />
+            <Selecao rotulo="Combustível (opcional)" id="tipo_combustivel"
                      opcoes={COMBUSTIVEIS.map((c) => ({ valor: c, rotulo: c }))}
                      {...campo("tipo_combustivel")} />
-            <Texto rotulo="Capacidade" id="capacidade" placeholder="Ex.: 5 lugares"
-                   {...campo("capacidade")} />
-            <Texto rotulo="Quilometragem atual" id="quilometragem_atual" type="number" min="0"
-                   {...campo("quilometragem_atual")}  placeholder="Ex.: 45230"/>
+            <Selecao rotulo="Tipo de veículo *" id="tipo_veiculo" required
+                     opcoes={TIPOS} {...campo("tipo_veiculo")} />
+            <Texto rotulo="Odômetro atual" id="quilometragem_atual" type="number" min="0"
+                   {...campo("quilometragem_atual")} placeholder="Ex.: 45230" />
+
+            <h3 className="formulario__secao">Vinculações</h3>
             <Selecao rotulo="Setor *" id="id_setor" required vazio="Selecione"
                      opcoes={setores.map((s) => ({ valor: s.id_setor, rotulo: s.nome }))}
                      {...campo("id_setor")} />
-            <Selecao rotulo="Situação" id="status" opcoes={SITUACOES} {...campo("status")} />
-            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")}  placeholder="Ex.: Veículo com adesivagem da CMTT"/>
+            <Selecao rotulo="Situação (opcional)" id="status" opcoes={SITUACOES} {...campo("status")} />
+
+            <h3 className="formulario__secao">Observações</h3>
+            <Area rotulo="Observações (opcional)" id="observacoes" largo {...campo("observacoes")}
+                  placeholder="Ex.: Veículo com adesivagem da CMTT" />
           </form>
         </Modal>
       )}

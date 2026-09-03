@@ -49,7 +49,11 @@
   --marca-texto:  #B45309;  /* texto ambar sobre fundo claro (passa em AA) */
 
   /* --------------------------------------------------------- superficies */
-  --fundo:        #F9FAFB;  /* o cinza atras de tudo */
+  /* Branco, e nao mais o cinza #F9FAFB. Com a barra do topo sem borda, um
+     fundo cinza atras dela ainda desenhava a "fita" que queriamos tirar - a
+     emenda aparecia como mudanca de cor. Os cartoes tem borda propria, entao
+     a leitura da tela nao depende desse cinza. */
+  --fundo:        #FFFFFF;
   --superficie:   #FFFFFF;  /* cartao, tabela, modal */
   --superficie-2: #F9FAFB;  /* cabecalho de tabela, linha zebrada */
   --superficie-3: #F3F4F6;  /* campo desabilitado, chip neutro */

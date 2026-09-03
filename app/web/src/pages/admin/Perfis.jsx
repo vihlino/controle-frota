@@ -29,10 +29,7 @@ export default function Perfis() {
   const podeEditar = podeVer("PERFIL_EDITAR");
 
   useEffect(() => {
-    definirCabecalho({
-      titulo: "Perfis e Permissões",
-      legenda: "Defina o que cada perfil pode ver e fazer.",
-    });
+    definirCabecalho({ titulo: "", legenda: "" });
   }, [definirCabecalho]);
 
   useEffect(() => {
@@ -96,7 +93,7 @@ export default function Perfis() {
         </div>
         {podeEditar && escolhido && (
           <button className="botao botao--primario" onClick={salvar} disabled={salvando}>
-            {salvando ? "Salvando..." : `Salvar permissões de ${escolhido.nome}`}
+            <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : `Salvar permissões de ${escolhido.nome}`}
           </button>
         )}
       </div>

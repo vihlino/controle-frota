@@ -363,6 +363,7 @@ export default function criarPagina(config) {
                     permite deixar o botao no rodape do modal, fora do
                     formulario, sem perder o envio nem a validacao do HTML. */}
                 <button className="botao botao--primario" form="form-pagina" disabled={salvando}>
+                  <Icone nome="salvar" tamanho={16} monocromatico />{" "}
                   {salvando ? "Salvando..." : config.rotuloSalvar || "Salvar"}
                 </button>
               </>

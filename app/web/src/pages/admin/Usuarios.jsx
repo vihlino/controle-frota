@@ -129,7 +129,7 @@ export default function Usuários() {
         ),
     },
     {
-      chave: "ultimo_acesso", rotulo: "Ultimo acesso", ordenavel: true,
+      chave: "ultimo_acesso", rotulo: "Último acesso", ordenavel: true,
       render: (u) => (u.ultimo_acesso ? dataHora(u.ultimo_acesso) : "Nunca acessou"),
     },
     {
@@ -165,7 +165,7 @@ export default function Usuários() {
     <PaginaLista
       trilha={[{ rotulo: "Administração" }, { rotulo: "Usuários" }]}
       titulo="Usuários"
-      descricao="Quem acessa o SITRA, com qual perfil e quando entrou pela ultima vez."
+      descricao="Quem acessa o SITRA, com qual perfil e quando entrou pela última vez."
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={() => setCriando(true)}>
@@ -200,7 +200,7 @@ export default function Usuários() {
       {criando && (
         <Modal
           titulo="Novo usuário"
-          legenda="O acesso e criado a partir de um servidor ja cadastrado."
+          legenda="O acesso e criado a partir de um servidor já cadastrado."
           aoFechar={() => setCriando(false)}
           rodape={
             <>
@@ -215,7 +215,7 @@ export default function Usuários() {
           <form id="form-usuário" className="formulario-grade" onSubmit={criar}>
             <Selecao rotulo="Servidor *" id="id_servidor" required vazio="Selecione" largo
                      opcoes={servidores.map((s) => ({
-                       valor: s.id_servidor, rotulo: `${s.nome} - ${s.matrícula}`,
+                       valor: s.id_servidor, rotulo: `${s.nome} - ${s.matricula}`,
                      }))}
                      value={formulario.id_servidor}
                      onChange={(e) =>
@@ -247,7 +247,7 @@ export default function Usuários() {
             <>
               <button className="botao" onClick={() => setTrocandoSenha(null)}>Cancelar</button>
               <button className="botao botao--primario" form="form-senha" disabled={salvando}>
-                {salvando ? "Salvando..." : "Salvar nova senha"}
+                <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : "Salvar nova senha"}
               </button>
             </>
           }

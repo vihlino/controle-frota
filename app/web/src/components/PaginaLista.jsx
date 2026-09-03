@@ -41,9 +41,12 @@ export default function PaginaLista({
   // por aplicar. Ficou so o "Limpar", que faz uma coisa que ninguem consegue
   // fazer sozinho: zerar todos os campos de uma vez.
 
+  // Limpa o cabecalho do topo em vez de repetir o titulo: esta tela ja desenha
+  // titulo, trilha e descricao logo abaixo. Sem isto, o titulo aparecia duas
+  // vezes, uma embaixo da outra.
   useEffect(() => {
-    definirCabecalho({ titulo, legenda: descricao });
-  }, [definirCabecalho, titulo, descricao]);
+    definirCabecalho({ titulo: "", legenda: "" });
+  }, [definirCabecalho]);
 
   const { resultado, carregando, erro, pagina, setPagina, porPagina, setPorPagina,
           ordem, ordenarPor, limpar } = lista;

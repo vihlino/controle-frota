@@ -23,7 +23,7 @@ export default criarPagina({
   mapaOpcoes: {},
   colunas: [
     { chave: "nome", rotulo: "Setor", ordenavel: true },
-    { chave: "descricao", rotulo: "Descricao", render: (s) => s.descricao || "-" },
+    { chave: "descricao", rotulo: "Descrição", render: (s) => s.descricao || "-" },
     { chave: "servidores", rotulo: "Servidores", render: (s) => numero(s.servidores) },
     { chave: "veiculos", rotulo: "Veículos", render: (s) => numero(s.veiculos) },
     {
@@ -34,7 +34,7 @@ export default criarPagina({
     },
   ],
   filtros: [
-    { nome: "busca", rotulo: "Buscar", dica: "Nome ou descricao" },
+    { nome: "busca", rotulo: "Buscar", dica: "Nome ou descrição" },
     {
       nome: "status", rotulo: "Situação", tipo: "selecao", vazio: "Todos",
       opcoes: [{ valor: "true", rotulo: "Ativo" }, { valor: "false", rotulo: "Inativo" }],

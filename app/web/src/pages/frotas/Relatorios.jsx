@@ -78,7 +78,7 @@ export default function Relatórios() {
       render: (r) => <Selo texto={r.tipo.replace(/_/g, " ")} tom="amarelo" />,
     },
     {
-      chave: "periodo", rotulo: "Periodo",
+      chave: "periodo", rotulo: "Período",
       render: (r) => `${data(r.periodo_inicio)} a ${data(r.periodo_fim)}`,
     },
     { chave: "data_geracao", rotulo: "Gerado em", render: (r) => dataHora(r.data_geracao) },
@@ -179,7 +179,7 @@ export default function Relatórios() {
       {gerando && (
         <Modal
           titulo="Gerar relatório"
-          legenda="Escolha o periodo e o tipo. Cada tipo tem um modelo padrao."
+          legenda="Escolha o período e o tipo. Cada tipo tem um modelo padrão."
           aoFechar={() => setGerando(false)}
           rodape={
             <>

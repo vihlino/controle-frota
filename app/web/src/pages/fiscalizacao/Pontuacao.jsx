@@ -42,7 +42,7 @@ export default criarPagina({
     },
   ],
   filtros: [
-    { nome: "busca", rotulo: "Buscar", dica: "Código, nome ou descricao" },
+    { nome: "busca", rotulo: "Buscar", dica: "Código, nome ou descrição" },
     {
       nome: "ativo", rotulo: "Situação", tipo: "selecao", vazio: "Todos",
       opcoes: [{ valor: "true", rotulo: "Ativo" }, { valor: "false", rotulo: "Inativo" }],

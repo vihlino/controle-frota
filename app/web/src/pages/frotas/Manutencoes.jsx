@@ -9,7 +9,7 @@
  * nem cancelada.
  */
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
@@ -27,7 +27,7 @@ const TIPOS = [
 ];
 const PRIORIDADES = [
   { valor: "BAIXA", rotulo: "Baixa" },
-  { valor: "MEDIA", rotulo: "Media" },
+  { valor: "MEDIA", rotulo: "Média" },
   { valor: "ALTA", rotulo: "Alta" },
 ];
 const SITUACOES = [
@@ -40,8 +40,9 @@ const SITUACOES = [
 export default function Manutenções() {
   const navegar = useNavigate();
   const { podeVer, usuario } = useSessao();
+  const [parametros] = useSearchParams();
   const lista = useLista("frotas/manutencoes", {
-    busca: "", veiculo: "", status: "", tipo: "", gravidade: "", dataDe: "", dataAte: "",
+    busca: "", veiculo: parametros.get("veiculo") || "", status: "", tipo: "", gravidade: "", dataDe: "", dataAte: "",
   });
   const [veículos, setVeículos] = useState([]);
   const [usuários, setUsuários] = useState([]);
@@ -125,7 +126,7 @@ export default function Manutenções() {
       ),
     },
     { chave: "tipo", rotulo: "Tipo", render: (o) => rotulo("tipoOs", o.tipo) },
-    { chave: "descricao", rotulo: "Descricao", render: (o) => o.descricao || o.serviço_realizado || "-" },
+    { chave: "descricao", rotulo: "Descrição", render: (o) => o.descricao || o.serviço_realizado || "-" },
     { chave: "oficina", rotulo: "Oficina", render: (o) => o.oficina || "-" },
     {
       chave: "quilometragem", rotulo: "KM atual",
@@ -181,7 +182,7 @@ export default function Manutenções() {
       vazio="Nenhuma manutenção encontrada com esses filtros."
       filtros={
         <>
-          <Texto rotulo="Buscar" id="busca" placeholder="Placa, descricao ou oficina"
+          <Texto rotulo="Buscar" id="busca" placeholder="Placa, descrição ou oficina"
                  value={lista.filtros.busca}
                  onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
           <Selecao rotulo="Veículo" id="veiculo" vazio="Todos os veículos"
@@ -199,7 +200,7 @@ export default function Manutenções() {
                    onChange={(e) => lista.alterarFiltro("gravidade", e.target.value)} />
           <Data rotulo="De" id="dataDe" value={lista.filtros.dataDe}
                 onChange={(e) => lista.alterarFiltro("dataDe", e.target.value)} />
-          <Data rotulo="Ate" id="dataAte" value={lista.filtros.dataAte}
+          <Data rotulo="Até" id="dataAte" value={lista.filtros.dataAte}
                 onChange={(e) => lista.alterarFiltro("dataAte", e.target.value)} />
         </>
       }
@@ -214,7 +215,7 @@ export default function Manutenções() {
             <>
               <button className="botao" onClick={() => setAgendando(false)}>Cancelar</button>
               <button className="botao botao--primario" form="form-os" disabled={salvando}>
-                {salvando ? "Salvando..." : "Agendar manutenção"}
+                <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : "Agendar manutenção"}
               </button>
             </>
           }

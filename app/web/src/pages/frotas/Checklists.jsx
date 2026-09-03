@@ -180,7 +180,7 @@ export default function Checklists() {
           />
           <Data rotulo="De" id="dataDe" value={lista.filtros.dataDe}
                 onChange={(e) => lista.alterarFiltro("dataDe", e.target.value)} />
-          <Data rotulo="Ate" id="dataAte" value={lista.filtros.dataAte}
+          <Data rotulo="Até" id="dataAte" value={lista.filtros.dataAte}
                 onChange={(e) => lista.alterarFiltro("dataAte", e.target.value)} />
         </>
       }

@@ -5,6 +5,7 @@
  * ja aparece na aba certa, sem mexer no código.
  */
 import { useEffect, useState } from "react";
+import Icone from "../../components/Icone.jsx";
 import { useOutletContext } from "react-router-dom";
 import Cartao from "../../components/Cartao.jsx";
 import Trilha from "../../components/Trilha.jsx";
@@ -42,10 +43,7 @@ export default function Parâmetros() {
   const podeEditar = podeVer("ADMIN_GERENCIAR_PARAMETROS");
 
   useEffect(() => {
-    definirCabecalho({
-      titulo: "Parâmetros do Sistema",
-      legenda: "Comportamentos configuraveis do SITRA.",
-    });
+    definirCabecalho({ titulo: "", legenda: "" });
   }, [definirCabecalho]);
 
   function carregar() {
@@ -152,7 +150,7 @@ export default function Parâmetros() {
                       {editando === p.id_parametro ? (
                         <span className="acoes-linha">
                           <button className="botao botao--pequeno botao--primario"
-                                  onClick={() => salvar(p)}>Salvar</button>
+                                  onClick={() => salvar(p)}><Icone nome="salvar" tamanho={14} monocromatico /> Salvar</button>
                           <button className="botao botao--pequeno"
                                   onClick={() => setEditando(null)}>Cancelar</button>
                         </span>

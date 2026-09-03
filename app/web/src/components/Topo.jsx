@@ -58,10 +58,18 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
         <Icone nome="menu" tamanho={24} />
       </button>
 
-      <div>
-        <div className="topo__titulo">{titulo}</div>
-        {legenda && <div className="topo__legenda">{legenda}</div>}
-      </div>
+      {/* As telas de lista ja tem o proprio cabecalho, com trilha, titulo e
+          botao de acao. Repetir o titulo aqui em cima era dizer a mesma coisa
+          duas vezes, uma embaixo da outra. Quem nao tem cabecalho proprio - o
+          painel, com a saudacao - publica o titulo e ele aparece aqui. */}
+      {titulo ? (
+        <div>
+          <div className="topo__titulo">{titulo}</div>
+          {legenda && <div className="topo__legenda">{legenda}</div>}
+        </div>
+      ) : (
+        <div className="topo__vazio" />
+      )}
 
       {/* Este wrapper e quem empurra o sino e o usuario para a direita
           (margin-left: auto no CSS). O empurrao NAO pode ficar no botao:
