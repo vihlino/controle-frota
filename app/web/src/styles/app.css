@@ -59,11 +59,21 @@ button { font: inherit; cursor: pointer; }
    uma faixa so dele - senao os KPIs passariam por baixo do texto. */
 .conteudo[data-cabecalho="sim"] .pagina { padding-top: var(--topo-altura); }
 
-/* Reserva a faixa da direita para o sino e o usuario, que agora flutuam sobre
-   o inicio da pagina. Sem isso o botao de acao da tela ("Novo veiculo")
-   entraria embaixo deles. */
-.cabecalho-pagina { padding-right: 300px; }
-@media (max-width: 900px) { .cabecalho-pagina { padding-right: 0; } }
+/* O botao de acao vai para a borda DIREITA da tela, abaixo do bloco do
+   usuario - nao empurrado 300px para dentro, como estava. O que garante que
+   ele nao suba por cima do usuario e a altura minima do cabecalho: o bloco do
+   usuario ocupa cerca de 60px, e o botao fica alinhado embaixo. */
+.cabecalho-pagina { min-height: 84px; }
+@media (max-width: 900px) { .cabecalho-pagina { min-height: 0; } }
+
+/* Menores que os botoes do corpo da pagina: aqui eles sao a acao da tela, e
+   nao o assunto dela - o titulo e. */
+.cabecalho-pagina .botao,
+.cabecalho-pagina__acoes .botao {
+  padding: 8px 14px;
+  font-size: 13.5px;
+  gap: 7px;
+}
 
 /* ---------- barra lateral ---------- */
 

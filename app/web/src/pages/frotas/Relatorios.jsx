@@ -43,7 +43,7 @@ export default function Relatórios() {
   const podeGerar = podeVer("RELATORIOS_GERAR");
 
   useEffect(() => {
-    api("/relatorios/tipos").then(setTipos).catch(() => {});
+    api("/relatorios/tipos").then((r) => setTipos(Array.isArray(r) ? r : [])).catch(() => {});
   }, []);
 
   async function gerar(e) {

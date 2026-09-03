@@ -38,7 +38,7 @@ export default function VeículoDetalhe() {
   useEffect(() => {
     api(`/frotas/veiculos/${id}`).then(setVeículo).catch((e) => setErro(e.message));
     api(`/frotas/veiculos/${id}/resumo`).then(setResumo).catch(() => {});
-    api(`/frotas/veiculos/${id}/historico`).then(setHistorico).catch(() => {});
+    api(`/frotas/veiculos/${id}/historico`).then((r) => setHistorico(Array.isArray(r) ? r : [])).catch(() => {});
   }, [id]);
 
   if (erro) return <Cartao><div className="vazio">{erro}</div></Cartao>;

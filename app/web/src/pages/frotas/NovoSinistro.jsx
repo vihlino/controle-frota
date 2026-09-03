@@ -64,7 +64,7 @@ export default function NovoSinistro() {
 
   useEffect(() => {
     definirCabecalho({ titulo: "", legenda: "" });
-    api("/frotas/veiculos/opcoes").then(setVeiculos).catch(() => {});
+    api("/frotas/veiculos/opcoes").then((r) => setVeiculos(Array.isArray(r) ? r : [])).catch(() => {});
     api("/admin/servidores/opcoes")
       // Array.isArray: uma resposta fora do formato esperado faria
       // `servidores.map` derrubar a tela inteira, e o .catch abaixo nao pega

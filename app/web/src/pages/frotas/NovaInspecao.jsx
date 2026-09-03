@@ -29,7 +29,7 @@ export default function NovaInspecao() {
 
   useEffect(() => {
     definirCabecalho({ titulo: "", legenda: "" });
-    api("/frotas/veiculos/opcoes").then(setVeiculos).catch(() => {});
+    api("/frotas/veiculos/opcoes").then((r) => setVeiculos(Array.isArray(r) ? r : [])).catch(() => {});
     api("/usuarios?porPagina=200").then((r) => setUsuarios(r.itens)).catch(() => {});
   }, [definirCabecalho]);
 

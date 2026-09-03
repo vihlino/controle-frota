@@ -37,7 +37,7 @@ export default function AgendarManutencao() {
 
   useEffect(() => {
     definirCabecalho({ titulo: "", legenda: "" });
-    api("/frotas/veiculos/opcoes").then(setVeiculos).catch(() => {});
+    api("/frotas/veiculos/opcoes").then((r) => setVeiculos(Array.isArray(r) ? r : [])).catch(() => {});
   }, [definirCabecalho]);
 
   const campo = (nome) => ({

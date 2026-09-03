@@ -33,7 +33,7 @@ export default function InspeçãoDetalhe() {
 
   useEffect(() => {
     api(`/frotas/inspecoes/${id}`).then(setInspeção).catch((e) => setErro(e.message));
-    api(`/frotas/inspecoes/${id}/itens`).then(setItens).catch(() => {});
+    api(`/frotas/inspecoes/${id}/itens`).then((r) => setItens(Array.isArray(r) ? r : [])).catch(() => {});
   }, [id]);
 
   if (erro) return <Cartao><div className="vazio">{erro}</div></Cartao>;

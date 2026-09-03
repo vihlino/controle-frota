@@ -37,7 +37,7 @@ export default function Perfis() {
       setPerfis(r.itens);
       if (r.itens[0]) escolher(r.itens[0]);
     }).catch(() => {});
-    api("/permissoes").then(setCatalogo).catch(() => {});
+    api("/permissoes").then((r) => setCatalogo(Array.isArray(r) ? r : [])).catch(() => {});
   }, []);
 
   async function escolher(perfil) {

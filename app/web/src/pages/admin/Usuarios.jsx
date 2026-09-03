@@ -32,7 +32,7 @@ export default function Usuários() {
   const podeGerenciar = podeVer("ADMIN_GERENCIAR_USUARIOS");
 
   useEffect(() => {
-    api("/admin/perfis/opcoes").then(setPerfis).catch(() => {});
+    api("/admin/perfis/opcoes").then((r) => setPerfis(Array.isArray(r) ? r : [])).catch(() => {});
     api("/admin/servidores/opcoes")
       // Array.isArray: uma resposta fora do formato esperado faria
       // `servidores.map` derrubar a tela inteira, e o .catch abaixo nao pega
