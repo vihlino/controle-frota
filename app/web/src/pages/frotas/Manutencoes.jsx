@@ -227,8 +227,8 @@ export default function Manutenções() {
                        valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
                      }))}
                      {...campo("id_veículo")} />
-            <Selecao rotulo="Tipo de manutenção *" id="tipo" required opcoes={TIPOS} {...campo("tipo")} />
-            <Selecao rotulo="Prioridade *" id="gravidade" required opcoes={PRIORIDADES}
+            <Selecao rotulo="Tipo de manutenção *" id="form-tipo" required opcoes={TIPOS} {...campo("tipo")} />
+            <Selecao rotulo="Prioridade *" id="form-gravidade" required opcoes={PRIORIDADES}
                      {...campo("gravidade")} />
             <Data rotulo="Data agendada" id="data_agendada" {...campo("data_agendada")} />
             <Texto rotulo="Oficina / Fornecedor" id="oficina" {...campo("oficina")}  placeholder="Ex.: Auto Center Silva"/>

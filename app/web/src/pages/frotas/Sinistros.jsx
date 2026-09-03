@@ -231,11 +231,11 @@ export default function Sinistros() {
             <Selecao rotulo="Condutor *" id="id_servidor" required vazio="Selecione"
                      opcoes={servidores.map((s) => ({ valor: s.id_servidor, rotulo: s.nome }))}
                      {...campo("id_servidor")} />
-            <Selecao rotulo="Tipo de sinistro *" id="tipo" required opcoes={TIPOS} {...campo("tipo")} />
+            <Selecao rotulo="Tipo de sinistro *" id="form-tipo" required opcoes={TIPOS} {...campo("tipo")} />
             <Data rotulo="Data *" id="data" required {...campo("data")} />
             <Texto rotulo="Hora *" id="hora" type="time" required {...campo("hora")}  placeholder="Ex.: 08:30"/>
             <Texto rotulo="Número do B.O." id="bo" {...campo("bo")}  placeholder="Ex.: 202412345678"/>
-            <Selecao rotulo="Situação" id="status" opcoes={SITUACOES} {...campo("status")} />
+            <Selecao rotulo="Situação" id="form-status" opcoes={SITUACOES} {...campo("status")} />
             <Texto rotulo="Local *" id="local" required largo
                    placeholder="Ex.: Av. Brasil, 1250 - Centro" {...campo("local")} />
             <div className="campo campo--marcavel" data-largo="sim">

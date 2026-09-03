@@ -154,7 +154,7 @@ export default function ServiçoDiário() {
           {erroForm && <div className="login__erro">{erroForm}</div>}
           <form id="form-serviço" className="formulario-grade" onSubmit={salvar}>
             <Data rotulo="Data *" id="data" required {...campo("data")} />
-            <Selecao rotulo="Turno *" id="turno" required opcoes={TURNOS} {...campo("turno")} />
+            <Selecao rotulo="Turno *" id="form-turno" required opcoes={TURNOS} {...campo("turno")} />
             <Selecao rotulo="Coordenador *" id="id_coordenador" required vazio="Selecione"
                      opcoes={servidores.map((s) => ({ valor: s.id_servidor, rotulo: s.nome }))}
                      {...campo("id_coordenador")} />

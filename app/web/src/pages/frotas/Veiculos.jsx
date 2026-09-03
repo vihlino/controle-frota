@@ -247,8 +247,6 @@ export default function Veículos() {
                      opcoes={TIPOS} {...campo("tipo_veiculo")} />
             <Texto rotulo="Capacidade (opcional)" id="capacidade"
                    {...campo("capacidade")} placeholder="Ex.: 5 lugares" />
-            <Texto rotulo="Capacidade (opcional)" id="capacidade" placeholder="Ex.: 5 lugares"
-                   {...campo("capacidade")} />
             <Texto rotulo="Odômetro atual" id="quilometragem_atual" type="number" min="0"
                    {...campo("quilometragem_atual")} placeholder="Ex.: 45230" />
 

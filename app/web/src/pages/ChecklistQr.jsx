@@ -422,9 +422,9 @@ export default function ChecklistQr() {
               convite a erro de digitacao. */}
           {naChegada ? (
             <div className="campo">
-              <label htmlFor="km">KM de chegada *</label>
+              <label htmlFor="km-chegada">KM de chegada *</label>
               <input
-                id="km" type="number" required inputMode="numeric"
+                id="km-chegada" type="number" required inputMode="numeric"
                 placeholder="Ex.: 45230"
                 /* +1 porque o KM de chegada tem de ser MAIOR que o de saida,
                    nao igual: veiculo que saiu e voltou rodou alguma coisa. */
@@ -451,10 +451,10 @@ export default function ChecklistQr() {
             </div>
           ) : (
             <div className="campo">
-              <label htmlFor="km">KM de saída *</label>
+              <label htmlFor="km-saida">KM de saída *</label>
               <div className="qr-km">
                 <input
-                  id="km" type="number" required inputMode="numeric"
+                  id="km-saida" type="number" required inputMode="numeric"
                   value={saida.odometro} readOnly={!kmEditavel}
                   onChange={(e) => setSaida((s) => ({ ...s, odometro: e.target.value }))}
                 />

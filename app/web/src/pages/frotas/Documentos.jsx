@@ -254,7 +254,7 @@ export default function Documentos() {
                      {...campo("id_veículo")} />
             <Texto rotulo="Tipo de documento *" id="tipo_documento" required
                    placeholder="Ex.: CRLV" {...campo("tipo_documento")} />
-            <Selecao rotulo="Categoria" id="categoria"
+            <Selecao rotulo="Categoria" id="form-categoria"
                      opcoes={CATEGORIAS.map((c) => ({ valor: c, rotulo: c }))}
                      {...campo("categoria")} />
             <Texto rotulo="Nº / Referência" id="numero_documento" {...campo("numero_documento")}  placeholder="Ex.: 01567890123"/>
@@ -263,7 +263,7 @@ export default function Documentos() {
             <Selecao rotulo="Responsável" id="id_responsavel" vazio="Sem responsável"
                      opcoes={servidores.map((s) => ({ valor: s.id_servidor, rotulo: s.nome }))}
                      {...campo("id_responsavel")} />
-            <Selecao rotulo="Situação" id="status" opcoes={SITUACOES} {...campo("status")} />
+            <Selecao rotulo="Situação" id="form-status" opcoes={SITUACOES} {...campo("status")} />
             <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")}  placeholder="Ex.: Renovação anual do licenciamento"/>
           </form>
         </Modal>

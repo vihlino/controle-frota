@@ -189,7 +189,7 @@ export default function Inspeções() {
                    opcoes={veículos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.modelo}` }))}
                    value={lista.filtros.veiculo}
                    onChange={(e) => lista.alterarFiltro("veiculo", e.target.value)} />
-          <Selecao rotulo="Frequencia" id="tipo" vazio="Todas" opcoes={FREQUENCIAS}
+          <Selecao rotulo="Frequência" id="tipo" vazio="Todas" opcoes={FREQUENCIAS}
                    value={lista.filtros.tipo}
                    onChange={(e) => lista.alterarFiltro("tipo", e.target.value)} />
           <Selecao rotulo="Situação" id="status" vazio="Todas"
@@ -230,7 +230,7 @@ export default function Inspeções() {
             <Selecao rotulo="Responsável *" id="id_gestor" required vazio="Selecione"
                      opcoes={usuários.map((u) => ({ valor: u.id_usuario, rotulo: u.nome }))}
                      {...campo("id_gestor")} />
-            <Selecao rotulo="Frequencia *" id="tipo" required opcoes={FREQUENCIAS}
+            <Selecao rotulo="Frequência *" id="form-tipo" required opcoes={FREQUENCIAS}
                      {...campo("tipo")} />
             <Data rotulo="Data da inspeção *" id="data_realizacao" required
                   {...campo("data_realizacao")} />
