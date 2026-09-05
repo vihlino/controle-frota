@@ -74,12 +74,12 @@ export default function criarPagina(config) {
     const filtrosIniciais = {
       ...Object.fromEntries((config.filtros || []).map((f) => [f.nome, ""])),
       // `filtrosFixos` nao tem controle na tela: e uma trava da propria pagina
-      // (Motoristas = servidores com condutor=true). Como entra nos filtros
-      // INICIAIS, ele sobrevive ao botao "Limpar" e vale tambem na contagem e
-      // na paginacao, que sao calculadas pela API.
+      // (Motoristas = servidores com condutor=true). Vale tambem na contagem e
+      // na paginacao, que sao calculadas pela API, e por isso e passado
+      // tambem como FIXO: assim o botao "Limpar" nao o desliga.
       ...(config.filtrosFixos || {}),
     };
-    const lista = useLista(config.recurso, filtrosIniciais);
+    const lista = useLista(config.recurso, filtrosIniciais, config.filtrosFixos || {});
 
     const [opcoes, setOpcoes] = useState({});        // listas dos selects
     const [editando, setEditando] = useState(null);  // null | "novo" | id

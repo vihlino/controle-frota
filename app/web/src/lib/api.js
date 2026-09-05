@@ -96,7 +96,13 @@ export async function api(caminho, opcoes = {}) {
     // 401 fora da tela de login significa sessao expirada: limpamos o token
     // para o app perceber que ninguem esta logado e voltar para a entrada.
     // A excecao e o proprio login, onde 401 e so "senha errada".
-    if (resposta.status === 401 && !caminho.startsWith("/sessao/login")) {
+    // 401 no login e na confirmacao de senha significa SENHA ERRADA, nao
+    // sessao expirada. Apagar o token ali derrubava a pessoa para a tela de
+    // entrada por causa de um erro de digitacao - e ainda por cima perdendo o
+    // formulario que ela estava salvando.
+    const senhaErrada =
+      caminho.startsWith("/sessao/login") || caminho.startsWith("/sessao/confirmar");
+    if (resposta.status === 401 && !senhaErrada) {
       gravarToken(null);
     }
     throw new ErroApi(dados.erro || "Não foi possivel completar a operação.", resposta.status);

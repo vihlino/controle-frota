@@ -19,6 +19,7 @@
  * e recebem tudo pronto.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../lib/api.js";
 
 /**
@@ -28,7 +29,7 @@ import { api } from "../lib/api.js";
  *                                  Ex.: { busca: "", setor: "", status: "" }
  * @returns {object} Tudo o que a tela precisa - veja o return no fim.
  */
-export function useLista(recurso, filtrosIniciais = {}) {
+export function useLista(recurso, filtrosIniciais = {}, fixos = {}) {
   const [filtros, setFiltros] = useState(filtrosIniciais);
   const [ordem, setOrdem] = useState({ campo: "", direcao: "ASC" });
   const [pagina, setPagina] = useState(1);
@@ -43,6 +44,11 @@ export function useLista(recurso, filtrosIniciais = {}) {
   // renderizacao quando muda. Aqui ele guarda os filtros originais para o
   // botao "Limpar" saber para onde voltar.
   const iniciais = useRef(filtrosIniciais);
+  // Os filtros fixos tambem ficam numa ref: eles nao mudam durante a vida da
+  // tela, e assim o `limpar` nao precisa ser recriado a cada render.
+  const fixosRef = useRef(fixos);
+  const navegar = useNavigate();
+  const location = useLocation();
 
   /**
    * Este useEffect e o coracao do hook: ele roda toda vez que algo que afeta a
@@ -98,12 +104,32 @@ export function useLista(recurso, filtrosIniciais = {}) {
     setPagina(1);
   }, []);
 
-  /** Devolve todos os filtros ao estado inicial. Usado pelo botao "Limpar". */
+  /**
+   * Zera os filtros. Usado pelo botao "Limpar".
+   *
+   * ANTES ele devolvia os filtros INICIAIS, e isso escondia um problema: quem
+   * chega em /frotas/documentos?status=VENCENDO pelo painel comeca com esse
+   * filtro ligado, entao ele fazia parte dos "iniciais" - e o Limpar o trazia
+   * de volta. A pessoa clicava em Limpar, via os outros campos zerarem e a
+   * lista continuar filtrada, sem entender por que.
+   *
+   * Agora limpar e limpar: todo campo volta a vazio. A unica excecao sao os
+   * filtros FIXOS, que nao tem controle na tela (Motoristas = servidores com
+   * condutor=true) - zerar aquilo mudaria a tela, nao o filtro.
+   *
+   * O parametro tambem sai da URL: se ficasse la, um F5 traria o filtro de
+   * volta depois de a pessoa ter pedido para limpar.
+   */
   const limpar = useCallback(() => {
-    setFiltros(iniciais.current);
+    setFiltros(
+      Object.fromEntries(
+        Object.keys(iniciais.current).map((campo) => [campo, fixosRef.current[campo] ?? ""])
+      )
+    );
     setOrdem({ campo: "", direcao: "ASC" });
     setPagina(1);
-  }, []);
+    if (location.search) navegar(location.pathname, { replace: true });
+  }, [navegar, location.pathname, location.search]);
 
   /**
    * Ordena por uma coluna. Clicar de novo na mesma coluna inverte a direcao;
