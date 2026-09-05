@@ -209,7 +209,7 @@ export default function Inspeções() {
       {agendando && (
         <Modal
           titulo="Agendar inspeção"
-          legenda="A proxima inspeção e calculada automaticamente pela frequencia."
+          legenda="A próxima inspeção e calculada automaticamente pela frequência."
           aoFechar={() => setAgendando(false)}
           rodape={
             <>

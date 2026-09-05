@@ -101,12 +101,12 @@ router.post("/", autenticar, exigePermissao("RELATORIOS_GERAR"), async (req, res
   try {
     const { tipo, periodo_inicio, periodo_fim } = req.body;
     const modelo = MODELOS[tipo];
-    if (!modelo) return res.status(400).json({ erro: "Tipo de relatorio invalido." });
+    if (!modelo) return res.status(400).json({ erro: "Tipo de relatório inválido." });
     if (!periodo_inicio || !periodo_fim) {
-      return res.status(400).json({ erro: "Informe o periodo inicial e final." });
+      return res.status(400).json({ erro: "Informe o período inicial e final." });
     }
     if (periodo_fim < periodo_inicio) {
-      return res.status(400).json({ erro: "A data final nao pode ser anterior a inicial." });
+      return res.status(400).json({ erro: "A data final não pode ser anterior a inicial." });
     }
 
     const dados = await query(modelo.sql, [periodo_inicio, periodo_fim]);
@@ -159,7 +159,7 @@ router.get("/:id", autenticar, exigePermissao("RELATORIOS_VISUALIZAR"), async (r
       [Number(req.params.id)]
     );
     const relatorio = rows[0];
-    if (!relatorio) return res.status(404).json({ erro: "Relatorio nao encontrado" });
+    if (!relatorio) return res.status(404).json({ erro: "Relatório não encontrado" });
 
     const atestacoes = await query(
       `SELECT a.ordem, a.status, a.data_solicitacao, a.data_atestacao, a.observacao,
@@ -198,15 +198,15 @@ router.post("/:id/atestar", autenticar, exigePermissao("RELATORIOS_ATESTAR"),
       );
       if (!relatorio.rows[0]) {
         await cliente.query("ROLLBACK");
-        return res.status(404).json({ erro: "Relatorio nao encontrado" });
+        return res.status(404).json({ erro: "Relatório não encontrado" });
       }
       if (relatorio.rows[0].status === "ATESTADO") {
         await cliente.query("ROLLBACK");
-        return res.status(409).json({ erro: "Este relatorio ja foi atestado." });
+        return res.status(409).json({ erro: "Este relatório ja foi atestado." });
       }
       if (relatorio.rows[0].status === "CANCELADO") {
         await cliente.query("ROLLBACK");
-        return res.status(409).json({ erro: "Relatorio cancelado nao pode ser atestado." });
+        return res.status(409).json({ erro: "Relatório cancelado não pode ser atestado." });
       }
 
       const proxima = await cliente.query(

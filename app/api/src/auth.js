@@ -21,7 +21,7 @@ import jwt from "jsonwebtoken";
 const SECRET = process.env.JWT_SECRET;
 if (!SECRET || SECRET.length < 32) {
   if (process.env.NODE_ENV === "production") {
-    throw new Error("JWT_SECRET nao definido ou muito curto. Configure no painel do Render.");
+    throw new Error("JWT_SECRET não definido ou muito curto. Configure no painel do Render.");
   }
   console.warn("[AVISO] JWT_SECRET nao definido — usando chave fraca so para desenvolvimento.");
 }
@@ -59,7 +59,7 @@ export function autenticar(req, res, next) {
   const header = req.headers.authorization || "";
   // O formato combinado e "Bearer <token>"; separamos o prefixo.
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
-  if (!token) return res.status(401).json({ erro: "Nao autenticado" });
+  if (!token) return res.status(401).json({ erro: "Não autenticado" });
 
   try {
     // verify() confere a assinatura E a validade. Se qualquer uma falhar,
@@ -69,7 +69,7 @@ export function autenticar(req, res, next) {
   } catch {
     // Nao distinguimos "token invalido" de "token expirado" na mensagem: para
     // o usuario, os dois significam "entre de novo".
-    res.status(401).json({ erro: "Sessao expirada. Entre novamente." });
+    res.status(401).json({ erro: "Sessão expirada. Entre novamente." });
   }
 }
 
@@ -99,6 +99,6 @@ export function exigePermissao(...codigos) {
     if (aceitos.some((c) => permissoes.includes(c))) return next();
     // 403 (proibido) e diferente de 401 (nao autenticado): aqui o sistema sabe
     // quem e a pessoa, ela simplesmente nao tem direito a esta acao.
-    res.status(403).json({ erro: "Sem permissao para esta acao" });
+    res.status(403).json({ erro: "Sem permissão para esta ação" });
   };
 }

@@ -97,6 +97,12 @@ services:
       - key: SEED_LOGIN
         sync: false
 
+      # Senha do administrador criado pelo seed. Faltava aqui, e o codigo
+      # tinha uma senha padrao escrita nele - num repositorio publico. Agora o
+      # seed se recusa a rodar sem esta variavel, entao ela precisa existir.
+      - key: SEED_SENHA
+        sync: false
+
       # Tempo de expiracao do token JWT.
       - key: JWT_EXPIRES_IN
         sync: false

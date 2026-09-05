@@ -128,6 +128,15 @@ export const ROTULOS = {
     MACACO: "Macaco", ESTEPE: "Estepe",
     TRIANGULO: "Triangulo", CHAVE_RODA: "Chave de roda",
   },
+  // As partes do veiculo que o condutor escolhe ao abrir um chamado pelo
+  // checklist. E lista fechada de proposito: "farol queimado" digitado de
+  // dez jeitos diferentes nao vira relatorio nenhum.
+  parteVeiculo: {
+    PNEUS: "Pneus", FREIOS: "Freios", ILUMINACAO: "Faróis / iluminação",
+    MOTOR: "Motor", SUSPENSAO: "Suspensão", ELETRICA: "Elétrica",
+    AR_CONDICIONADO: "Ar-condicionado", OUTRO: "Outro",
+  },
+  momentoChecklist: { SAIDA: "Aberto na saída", CHEGADA: "Aberto na chegada" },
 };
 
 export function rotulo(grupo, valor) {

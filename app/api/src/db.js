@@ -61,12 +61,23 @@ pg.types.setTypeParser(1700, (v) => (v === null ? null : Number(v)));
  */
 const FUSO = process.env.TZ || "America/Sao_Paulo";
 
+/*
+ * SSL so quando pedido, por PGSSL=true no .env.
+ *
+ * O banco local roda sem TLS; o do Render EXIGE. Quem quiser rodar a API na
+ * propria maquina apontando para o banco do Render precisa dos dois: as
+ * credenciais de la e PGSSL=true. Sem isso a conexao cai antes de autenticar.
+ *
+ * rejectUnauthorized: false porque o Render usa certificado proprio, que a
+ * lista de autoridades do Node nao reconhece.
+ */
 export const pool = new pg.Pool({
   host: process.env.PGHOST || "localhost",
   port: Number(process.env.PGPORT || 5432),
   database: process.env.PGDATABASE || "sitra",
   user: process.env.PGUSER || "sitra",
   password: process.env.PGPASSWORD,
+  ssl: process.env.PGSSL === "true" ? { rejectUnauthorized: false } : undefined,
 });
 
 /*

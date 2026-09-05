@@ -214,7 +214,7 @@ export function criarCrud(config) {
         `SELECT ${select} FROM ${from} WHERE ${tabela}.${id} = $1`,
         [Number(req.params.id)]
       );
-      if (!rows[0]) return res.status(404).json({ erro: "Registro nao encontrado" });
+      if (!rows[0]) return res.status(404).json({ erro: "Registro não encontrado" });
       res.json(rows[0]);
     } catch (e) {
       next(e);
@@ -294,7 +294,7 @@ export function criarCrud(config) {
       );
       if (!anterior.rows[0]) {
         await cliente.query("ROLLBACK");
-        return res.status(404).json({ erro: "Registro nao encontrado" });
+        return res.status(404).json({ erro: "Registro não encontrado" });
       }
 
       const usados = campos.filter((c) => req.body[c] !== undefined);
@@ -351,7 +351,7 @@ export function criarCrud(config) {
         `DELETE FROM ${tabela} WHERE ${id} = $1 RETURNING *`,
         [idRegistro]
       );
-      if (!rows[0]) return res.status(404).json({ erro: "Registro nao encontrado" });
+      if (!rows[0]) return res.status(404).json({ erro: "Registro não encontrado" });
 
       await registrarAuditoria({
         idUsuario: req.usuario.id_usuario,
@@ -368,7 +368,7 @@ export function criarCrud(config) {
       // Sem esse tratamento, a tela mostraria "erro interno", que nao ajuda.
       if (e.code === "23503") {
         return res.status(409).json({
-          erro: "Este registro esta vinculado a outros e nao pode ser excluido.",
+          erro: "Este registro esta vinculado a outros e não pode ser excluido.",
         });
       }
       next(e);

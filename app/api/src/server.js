@@ -89,10 +89,20 @@ async function iniciarServidor() {
   const app = express();
 
   /*
-   * req.ip precisa do IP real quando a API roda atras de proxy/nginx.
+   * req.ip precisa do IP real quando a API roda atras de proxy.
+   *
+   * O NUMERO importa. Com `true`, o Express confia em TODA a cadeia de
+   * X-Forwarded-For - e esse cabecalho e escrito pelo cliente. Qualquer um
+   * podia mandar um IP falso diferente a cada requisicao e os dois limites
+   * abaixo viravam decoracao, inclusive o do login: as 10 tentativas por 15
+   * minutos passariam a ser ilimitadas, e a forca bruta de senha ficaria
+   * livre.
+   *
+   * No Render a API fica atras de UM proxy, entao o certo e confiar em um
+   * salto so e ler o IP real dali.
    */
 
-  app.set("trust proxy", true);
+  app.set("trust proxy", 1);
 
   /*
    * Middlewares globais.
@@ -191,7 +201,7 @@ async function iniciarServidor() {
 
   app.use((_req, res) =>
     res.status(404).json({
-      erro: "Rota nao encontrada",
+      erro: "Rota não encontrada",
     })
   );
 

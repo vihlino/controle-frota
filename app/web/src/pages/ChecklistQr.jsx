@@ -21,8 +21,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Icone from "../components/Icone.jsx";
+import Selo from "../components/Selo.jsx";
 import { api } from "../lib/api.js";
-import { numero } from "../lib/formato.js";
+import { numero, rotulo } from "../lib/formato.js";
 import { reduzirImagem, pesoLegivel } from "../lib/imagem.js";
 
 // Os quatro itens que o condutor confere. O icone e so apoio visual - quem
@@ -32,6 +33,13 @@ const EQUIPAMENTOS = [
   { codigo: "ESTEPE", rotulo: "Estepe", icone: "eq-estepe" },
   { codigo: "TRIANGULO", rotulo: "Triângulo", icone: "eq-triangulo" },
   { codigo: "CHAVE_RODA", rotulo: "Chave de roda", icone: "eq-chave-roda" },
+];
+
+// As partes do veiculo que o chamado aceita. Lista fechada de proposito:
+// "farol queimado" digitado de dez jeitos diferentes nao vira relatorio.
+const PARTES_VEICULO = [
+  "PNEUS", "FREIOS", "ILUMINACAO", "MOTOR", "SUSPENSAO",
+  "ELETRICA", "AR_CONDICIONADO", "OUTRO",
 ];
 
 const equipamentosIniciais = () =>
@@ -92,6 +100,18 @@ export default function ChecklistQr() {
   });
 
   const [equipamentos, setEquipamentos] = useState(equipamentosIniciais);
+
+  // CHAMADO DE MANUTENCAO
+  // E mecanica: pneu furado, farol queimado, freio falhando, barulho no motor.
+  // Nada a ver com equipamento faltando, que se resolve na propria grade acima.
+  //
+  // Os chamados ficam numa FILA LOCAL ate o checklist existir no banco. Na
+  // saida o registro so nasce quando o condutor confirma, e um chamado precisa
+  // de id_checklist para se prender a alguma coisa - entao eles sobem junto,
+  // logo depois, do mesmo jeito que as fotos.
+  const [chamados, setChamados] = useState([]);
+  const [chamadosAbertos, setChamadosAbertos] = useState([]);
+  const [formChamado, setFormChamado] = useState(null);
   // Fotos ja reduzidas, prontas para enviar. Guardamos a dataUrl para
   // mostrar a miniatura sem ler o arquivo de novo.
   const [fotos, setFotos] = useState([]);
@@ -107,6 +127,53 @@ export default function ChecklistQr() {
       .catch((e) => setErro(e.message));
   }, [token]);
 
+  // Na chegada o checklist ja existe: os chamados abertos na saida aparecem
+  // na lista, para o condutor nao abrir o mesmo duas vezes.
+  useEffect(() => {
+    const aberto = dados?.checklistAberto;
+    if (!aberto) return;
+    api(`/qrcode/chamados/${token}/${aberto.id_checklist}`)
+      .then(setChamadosAbertos)
+      .catch(() => setChamadosAbertos([]));
+  }, [dados, token]);
+
+  function novoChamado() {
+    setFormChamado({ parte_veiculo: "PNEUS", gravidade: "MEDIA", descricao: "" });
+  }
+
+  function confirmarChamado() {
+    if (!formChamado?.descricao.trim()) {
+      setErro("Descreva o problema para abrir o chamado.");
+      return;
+    }
+    setErro("");
+    setChamados((c) => [...c, formChamado]);
+    setFormChamado(null);
+  }
+
+  /**
+   * Sobe os chamados da fila DEPOIS que o checklist foi gravado.
+   *
+   * Como nas fotos, uma falha aqui nao derruba o checklist: o registro do
+   * veiculo ja esta salvo e e o que nao pode se perder.
+   */
+  async function enviarChamados(idChecklist, momento) {
+    if (!chamados.length || !idChecklist) return;
+    try {
+      for (const chamado of chamados) {
+        await api(`/qrcode/chamado/${token}`, {
+          method: "POST",
+          body: { ...chamado, id_checklist: idChecklist, momento },
+        });
+      }
+    } catch (e) {
+      setErro(
+        `O checklist foi registrado, mas um chamado nao foi aberto (${e.message}). ` +
+        "Avise a gestao da frota."
+      );
+    }
+  }
+
   async function buscarCondutor() {
     const m = matricula.trim();
     if (!m) return;
@@ -117,7 +184,7 @@ export default function ChecklistQr() {
       // matricula com espaco, barra, ponto ou acento montaria um endereco
       // invalido e o servidor responderia "nao encontrada" sem nem chegar a
       // consultar o banco.
-      setCondutor(await api(`/qrcode/condutor/${encodeURIComponent(m)}`));
+      setCondutor(await api(`/qrcode/condutor/${encodeURIComponent(token)}/${encodeURIComponent(m)}`));
     } catch (e) {
       setCondutor(null);
       setErro(e.message);
@@ -200,7 +267,7 @@ export default function ChecklistQr() {
     setEnviando(true);
     setErro("");
     try {
-      await api(`/qrcode/saida/${token}`, {
+      const criado = await api(`/qrcode/saida/${token}`, {
         method: "POST",
         body: {
           matricula: matricula.trim(),
@@ -210,6 +277,7 @@ export default function ChecklistQr() {
         },
       });
       await enviarFotos("SAIDA");
+      await enviarChamados(criado?.id_checklist, "SAIDA");
       setConcluido("saida");
     } catch (e) {
       setErro(e.message);
@@ -223,7 +291,7 @@ export default function ChecklistQr() {
     setEnviando(true);
     setErro("");
     try {
-      await api(`/qrcode/chegada/${token}`, {
+      const fechado = await api(`/qrcode/chegada/${token}`, {
         method: "POST",
         body: {
           odometro_chegada: Number(chegada.odometro),
@@ -235,6 +303,9 @@ export default function ChecklistQr() {
         },
       });
       await enviarFotos("CHEGADA");
+      await enviarChamados(
+        fechado?.id_checklist ?? checklistAberto?.id_checklist, "CHEGADA"
+      );
       setConcluido("chegada");
     } catch (e) {
       setErro(e.message);
@@ -286,27 +357,30 @@ export default function ChecklistQr() {
 
   return (
     <div className="qr-tela">
+      {/* A marca inteira, centralizada. O condutor chega aqui pela camera do
+          celular, sem login e sem menu: a logo e o unico sinal de que ele
+          esta no sistema da prefeitura, e nao numa pagina qualquer. */}
       <header className="qr-tela__topo">
-        <img src="/icons/logo-marca.png" alt="SITRA" />
-        <div>
-          <strong>Checklist do Veículo</strong>
-          <span>{naChegada ? "Registro de chegada" : "Registro de saída"}</span>
-        </div>
+        <img src="/icons/logo-sitra.png" alt="SITRA" />
       </header>
 
-      <div className="qr-tela__aviso">
-        <Icone nome="qrcode" tamanho={22} />
-        <div>
-          <strong>
-            QR Code reconhecido
-            <Icone nome="check" tamanho={17} className="qr-tela__aviso-check" />
-          </strong>
-          <p>Confira os dados do veículo e preencha o checklist.</p>
-        </div>
+      <div className="qr-tela__leitura">
+        <strong>
+          <Icone nome="check" tamanho={22} />
+          QR Code reconhecido
+        </strong>
+        <p>
+          {naChegada
+            ? "Este veículo tem um checklist aberto. Registre a chegada para concluir."
+            : "Confira os dados do veículo e preencha o checklist."}
+        </p>
       </div>
 
       <section className="qr-cartao">
-        <h2 className="qr-cartao__titulo">Dados do veículo</h2>
+        <h2 className="qr-cartao__titulo qr-cartao__titulo--icone">
+          <span className="qr-cartao__simbolo"><Icone nome="fisc-viatura" tamanho={20} /></span>
+          Dados do veículo
+        </h2>
         <dl className="qr-dados">
           {dadosVeiculo.map(([r, v]) => (
             <div key={r}>
@@ -494,21 +568,6 @@ export default function ChecklistQr() {
             </div>
           )}
 
-          <div className="campo">
-            <label htmlFor="obs">
-              Observações ({naChegada ? "chegada" : "saída"})
-            </label>
-            <textarea
-              id="obs" rows={3}
-              value={naChegada ? chegada.observacoes : saida.observacoes}
-              placeholder="Algo fora do normal no veículo?"
-              onChange={(e) =>
-                naChegada
-                  ? setChegada((c) => ({ ...c, observacoes: e.target.value }))
-                  : setSaida((s) => ({ ...s, observacoes: e.target.value }))
-              }
-            />
-          </div>
         </section>
 
         <section className="qr-cartao">
@@ -572,6 +631,118 @@ export default function ChecklistQr() {
           )}
         </section>
 
+        {/* CHAMADO DE MANUTENCAO
+            Aqui e mecanica, nao equipamento: pneu furado, farol queimado,
+            freio falhando. Pode abrir mais de um no mesmo checklist. */}
+        <section className="qr-cartao">
+          <h2 className="qr-cartao__titulo qr-cartao__titulo--icone">
+            <span className="qr-cartao__simbolo"><Icone nome="kpi-wrench" tamanho={19} /></span>
+            Abrir chamado
+          </h2>
+          <p className="qr-cartao__nota">
+            Pneu furado, farol queimado, freio falhando, barulho no motor.
+            Pode abrir mais de um.
+          </p>
+
+          {formChamado ? (
+            <div className="qr-chamado-form">
+              <div className="qr-dupla">
+                <div className="campo">
+                  <label htmlFor="chamado-parte">Parte do veículo *</label>
+                  <select
+                    id="chamado-parte" value={formChamado.parte_veiculo}
+                    onChange={(e) =>
+                      setFormChamado((c) => ({ ...c, parte_veiculo: e.target.value }))}
+                  >
+                    {PARTES_VEICULO.map((p) => (
+                      <option key={p} value={p}>{rotulo("parteVeiculo", p)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="campo">
+                  <label htmlFor="chamado-urgencia">Urgência *</label>
+                  <select
+                    id="chamado-urgencia" value={formChamado.gravidade}
+                    onChange={(e) =>
+                      setFormChamado((c) => ({ ...c, gravidade: e.target.value }))}
+                  >
+                    <option value="BAIXA">Baixa</option>
+                    <option value="MEDIA">Média</option>
+                    <option value="ALTA">Alta</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="campo">
+                <label htmlFor="chamado-descricao">Descrição do problema *</label>
+                <textarea
+                  id="chamado-descricao" rows={3} value={formChamado.descricao}
+                  placeholder="Ex.: furou o pneu dianteiro direito no percurso"
+                  onChange={(e) =>
+                    setFormChamado((c) => ({ ...c, descricao: e.target.value }))}
+                />
+              </div>
+
+              <p className="qr-cartao__nota qr-cartao__nota--alerta">
+                O chamado fica preso a este checklist e vai para a fila de
+                Manutenções da frota.
+              </p>
+
+              <div className="qr-chamado-form__botoes">
+                <button type="button" className="botao"
+                        onClick={() => setFormChamado(null)}>
+                  Cancelar
+                </button>
+                <button type="button" className="botao botao--primario"
+                        onClick={confirmarChamado}>
+                  Abrir OS de manutenção
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" className="botao qr-chamado-abrir" onClick={novoChamado}>
+              <Icone nome="mais" tamanho={18} /> Abrir OS de manutenção
+            </button>
+          )}
+
+          {(chamadosAbertos.length > 0 || chamados.length > 0) && (
+            <div className="qr-chamados">
+              <span className="qr-chamados__rotulo">Chamados deste checklist</span>
+
+              {chamadosAbertos.map((c) => (
+                <div className="qr-chamado" key={`os-${c.id_os}`}>
+                  <div>
+                    <strong>{rotulo("parteVeiculo", c.parte_veiculo)}</strong>
+                    <p>{c.descricao}</p>
+                    <span className="qr-chamado__meta">
+                      {c.numero ? `OS ${c.numero} · ` : ""}
+                      {rotulo("momentoChecklist", c.momento)}
+                    </span>
+                  </div>
+                  <Selo valor={c.status} />
+                </div>
+              ))}
+
+              {chamados.map((c, i) => (
+                <div className="qr-chamado" key={`fila-${i}`}>
+                  <div>
+                    <strong>{rotulo("parteVeiculo", c.parte_veiculo)}</strong>
+                    <p>{c.descricao}</p>
+                    <span className="qr-chamado__meta">
+                      Será aberto ao registrar {naChegada ? "a chegada" : "a saída"}
+                    </span>
+                  </div>
+                  <button type="button" className="qr-chamado__remover"
+                          onClick={() => setChamados((lista) => lista.filter((_, j) => j !== i))}
+                          aria-label="Remover chamado">
+                    <Icone nome="fechar" tamanho={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
         <section className="qr-cartao">
           <h2 className="qr-cartao__titulo">Fotos (opcional)</h2>
           <p className="qr-cartao__nota">
@@ -613,6 +784,22 @@ export default function ChecklistQr() {
             A foto é reduzida no próprio aparelho antes de subir, para não
             gastar sua internet.
           </p>
+        </section>
+
+        <section className="qr-cartao">
+          <h2 className="qr-cartao__titulo">Observações (opcional)</h2>
+          <div className="campo">
+            <textarea
+              id="obs" rows={3} aria-label="Observações"
+              value={naChegada ? chegada.observacoes : saida.observacoes}
+              placeholder="Algo fora do normal no veículo?"
+              onChange={(e) =>
+                naChegada
+                  ? setChegada((c) => ({ ...c, observacoes: e.target.value }))
+                  : setSaida((s) => ({ ...s, observacoes: e.target.value }))
+              }
+            />
+          </div>
         </section>
 
         <div className="qr-rodape">

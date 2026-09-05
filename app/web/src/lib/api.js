@@ -104,3 +104,26 @@ export async function api(caminho, opcoes = {}) {
 
   return dados;
 }
+
+/**
+ * Baixa um ARQUIVO da API (foto, PDF) e devolve um endereco local para o
+ * navegador exibir.
+ *
+ * Existe porque essas rotas exigem o token no cabecalho, e um <img src="/api/..">
+ * nao manda cabecalho nenhum - a imagem voltaria 401. Aqui a resposta vem como
+ * blob e vira uma URL de memoria.
+ *
+ * Quem chama deve liberar com URL.revokeObjectURL quando a tela sair, senao o
+ * navegador segura a imagem na memoria ate recarregar a pagina.
+ *
+ * @param {string} caminho  Rota sem o prefixo /api.
+ * @returns {Promise<string>} URL local (blob:) pronta para o src da imagem.
+ */
+export async function apiArquivo(caminho) {
+  const token = lerToken();
+  const resposta = await fetch(`${BASE}/api${caminho}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!resposta.ok) throw new ErroApi("Não foi possivel carregar o arquivo.", resposta.status);
+  return URL.createObjectURL(await resposta.blob());
+}

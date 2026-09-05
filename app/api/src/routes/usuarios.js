@@ -117,7 +117,7 @@ router.post("/", autenticar, gerenciar, async (req, res, next) => {
     res.status(201).json(rows[0]);
   } catch (e) {
     if (e.code === "23505") {
-      return res.status(409).json({ erro: "Ja existe usuario com esse login ou servidor." });
+      return res.status(409).json({ erro: "Ja existe usuário com esse login ou servidor." });
     }
     next(e);
   }
@@ -154,7 +154,7 @@ router.put("/:id", autenticar, gerenciar, async (req, res, next) => {
         RETURNING id_usuario, login, status, id_perfil`,
       valores
     );
-    if (!rows[0]) return res.status(404).json({ erro: "Usuario nao encontrado" });
+    if (!rows[0]) return res.status(404).json({ erro: "Usuário não encontrado" });
 
     await registrarAuditoria({
       idUsuario: req.usuario.id_usuario,

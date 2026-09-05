@@ -1567,18 +1567,40 @@ button { font: inherit; cursor: pointer; }
   gap: var(--e-3);
 }
 
+/* A logo INTEIRA, centralizada. Antes era o simbolo de 34px ao lado de um
+   titulo escrito - dois nomes para a mesma coisa, num espaco que no celular
+   e o mais caro da tela. */
 .qr-tela__topo {
   display: flex;
-  align-items: center;
-  gap: var(--e-3);
+  justify-content: center;
   background: var(--lateral-fundo);
-  color: #fff;
-  padding: var(--e-4);
+  padding: var(--e-5) var(--e-4);
   border-radius: var(--raio);
 }
-.qr-tela__topo img { width: 34px; height: 34px; flex: none; }
-.qr-tela__topo strong { display: block; font-size: var(--t-lg); line-height: 1.25; }
-.qr-tela__topo span { font-size: var(--t-sm); color: var(--lateral-texto-2); }
+.qr-tela__topo img { width: 168px; max-width: 60%; height: auto; display: block; }
+
+/* Confirmacao da leitura: e o titulo da tela, entao vem centralizado. */
+.qr-tela__leitura {
+  text-align: center;
+  padding: var(--e-2) var(--e-3) 0;
+}
+.qr-tela__leitura strong {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-2);
+  font-size: var(--t-xl);
+  font-weight: var(--peso-forte);
+  color: var(--texto);
+}
+.qr-tela__leitura strong .icone { color: var(--verde); }
+.qr-tela__leitura p {
+  margin: var(--e-2) 0 0;
+  font-size: var(--t-base);
+  line-height: var(--altura-normal);
+  color: var(--texto-2);
+  text-wrap: pretty;
+}
 
 /* Faixa de confirmacao da leitura do QR. */
 .qr-tela__aviso {
@@ -1742,7 +1764,10 @@ button { font: inherit; cursor: pointer; }
   align-items: center;
   gap: var(--e-2);
   padding: var(--e-2) var(--e-3);
-  min-height: 52px;
+  /* 48px continua sendo alvo de dedo com folga; o botao ficou mais baixo e
+     mais estreito porque quatro caixas grandes de sim/nao dominavam a tela
+     inteira do celular. */
+  min-height: 48px;
   width: 100%;
   border: 1.5px solid var(--verde);
   background: var(--verde-suave);
@@ -2265,3 +2290,267 @@ button { font: inherit; cursor: pointer; }
 }
 .qr-momento__rotulo { font-size: var(--t-sm); color: var(--texto-2); }
 .qr-momento__valor { font-size: var(--t-md); color: var(--texto); }
+
+
+/* ---------- chamado de manutencao no checklist ---------- */
+/* Titulo de cartao com simbolo: o quadrado ambar da tela de detalhes, no
+   tamanho do celular. */
+.qr-cartao__titulo--icone {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+}
+.qr-cartao__simbolo {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: var(--raio-sm);
+  background: var(--marca-suave);
+  color: var(--marca-texto);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-chamado-abrir {
+  width: 100%;
+  justify-content: center;
+  min-height: 46px;
+}
+
+.qr-chamado-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+  padding: var(--e-4);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie-2);
+}
+.qr-chamado-form__botoes {
+  display: flex;
+  gap: var(--e-2);
+}
+.qr-chamado-form__botoes .botao { flex: 1; justify-content: center; min-height: 46px; }
+
+.qr-chamados {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+  padding-top: var(--e-4);
+  border-top: 1px solid var(--borda);
+}
+.qr-chamados__rotulo {
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--caixa-alta-espaco);
+  color: var(--texto-3);
+  font-weight: var(--peso-semi);
+}
+.qr-chamado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--e-3);
+  padding: var(--e-3);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie-2);
+}
+.qr-chamado strong { font-size: var(--t-md); }
+.qr-chamado p {
+  margin: var(--e-1) 0 0;
+  font-size: var(--t-base);
+  line-height: var(--altura-normal);
+  color: var(--texto-2);
+}
+.qr-chamado__meta {
+  display: block;
+  margin-top: var(--e-2);
+  font-size: var(--t-sm);
+  color: var(--texto-3);
+}
+.qr-chamado__remover {
+  flex: none;
+  border: 1px solid var(--borda-forte);
+  background: var(--superficie);
+  border-radius: var(--raio-sm);
+  color: var(--texto-2);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* ============================================================
+   DETALHES DO CHECKLIST
+   ============================================================ */
+
+/* A faixa de identificacao responde, de uma olhada, "que veiculo, com quem,
+   quando". Cada campo tem icone porque sao oito de uma vez: sem eles a faixa
+   vira uma parede de rotulos em caixa alta. */
+.checklist-faixa {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--e-5);
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra-1);
+  padding: var(--e-5) var(--e-6);
+  margin-bottom: var(--e-6);
+}
+.checklist-faixa__campo { min-width: 0; }
+.checklist-faixa__rotulo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--caixa-alta-espaco);
+  color: var(--texto-2);
+  font-weight: var(--peso-semi);
+}
+.checklist-faixa__rotulo .icone { color: var(--texto-3); flex: none; }
+.checklist-faixa__valor {
+  margin-top: var(--e-2);
+  font-size: var(--t-md);
+  color: var(--texto);
+  line-height: var(--altura-normal);
+}
+.checklist-faixa__valor strong { display: block; font-weight: var(--peso-semi); }
+.checklist-faixa__destaque { font-size: var(--t-xl); line-height: 1.2; }
+.checklist-faixa__apoio {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--t-base);
+  color: var(--texto-2);
+}
+
+/* Duas colunas: a conferencia a esquerda, o material de apoio (fotos e
+   observacoes) a direita. */
+.checklist-corpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: var(--e-6);
+  align-items: start;
+}
+.checklist-corpo__coluna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-5);
+  min-width: 0;
+}
+@media (max-width: 1100px) {
+  .checklist-corpo { grid-template-columns: minmax(0, 1fr); }
+}
+
+.checklist-legenda { display: flex; gap: var(--e-4); }
+.checklist-legenda span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--t-sm);
+  color: var(--texto-2);
+}
+.checklist-legenda span::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: var(--raio-full);
+  background: var(--borda-forte);
+}
+.checklist-legenda span[data-tom="verde"]::before { background: var(--verde); }
+.checklist-legenda span[data-tom="vermelho"]::before { background: var(--vermelho); }
+
+.checklist-itens__ordem {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-right: var(--e-3);
+  border-radius: var(--raio-full);
+  background: var(--superficie-3);
+  color: var(--texto-2);
+  font-size: var(--t-sm);
+  font-weight: var(--peso-semi);
+}
+.checklist-itens__obs { color: var(--texto-2); }
+
+/* CHAMADOS
+   Eram uma tabela de cinco colunas espremida na meia largura da tela: numero,
+   parte, descricao, data e status, tudo colado. Cada chamado virou um bloco -
+   o problema e o status na primeira linha, a descricao embaixo e os dados de
+   registro numa faixa separada por uma linha. */
+.chamados {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+}
+.chamado {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: var(--e-4) var(--e-5);
+}
+.chamado__topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--e-4);
+}
+.chamado__topo h3 {
+  margin: 0;
+  font-size: var(--t-lg);
+  font-weight: var(--peso-semi);
+}
+.chamado__descricao {
+  margin: var(--e-2) 0 0;
+  font-size: var(--t-md);
+  line-height: var(--altura-solta);
+  color: var(--texto);
+  text-wrap: pretty;
+}
+.chamado__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2) var(--e-5);
+  margin-top: var(--e-4);
+  padding-top: var(--e-3);
+  border-top: 1px solid var(--superficie-3);
+  font-size: var(--t-base);
+  color: var(--texto-2);
+}
+.chamado__numero { font-weight: var(--peso-semi); color: var(--texto); }
+
+.checklist-fotos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-3);
+}
+.checklist-fotos img {
+  width: 100%;
+  height: 108px;
+  object-fit: cover;
+  border-radius: var(--raio);
+  border: 1px solid var(--borda);
+  display: block;
+}
+
+.texto-apoio {
+  font-size: var(--t-base);
+  color: var(--texto-2);
+  line-height: var(--altura-normal);
+  margin: 0;
+}
+.checklist-assinatura {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  margin-top: var(--e-4);
+  padding-top: var(--e-3);
+  border-top: 1px solid var(--superficie-3);
+}
+.checklist-assinatura .icone { color: var(--texto-3); }

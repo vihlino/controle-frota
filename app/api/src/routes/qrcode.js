@@ -70,7 +70,7 @@ router.post("/veiculo/:id", autenticar, exigePermissao("FROTAS_GERENCIAR_VEICULO
       if (existente.rows[0]) return res.json(existente.rows[0]);
 
       const veiculo = await query("SELECT placa FROM veiculo WHERE id_veiculo = $1", [idVeiculo]);
-      if (!veiculo.rows[0]) return res.status(404).json({ erro: "Veiculo nao encontrado" });
+      if (!veiculo.rows[0]) return res.status(404).json({ erro: "Veículo não encontrado" });
 
       const codigo = `SITRA-${veiculo.rows[0].placa.replace(/[^A-Z0-9]/gi, "").toUpperCase()}`;
       const token = crypto.randomBytes(24).toString("hex");
@@ -111,7 +111,7 @@ router.get("/ler/:token", async (req, res, next) => {
       [req.params.token]
     );
     const veiculo = rows[0];
-    if (!veiculo) return res.status(404).json({ erro: "QR Code invalido." });
+    if (!veiculo) return res.status(404).json({ erro: "QR Code inválido." });
     if (!veiculo.qr_ativo) return res.status(410).json({ erro: "QR Code desativado." });
 
     const aberto = await query(
@@ -161,10 +161,28 @@ router.get("/ler/:token", async (req, res, next) => {
 const NORMALIZAR = `NULLIF(regexp_replace(upper(regexp_replace($1, '[^a-zA-Z0-9]', '', 'g')), '^0+', ''), '')`;
 const NORMALIZAR_COLUNA = `NULLIF(regexp_replace(upper(regexp_replace(matricula, '[^a-zA-Z0-9]', '', 'g')), '^0+', ''), '')`;
 
-router.get("/condutor/:matricula", async (req, res, next) => {
+// O TOKEN DO QR CODE E EXIGIDO AQUI, e nao so a matricula.
+//
+// Antes bastava a matricula, e a rota e publica por necessidade - quem
+// consulta e o motorista no patio, sem login. So que a matricula e um numero
+// curto: dava para varrer de 00000 a 99999 e colher NOME, NUMERO DA CNH e
+// DATA DE NASCIMENTO de toda a folha da CMTT. E o conjunto exato usado em
+// fraude de identidade, e um vazamento desses e comunicavel a ANPD pela LGPD.
+//
+// O token do QR Code sao 24 bytes aleatorios, impossiveis de adivinhar. Quem
+// esta com o veiculo na mao tem o adesivo; quem esta varrendo a internet nao
+// tem. A consulta continua funcionando para quem precisa dela e deixa de
+// funcionar para quem nao precisa.
+router.get("/condutor/:token/:matricula", async (req, res, next) => {
   try {
+    const qr = await query(
+      "SELECT 1 FROM qr_code WHERE token = $1 AND status = TRUE",
+      [req.params.token]
+    );
+    if (!qr.rows[0]) return res.status(404).json({ erro: "QR Code inválido." });
+
     const digitada = String(req.params.matricula || "").trim();
-    if (!digitada) return res.status(400).json({ erro: "Informe a matricula." });
+    if (!digitada) return res.status(400).json({ erro: "Informe a matrícula." });
 
     // O status NAO entra no WHERE de proposito. Um servidor inativo tem que
     // ser ENCONTRADO para poder ser recusado com o motivo certo: dizer
@@ -181,7 +199,7 @@ router.get("/condutor/:matricula", async (req, res, next) => {
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ erro: "Matricula nao encontrada." });
+      return res.status(404).json({ erro: "Matrícula não encontrada." });
     }
 
     // Duas matriculas diferentes podem virar a mesma coisa depois de
@@ -220,7 +238,7 @@ router.post("/saida/:token", async (req, res, next) => {
     const { matricula, odometro_saida, percurso, local_saida, observacoes, equipamentos } = req.body;
 
     if (!matricula || odometro_saida === undefined) {
-      return res.status(400).json({ erro: "Informe a matricula e o KM de saida." });
+      return res.status(400).json({ erro: "Informe a matrícula e o KM de saida." });
     }
 
     await cliente.query("BEGIN");
@@ -234,14 +252,14 @@ router.post("/saida/:token", async (req, res, next) => {
     );
     if (!qr.rows[0]) {
       await cliente.query("ROLLBACK");
-      return res.status(404).json({ erro: "QR Code invalido." });
+      return res.status(404).json({ erro: "QR Code inválido." });
     }
     const veiculo = qr.rows[0];
 
     if (veiculo.status === "EM_MANUTENCAO" || veiculo.status === "INATIVO") {
       await cliente.query("ROLLBACK");
       return res.status(409).json({
-        erro: "Este veiculo nao esta liberado para uso. Procure a gestao da frota.",
+        erro: "Este veículo não esta liberado para uso. Procure a gestão da frota.",
       });
     }
 
@@ -251,7 +269,7 @@ router.post("/saida/:token", async (req, res, next) => {
     );
     if (!servidor.rows[0]) {
       await cliente.query("ROLLBACK");
-      return res.status(404).json({ erro: "Matricula nao encontrada." });
+      return res.status(404).json({ erro: "Matrícula não encontrada." });
     }
 
     // Um veiculo nao pode ter dois checklists abertos ao mesmo tempo.
@@ -262,7 +280,7 @@ router.post("/saida/:token", async (req, res, next) => {
     if (jaAberto.rows[0]) {
       await cliente.query("ROLLBACK");
       return res.status(409).json({
-        erro: "Ja existe um checklist aberto para este veiculo. Registre a chegada primeiro.",
+        erro: "Ja existe um checklist aberto para este veículo. Registre a chegada primeiro.",
       });
     }
 
@@ -326,7 +344,7 @@ router.post("/chegada/:token", async (req, res, next) => {
     );
     if (!aberto.rows[0]) {
       await cliente.query("ROLLBACK");
-      return res.status(404).json({ erro: "Nenhum checklist aberto para este veiculo." });
+      return res.status(404).json({ erro: "Nenhum checklist aberto para este veículo." });
     }
     const checklist = aberto.rows[0];
 
@@ -402,7 +420,7 @@ router.get("/imagem/:idVeiculo", autenticar, async (req, res, next) => {
         WHERE q.id_veiculo = $1`,
       [Number(req.params.idVeiculo)]
     );
-    if (!rows[0]) return res.status(404).json({ erro: "Este veiculo ainda nao tem QR Code." });
+    if (!rows[0]) return res.status(404).json({ erro: "Este veículo ainda não tem QR Code." });
 
     const base = process.env.URL_PUBLICA || "http://localhost:5173";
     const url = `${base}/checklist/${rows[0].token}`;
@@ -465,7 +483,7 @@ router.post("/foto/:token", corpoDeFoto, async (req, res, next) => {
     const fotos = Array.isArray(req.body?.fotos) ? req.body.fotos : [];
 
     if (!["SAIDA", "CHEGADA"].includes(momento)) {
-      return res.status(400).json({ erro: "Momento invalido." });
+      return res.status(400).json({ erro: "Momento inválido." });
     }
     if (!fotos.length) return res.status(400).json({ erro: "Nenhuma foto recebida." });
     if (fotos.length > MAX_FOTOS) {
@@ -488,7 +506,7 @@ router.post("/foto/:token", corpoDeFoto, async (req, res, next) => {
     );
     if (!rows[0]) {
       await cliente.query("ROLLBACK");
-      return res.status(404).json({ erro: "Nenhum checklist para este veiculo." });
+      return res.status(404).json({ erro: "Nenhum checklist para este veículo." });
     }
     const idChecklist = rows[0].id_checklist;
 
@@ -498,7 +516,7 @@ router.post("/foto/:token", corpoDeFoto, async (req, res, next) => {
       if (!arquivo) {
         await cliente.query("ROLLBACK");
         return res.status(400).json({
-          erro: "Formato de imagem nao aceito. Use JPEG, PNG ou WebP ate 3 MB.",
+          erro: "Formato de imagem não aceito. Use JPEG, PNG ou WebP até 3 MB.",
         });
       }
       const r = await cliente.query(
@@ -547,10 +565,116 @@ router.get("/foto/arquivo/:idFoto", autenticar, async (req, res, next) => {
       "SELECT tipo, conteudo FROM checklist_frotas_foto WHERE id_foto = $1",
       [Number(req.params.idFoto)]
     );
-    if (!rows[0]) return res.status(404).json({ erro: "Foto nao encontrada." });
+    if (!rows[0]) return res.status(404).json({ erro: "Foto não encontrada." });
     res.setHeader("Content-Type", rows[0].tipo);
     res.setHeader("Cache-Control", "private, max-age=31536000, immutable");
     res.send(rows[0].conteudo);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/* ============================================================
+ * CHAMADO DE MANUTENCAO ABERTO PELO CONDUTOR
+ * ============================================================
+ * E MECANICA, nao equipamento: pneu furado, farol queimado, freio falhando,
+ * barulho no motor. A falta de um macaco nao vira chamado - vira item ausente
+ * no proprio checklist.
+ *
+ * A OS nasce com origem 'CHECKLIST_FROTAS' e id_registro_origem = id_checklist,
+ * que e o vinculo que a tela de detalhes usa para listar os chamados daquele
+ * checklist. Quem abriu e um SERVIDOR (o condutor), nao um usuario logado -
+ * por isso id_servidor_solicitante.
+ *
+ * A rota e publica pelo mesmo motivo do resto do fluxo: a credencial e o token
+ * do QR Code. Mesmo assim o checklist informado tem de ser DAQUELE veiculo -
+ * senao um token valido abriria chamado no registro de outro carro.
+ */
+const PARTES_VEICULO = [
+  "PNEUS", "FREIOS", "ILUMINACAO", "MOTOR", "SUSPENSAO",
+  "ELETRICA", "AR_CONDICIONADO", "OUTRO",
+];
+const GRAVIDADES_CHAMADO = ["BAIXA", "MEDIA", "ALTA"];
+
+async function checklistDoToken(token, idChecklist) {
+  const { rows } = await query(
+    `SELECT c.id_checklist, c.id_veiculo, c.id_servidor, c.status
+       FROM qr_code q
+       JOIN checklist_frotas c ON c.id_veiculo = q.id_veiculo
+      WHERE q.token = $1 AND q.status = TRUE AND c.id_checklist = $2`,
+    [token, Number(idChecklist)]
+  );
+  return rows[0] || null;
+}
+
+// Lista os chamados de um checklist. Serve a tela do condutor, que mostra
+// "Chamados deste checklist" logo abaixo do botao de abrir.
+router.get("/chamados/:token/:idChecklist", async (req, res, next) => {
+  try {
+    const checklist = await checklistDoToken(req.params.token, req.params.idChecklist);
+    if (!checklist) {
+      return res.status(404).json({ erro: "Checklist não encontrado para este QR Code." });
+    }
+
+    const { rows } = await query(
+      `SELECT id_os, numero, parte_veiculo, gravidade, descricao, status,
+              momento, data_abertura
+         FROM ordem_servico
+        WHERE origem = 'CHECKLIST_FROTAS' AND id_registro_origem = $1
+        ORDER BY data_abertura`,
+      [checklist.id_checklist]
+    );
+    res.json(rows);
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post("/chamado/:token", async (req, res, next) => {
+  try {
+    const { id_checklist, parte_veiculo, gravidade, descricao, momento } = req.body || {};
+
+    if (!id_checklist || !descricao || !String(descricao).trim()) {
+      return res.status(400).json({ erro: "Descreva o problema para abrir o chamado." });
+    }
+    if (!PARTES_VEICULO.includes(parte_veiculo)) {
+      return res.status(400).json({ erro: "Escolha a parte do veículo." });
+    }
+    if (!GRAVIDADES_CHAMADO.includes(gravidade)) {
+      return res.status(400).json({ erro: "Escolha a urgencia do chamado." });
+    }
+    const quando = momento === "CHEGADA" ? "CHEGADA" : "SAIDA";
+
+    const checklist = await checklistDoToken(req.params.token, id_checklist);
+    if (!checklist) {
+      return res.status(404).json({ erro: "Checklist não encontrado para este QR Code." });
+    }
+
+    // O numero da OS e do ANO, sequencial: 2026-0001. Contamos as do ano
+    // corrente e somamos um. Duas aberturas no mesmo segundo podem disputar o
+    // mesmo numero; e um rotulo de leitura, nao a chave do registro, entao
+    // repetir e menos grave que travar a abertura do chamado no patio.
+    const { rows: seq } = await query(
+      `SELECT COUNT(*)::int + 1 AS proximo
+         FROM ordem_servico
+        WHERE EXTRACT(YEAR FROM data_abertura) = EXTRACT(YEAR FROM CURRENT_DATE)`
+    );
+    const numeroOs = `${new Date().getFullYear()}-${String(seq[0].proximo).padStart(4, "0")}`;
+
+    const { rows } = await query(
+      `INSERT INTO ordem_servico
+         (id_veiculo, origem, id_registro_origem, gravidade, id_servidor_solicitante,
+          parte_veiculo, momento, tipo, status, descricao, numero)
+       VALUES ($1, 'CHECKLIST_FROTAS', $2, $3, $4, $5, $6, 'CORRETIVA', 'EM_ANALISE', $7, $8)
+       RETURNING id_os, numero, parte_veiculo, gravidade, descricao, status,
+                 momento, data_abertura`,
+      [
+        checklist.id_veiculo, checklist.id_checklist, gravidade, checklist.id_servidor,
+        parte_veiculo, quando, String(descricao).trim(), numeroOs,
+      ]
+    );
+
+    res.status(201).json(rows[0]);
   } catch (e) {
     next(e);
   }

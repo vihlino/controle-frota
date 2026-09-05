@@ -41,7 +41,7 @@ export default function InspeçãoDetalhe() {
 
   const cabecalho = [
     { rotulo: "Veículo", valor: inspeção.placa, nota: `${inspeção.marca} ${inspeção.modelo}`, icone: "kpi-car" },
-    { rotulo: "Frequencia", valor: rotulo("tipoInspeção", inspeção.tipo), icone: "calendar" },
+    { rotulo: "Frequência", valor: rotulo("tipoInspeção", inspeção.tipo), icone: "calendar" },
     {
       rotulo: "Data da inspeção", valor: data(inspeção.data_realizacao),
       nota: hora(inspeção.hora_inicio), icone: "calendar",
@@ -186,7 +186,7 @@ export default function InspeçãoDetalhe() {
               <li>
                 <span className="linha-tempo__ponto" data-tom="amarelo" />
                 <div>
-                  <strong>Proxima inspeção prevista</strong>
+                  <strong>Próxima inspeção prevista</strong>
                   <span>{data(inspeção.proxima_inspecao)}</span>
                 </div>
               </li>

@@ -94,7 +94,7 @@ router.post("/login", async (req, res, next) => {
     if (!encontrado.status) {
       return res
         .status(403)
-        .json({ erro: "Usuario inativo. Procure a administracao." });
+        .json({ erro: "Usuário inativo. Procure a administração." });
     }
 
     await query(
@@ -126,7 +126,7 @@ router.post("/login", async (req, res, next) => {
 router.get("/eu", autenticar, async (req, res, next) => {
   try {
     const usuario = await carregarUsuario(req.usuario.id_usuario);
-    if (!usuario) return res.status(401).json({ erro: "Usuario nao encontrado" });
+    if (!usuario) return res.status(401).json({ erro: "Usuário não encontrado" });
     res.json({ usuario });
   } catch (e) {
     next(e);

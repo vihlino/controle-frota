@@ -9,7 +9,25 @@ import bcrypt from "bcryptjs";
 import { pool } from "./db.js";
 
 const LOGIN = process.env.SEED_LOGIN || "admin";
-const SENHA = process.env.SEED_SENHA || "sitra@2026";
+
+// SEM SENHA PADRAO NO CODIGO.
+//
+// Havia aqui um `|| "sitra@2026"`. O repositorio e publico: essa senha estava
+// escrita, em texto puro, num arquivo que qualquer pessoa na internet le - e
+// o render.yaml nao declara SEED_SENHA, entao era ELA que criava o
+// administrador em producao. Login de administrador com senha conhecida.
+//
+// Agora o seed se recusa a rodar sem uma senha informada. Falhar e melhor do
+// que criar uma conta que qualquer um abre.
+const SENHA = process.env.SEED_SENHA;
+if (!SENHA || SENHA.length < 12) {
+  console.error(
+    "SEED_SENHA nao definida (ou com menos de 12 caracteres).\n" +
+    "Defina uma senha forte antes de criar o administrador:\n" +
+    "  no Render, em Environment; localmente, no arquivo .env"
+  );
+  process.exit(1);
+}
 
 const cliente = await pool.connect();
 try {
@@ -55,8 +73,11 @@ try {
   );
 
   await cliente.query("COMMIT");
-  console.log(`Usuario criado. Login: ${LOGIN} | Senha: ${SENHA}`);
-  console.log("Troque essa senha depois do primeiro acesso.");
+  // A SENHA NAO E IMPRESSA. O log do Render fica guardado e e visivel a quem
+  // tem acesso ao painel - imprimir a senha ali a espalha para todo mundo que
+  // um dia abrir o historico de deploy.
+  console.log(`Usuario administrador criado. Login: ${LOGIN}`);
+  console.log("A senha e a que voce definiu em SEED_SENHA. Troque-a apos o primeiro acesso.");
 } catch (e) {
   await cliente.query("ROLLBACK");
   console.error("Falha no seed:", e.message);

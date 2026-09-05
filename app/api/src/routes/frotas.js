@@ -68,6 +68,8 @@ export const checklists = criarCrud({
   select: `checklist_frotas.*,
            servidor.nome AS condutor, servidor.matricula,
            veiculo.placa, veiculo.marca, veiculo.modelo,
+           veiculo.ano_fabricacao, veiculo.ano_modelo, veiculo.cor,
+           veiculo.tipo_veiculo, setor.nome AS setor,
            (checklist_frotas.odometro_chegada - checklist_frotas.odometro_saida) AS km_rodado,
            (SELECT COALESCE(jsonb_agg(jsonb_build_object(
                      'equipamento', e.equipamento, 'conforme', e.conforme,
@@ -75,10 +77,20 @@ export const checklists = criarCrud({
               FROM checklist_frotas_equipamento e
              WHERE e.id_checklist = checklist_frotas.id_checklist) AS equipamentos,
            (SELECT COUNT(*) FROM checklist_frotas_foto f
-             WHERE f.id_checklist = checklist_frotas.id_checklist) AS total_fotos`,
+             WHERE f.id_checklist = checklist_frotas.id_checklist) AS total_fotos,
+           (SELECT COALESCE(jsonb_agg(jsonb_build_object(
+                     'id_os', os.id_os, 'numero', os.numero,
+                     'parte_veiculo', os.parte_veiculo, 'gravidade', os.gravidade,
+                     'descricao', os.descricao, 'status', os.status,
+                     'momento', os.momento, 'data_abertura', os.data_abertura)
+                     ORDER BY os.data_abertura), '[]'::jsonb)
+              FROM ordem_servico os
+             WHERE os.origem = 'CHECKLIST_FROTAS'
+               AND os.id_registro_origem = checklist_frotas.id_checklist) AS chamados`,
   from: `checklist_frotas
          JOIN servidor ON servidor.id_servidor = checklist_frotas.id_servidor
-         JOIN veiculo  ON veiculo.id_veiculo   = checklist_frotas.id_veiculo`,
+         JOIN veiculo  ON veiculo.id_veiculo   = checklist_frotas.id_veiculo
+         JOIN setor    ON setor.id_setor       = veiculo.id_setor`,
   busca: ["veiculo.placa", "servidor.nome", "checklist_frotas.percurso"],
   filtros: {
     veiculo: "checklist_frotas.id_veiculo",
@@ -145,14 +157,19 @@ export const manutencoes = criarCrud({
   tabela: "ordem_servico",
   id: "id_os",
   entidade: "ordem_servico",
+  // O solicitante pode vir de dois lugares: um USUARIO logado, quando a OS
+  // nasce nas telas administrativas, ou um SERVIDOR, quando o condutor abre o
+  // chamado pelo checklist do QR Code - ali nao existe login. Os JOINs sao
+  // LEFT por isso: com INNER, todo chamado aberto no patio sumia da lista.
   select: `ordem_servico.*,
            veiculo.placa, veiculo.marca, veiculo.modelo,
-           solicitante.nome AS solicitante,
+           COALESCE(solicitante.nome, condutor.nome) AS solicitante,
            responsavel.nome AS responsavel`,
   from: `ordem_servico
          JOIN veiculo ON veiculo.id_veiculo = ordem_servico.id_veiculo
-         JOIN usuario  u_sol ON u_sol.id_usuario = ordem_servico.id_solicitante
-         JOIN servidor solicitante ON solicitante.id_servidor = u_sol.id_servidor
+         LEFT JOIN usuario  u_sol ON u_sol.id_usuario = ordem_servico.id_solicitante
+         LEFT JOIN servidor solicitante ON solicitante.id_servidor = u_sol.id_servidor
+         LEFT JOIN servidor condutor ON condutor.id_servidor = ordem_servico.id_servidor_solicitante
          LEFT JOIN usuario  u_resp ON u_resp.id_usuario = ordem_servico.id_responsavel
          LEFT JOIN servidor responsavel ON responsavel.id_servidor = u_resp.id_servidor`,
   busca: ["veiculo.placa", "ordem_servico.descricao", "ordem_servico.oficina", "ordem_servico.numero"],
@@ -173,6 +190,7 @@ export const manutencoes = criarCrud({
     "id_responsavel", "data_inicio", "data_conclusao", "status", "servico_realizado",
     "oficina", "custo", "houve_troca", "observacoes", "tipo", "data_agendada",
     "proxima_manutencao", "quilometragem", "descricao", "numero",
+    "id_servidor_solicitante", "parte_veiculo", "momento",
   ],
   obrigatorios: ["id_veiculo", "origem", "gravidade", "id_solicitante", "tipo"],
   permissoes: { ver: VER, gerenciar: "FROTAS_GERENCIAR_OS" },
