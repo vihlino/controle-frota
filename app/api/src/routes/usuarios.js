@@ -15,8 +15,29 @@
  */
 import { Router } from "express";
 import bcrypt from "bcryptjs";
+
+/**
+ * Confere se a senha e aceitavel. Devolve a mensagem do problema, ou null.
+ *
+ * Antes so o comprimento era exigido, e 8 caracteres deixavam passar "12345678"
+ * e o proprio login. Num sistema de orgao publico o ataque comum nao e o
+ * sofisticado - e tentar o obvio na tela de login.
+ */
+function problemaNaSenha(senha, login) {
+  const s = String(senha);
+  if (s.length < 10) return "A senha precisa ter ao menos 10 caracteres.";
+  if (/^\d+$/.test(s)) return "A senha não pode ser só números.";
+  if (login && s.toLowerCase() === String(login).toLowerCase()) {
+    return "A senha não pode ser igual ao login.";
+  }
+  const obvias = ["sitra", "senha", "123456", "admin", "cmtt", "mudar123", "trocar123"];
+  if (obvias.some((o) => s.toLowerCase().includes(o))) {
+    return "A senha é fácil demais de adivinhar. Escolha outra.";
+  }
+  return null;
+}
 import { query } from "../db.js";
-import { autenticar, exigePermissao } from "../auth.js";
+import { autenticar, exigePermissao, esquecerUsuario } from "../auth.js";
 import { registrarAuditoria } from "../auditoria.js";
 
 const router = Router();
@@ -94,9 +115,8 @@ router.post("/", autenticar, gerenciar, async (req, res, next) => {
     if (!id_servidor || !id_perfil || !login || !senha) {
       return res.status(400).json({ erro: "Informe servidor, perfil, login e senha." });
     }
-    if (String(senha).length < 8) {
-      return res.status(400).json({ erro: "A senha precisa ter ao menos 8 caracteres." });
-    }
+    const problema = problemaNaSenha(senha, login);
+    if (problema) return res.status(400).json({ erro: problema });
 
     const { rows } = await query(
       `INSERT INTO usuario (id_servidor, id_perfil, login, senha_hash)
@@ -117,7 +137,7 @@ router.post("/", autenticar, gerenciar, async (req, res, next) => {
     res.status(201).json(rows[0]);
   } catch (e) {
     if (e.code === "23505") {
-      return res.status(409).json({ erro: "Ja existe usuário com esse login ou servidor." });
+      return res.status(409).json({ erro: "Já existe usuário com esse login ou servidor." });
     }
     next(e);
   }
@@ -139,11 +159,13 @@ router.put("/:id", autenticar, gerenciar, async (req, res, next) => {
       atribuicoes.push(`status = $${valores.length}`);
     }
     if (senha) {
-      if (String(senha).length < 8) {
-        return res.status(400).json({ erro: "A senha precisa ter ao menos 8 caracteres." });
-      }
+      const problema = problemaNaSenha(senha, null);
+      if (problema) return res.status(400).json({ erro: problema });
       valores.push(await bcrypt.hash(String(senha), 10));
       atribuicoes.push(`senha_hash = $${valores.length}`);
+      // Marca a troca: a autenticacao recusa token emitido antes disto, entao
+      // trocar a senha derruba as sessoes que estavam abertas.
+      atribuicoes.push("senha_alterada_em = NOW()");
     }
     if (!atribuicoes.length) return res.status(400).json({ erro: "Nada para alterar." });
 
@@ -155,6 +177,10 @@ router.put("/:id", autenticar, gerenciar, async (req, res, next) => {
       valores
     );
     if (!rows[0]) return res.status(404).json({ erro: "Usuário não encontrado" });
+
+    // O estado deste usuario esta guardado por 30s na autenticacao; sem isto,
+    // desativar alguem so faria efeito no fim desse prazo.
+    esquecerUsuario(idUsuario);
 
     await registrarAuditoria({
       idUsuario: req.usuario.id_usuario,

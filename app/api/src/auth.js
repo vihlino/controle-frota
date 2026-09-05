@@ -15,6 +15,7 @@
  * desativado no meio do caminho. Por isso o prazo e curto (8h por padrao).
  */
 import jwt from "jsonwebtoken";
+import { query } from "./db.js";
 
 // A chave que assina os tokens. Se ela vazar, qualquer um consegue forjar um
 // token de administrador - por isso ela vive no .env e nunca no codigo.
@@ -55,22 +56,102 @@ export function assinarToken(payload) {
  * Quando passa, deixa os dados do token em req.usuario, e o handler pode usar
  * req.usuario.id_usuario, req.usuario.permissoes etc.
  */
-export function autenticar(req, res, next) {
+/**
+ * Cache curto do estado do usuario.
+ *
+ * A assinatura do token diz que ele nao foi adulterado, mas nao diz se a
+ * pessoa continua valendo: um servidor desativado as 9h seguia entrando ate as
+ * 17h, porque o token dura 8 horas e o servidor nao guarda sessao. Por isso a
+ * autenticacao passou a consultar o banco.
+ *
+ * Consultar a cada requisicao seria caro numa tela que dispara varias
+ * chamadas juntas, entao a resposta fica guardada por 30 segundos. E o atraso
+ * maximo entre desativar alguem e a porta fechar - suficiente para o proposito
+ * e barato o bastante para nao pesar.
+ *
+ * @type {Map<number, {ate: number, estado: object|null}>}
+ */
+const cacheUsuario = new Map();
+const VALIDADE_CACHE = 30_000;
+
+async function estadoDoUsuario(id) {
+  const agora = Date.now();
+  const guardado = cacheUsuario.get(id);
+  if (guardado && guardado.ate > agora) return guardado.estado;
+
+  // O epoch e calculado NO BANCO, de proposito.
+  //
+  // A coluna e TIMESTAMP sem fuso e a API grava nela o horario de Brasilia
+  // (db.js manda SET TIME ZONE em toda conexao). O driver devolve esse valor
+  // como texto puro - "2026-09-05 10:58:09" - e new Date() no Node leria esse
+  // texto no fuso do PROCESSO, que no servidor e UTC. Dava exatamente 3 horas
+  // de diferenca: uma senha trocada agora parecia ter sido trocada as 7h, e
+  // todo token emitido nas 3 horas anteriores continuava valendo. Ou seja: o
+  // recurso que existe para derrubar sessoes deixava justamente as sessoes
+  // mais recentes de pe. Medido em teste, nao suposto.
+  //
+  // AT TIME ZONE current_setting('TimeZone') le a data no mesmo fuso em que
+  // ela foi gravada, seja qual for o fuso do servidor. FLOOR (e nao ::bigint,
+  // que arredonda) porque o `iat` do token vem em segundos truncados: com
+  // arredondamento, quem trocasse a propria senha seria deslogado no mesmo
+  // instante, por um resto de milissegundos.
+  const { rows } = await query(
+    `SELECT status,
+            FLOOR(EXTRACT(EPOCH FROM senha_alterada_em
+                          AT TIME ZONE current_setting('TimeZone')))::bigint
+              AS senha_alterada_epoch
+       FROM usuario
+      WHERE id_usuario = $1`,
+    [id]
+  );
+  const estado = rows[0] || null;
+  cacheUsuario.set(id, { ate: agora + VALIDADE_CACHE, estado });
+  return estado;
+}
+
+/** Esquece o estado guardado de um usuario. Chamar ao desativar ou trocar senha. */
+export function esquecerUsuario(id) {
+  cacheUsuario.delete(Number(id));
+}
+
+export async function autenticar(req, res, next) {
   const header = req.headers.authorization || "";
   // O formato combinado e "Bearer <token>"; separamos o prefixo.
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) return res.status(401).json({ erro: "Não autenticado" });
 
+  let dados;
   try {
     // verify() confere a assinatura E a validade. Se qualquer uma falhar,
     // ele lanca excecao.
-    req.usuario = jwt.verify(token, _SECRET);
-    next();
+    dados = jwt.verify(token, _SECRET);
   } catch {
     // Nao distinguimos "token invalido" de "token expirado" na mensagem: para
     // o usuario, os dois significam "entre de novo".
-    res.status(401).json({ erro: "Sessão expirada. Entre novamente." });
+    return res.status(401).json({ erro: "Sessão expirada. Entre novamente." });
   }
+
+  try {
+    const estado = await estadoDoUsuario(dados.id_usuario);
+
+    // Usuario apagado ou desativado depois que o token foi emitido.
+    if (!estado || !estado.status) {
+      return res.status(401).json({ erro: "Acesso encerrado. Procure a administração." });
+    }
+
+    // Token emitido ANTES da ultima troca de senha nao vale mais. E o que faz
+    // trocar a senha derrubar as sessoes abertas - o comportamento que
+    // qualquer pessoa espera ao trocar a senha por suspeita.
+    if (estado.senha_alterada_epoch && dados.iat < estado.senha_alterada_epoch) {
+      return res.status(401).json({ erro: "A senha foi alterada. Entre novamente." });
+    }
+  } catch (e) {
+    // Falha ao consultar o banco NAO pode virar porta aberta.
+    return next(e);
+  }
+
+  req.usuario = dados;
+  next();
 }
 
 /**

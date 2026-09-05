@@ -31,6 +31,7 @@
 import "dotenv/config";
 
 import fs from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -81,7 +82,15 @@ const SENHA = process.env.SEED_SENHA || "sitra@2026";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const pastaDb = path.resolve(__dirname, "../db");
+// No Docker do Render a pasta db e copiada para dentro de api/ (../db a partir
+// de src/). Na maquina de quem desenvolve ela fica ao lado, em app/db
+// (../../db). Procurar nos dois lugares deixa o mesmo codigo rodar nos dois
+// ambientes - antes, rodar a API local dava "no such file or directory".
+const pastaDb = [
+  path.resolve(__dirname, "../db"),
+  path.resolve(__dirname, "../../db"),
+].find((caminho) => existsSync(path.join(caminho, "001_sitra_v1.sql")))
+  ?? path.resolve(__dirname, "../db");
 
 const caminhoSqlPrincipal = path.join(pastaDb, "001_sitra_v1.sql");
 

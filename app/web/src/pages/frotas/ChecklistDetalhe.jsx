@@ -126,11 +126,12 @@ export default function ChecklistDetalhe() {
 
   const dadosDoMomento = naSaida
     ? [
+        ["Data e hora de saída", declarado],
         ["KM de saída", `${numero(checklist.odometro_saida)} km`],
-        ["Local de saída", checklist.local_saida || "—"],
         ["Percurso / atividade", checklist.percurso || "—"],
       ]
     : [
+        ["Data e hora de chegada", declarado],
         [
           "KM de chegada",
           checklist.odometro_chegada === null ? "—" : `${numero(checklist.odometro_chegada)} km`,
@@ -154,9 +155,6 @@ export default function ChecklistDetalhe() {
           <p>Consulte as informações completas do checklist de saída e de entrada do veículo.</p>
         </div>
         <div className="cabecalho-pagina__acoes">
-          <button className="botao" onClick={() => window.print()}>
-            <Icone nome="baixar" tamanho={15} /> Exportar PDF
-          </button>
           <Link className="botao" to={`/frotas/veiculos/${checklist.id_veiculo}`}>
             Ver veículo
           </Link>
@@ -166,7 +164,10 @@ export default function ChecklistDetalhe() {
         </div>
       </div>
 
-      {/* Faixa de identificacao: quem, qual veiculo, quando. */}
+      {/* Faixa de identificacao. Setor, ano/modelo e a placa repetida sairam:
+          a placa ja e o destaque do primeiro campo, e o resto e cadastro do
+          veiculo - quem quer isso abre a tela do veiculo, que fica a um clique
+          daqui. */}
       <div className="checklist-faixa">
         <Campo icone="fisc-viatura" rotulo="Veículo">
           <strong className="checklist-faixa__destaque">{checklist.placa}</strong>
@@ -175,14 +176,6 @@ export default function ChecklistDetalhe() {
             {checklist.cor ? ` · ${checklist.cor}` : ""}
           </span>
         </Campo>
-
-        <Campo icone="setores" rotulo="Setor">{checklist.setor || "—"}</Campo>
-
-        <Campo icone="calendar" rotulo="Ano / Modelo">
-          {checklist.ano_fabricacao} / {checklist.ano_modelo}
-        </Campo>
-
-        <Campo icone="qrcode" rotulo="Placa">{checklist.placa}</Campo>
 
         <Campo icone="arrow-up" rotulo="Enviado em">{dataHora(enviadoEm)}</Campo>
 
@@ -208,7 +201,7 @@ export default function ChecklistDetalhe() {
         <button type="button" role="tab" className="aba"
                 data-ativa={!naSaida} aria-selected={!naSaida}
                 onClick={() => setAba("CHEGADA")}>
-          Checklist de Entrada
+          Checklist de Chegada
         </button>
       </div>
 
@@ -234,7 +227,7 @@ export default function ChecklistDetalhe() {
             </Cartao>
 
             <Cartao
-              titulo={`Itens do Checklist de ${naSaida ? "Saída" : "Entrada"}`}
+              titulo={`Itens do Checklist de ${naSaida ? "Saída" : "Chegada"}`}
               acao={
                 <div className="checklist-legenda">
                   <span data-tom="verde">Presente</span>
@@ -278,7 +271,13 @@ export default function ChecklistDetalhe() {
             <Cartao
               titulo="Manutenção"
               acao={
-                <Link className="cartao__acao" to="/frotas/manutencoes">
+                /* O link leva para Manutencoes JA FILTRADO neste veiculo: o
+                   gestor que abre este cartao quer ver o historico da placa,
+                   nao a fila inteira da frota. */
+                <Link
+                  className="cartao__acao"
+                  to={`/frotas/manutencoes?veiculo=${checklist.id_veiculo}`}
+                >
                   Ver todas as OS <Icone nome="seta-direita" tamanho={14} />
                 </Link>
               }

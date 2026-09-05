@@ -14,6 +14,7 @@ import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
 import Acoes from "../../components/Acoes.jsx";
 import Modal from "../../components/Modal.jsx";
+import { useConfirmacaoSenha } from "../../components/ConfirmarSenha.jsx";
 import { Texto, Selecao, Area } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
@@ -50,6 +51,7 @@ export default function Veículos() {
   const [formulario, setFormulario] = useState(VAZIO);
   const [erroForm, setErroForm] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
 
   const podeGerenciar = podeVer("FROTAS_GERENCIAR_VEICULOS");
   const [parametros, definirParametros] = useSearchParams();
@@ -99,6 +101,17 @@ export default function Veículos() {
       if (editando === "novo") {
         await api("/frotas/veiculos", { method: "POST", body: corpo });
       } else {
+        // So a EDICAO pede senha, como no resto do sistema: cadastrar um
+        // veiculo novo nao altera historico nenhum; mudar placa, KM ou setor
+        // de um veiculo que ja tem checklists e OS, sim.
+        const confirmou = await pedirSenha({
+          titulo: "Salvar alterações",
+          aviso: `Confirme sua senha para salvar as alterações no veículo ${formulario.placa}.`,
+        });
+        if (!confirmou) {
+          setSalvando(false);
+          return;
+        }
         await api(`/frotas/veiculos/${editando}`, { method: "PUT", body: corpo });
       }
       setEditando(null);
@@ -111,7 +124,12 @@ export default function Veículos() {
   }
 
   async function excluir(v) {
-    if (!confirm(`Excluir o veículo ${v.placa}? Esta acao nao pode ser desfeita.`)) return;
+    const confirmou = await pedirSenha({
+      titulo: "Excluir veículo",
+      aviso: `Esta ação não pode ser desfeita. Confirme sua senha para excluir o veículo ${v.placa}.`,
+      perigo: true,
+    });
+    if (!confirmou) return;
     try {
       await api(`/frotas/veiculos/${v.id_veiculo}`, { method: "DELETE" });
       lista.recarregar();
@@ -144,7 +162,7 @@ export default function Veículos() {
           title="QR Code do veículo"
           onClick={() => navegar(`/frotas/veiculos/${v.id_veiculo}/qrcode`)}
         >
-          <Icone nome="checklist" tamanho={18} />
+          <Icone nome="codigo-qr" tamanho={18} />
         </button>
       ),
     },
@@ -262,6 +280,8 @@ export default function Veículos() {
           </form>
         </Modal>
       )}
+
+      {modalSenha}
     </PaginaLista>
   );
 }

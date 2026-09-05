@@ -31,7 +31,7 @@ export default function Acoes({ acoes }) {
         aria-haspopup="menu"
         aria-expanded={aberto}
       >
-        <Icone nome="chevron-down" tamanho={18} />
+        <Icone nome="menu-pontos-vertical" tamanho={18} />
       </button>
 
       <MenuSuspenso aberto={aberto} aoFechar={fechar} ancora={botao} largura={200}>

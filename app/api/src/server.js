@@ -124,6 +124,16 @@ async function iniciarServidor() {
     message: { erro: "Muitas tentativas de login. Tente novamente em 15 minutos." },
   }));
 
+  // A confirmacao de senha (pedida antes de editar e de excluir) tambem
+  // responde "certa ou errada" - e um oraculo de senha tao bom quanto o login.
+  // Quem tivesse um token emprestado ou roubado podia descobrir a senha ali,
+  // sem limite nenhum. Poucas tentativas bastam para o uso legitimo: a pessoa
+  // esta confirmando a PROPRIA senha, que ela sabe.
+  app.use("/api/sessao/confirmar", rateLimit({
+    windowMs: 15 * 60_000, max: 10, standardHeaders: true, legacyHeaders: false,
+    message: { erro: "Muitas tentativas. Tente novamente em 15 minutos." },
+  }));
+
   app.use(express.json({ limit: "1mb" }));
 
   /*
@@ -216,10 +226,18 @@ async function iniciarServidor() {
 
   app.use((err, req, res, _next) => {
 
+    // O detalhe fica no log do servidor, onde so a equipe ve.
     console.error(`[500] ${req.method} ${req.path}`, err);
 
+    // E NAO vai para o cliente. A mensagem crua do Postgres entrega nome de
+    // tabela, de coluna e de restricao - um mapa do banco entregue a quem
+    // estiver sondando. Em desenvolvimento ela continua aparecendo, porque ali
+    // quem le e quem esta consertando.
+    const emProducao = process.env.NODE_ENV === "production";
     res.status(500).json({
-      erro: err.message || "Erro interno no servidor",
+      erro: emProducao
+        ? "Erro interno no servidor. Tente novamente."
+        : err.message || "Erro interno no servidor",
     });
 
   });
