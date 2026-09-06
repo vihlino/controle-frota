@@ -169,7 +169,7 @@ export default function Usuários() {
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={() => setCriando(true)}>
-            <Icone nome="user" tamanho={16} /> Novo usuário
+            <Icone nome="user" tamanho={15} /> Novo usuário
           </button>
         )
       }
@@ -247,7 +247,7 @@ export default function Usuários() {
             <>
               <button className="botao" onClick={() => setTrocandoSenha(null)}>Cancelar</button>
               <button className="botao botao--primario" form="form-senha" disabled={salvando}>
-                <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : "Salvar nova senha"}
+                <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Salvar nova senha"}
               </button>
             </>
           }

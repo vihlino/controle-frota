@@ -111,7 +111,9 @@ export default function NovoSinistro() {
           <h1>Novo sinistro</h1>
           <p>Registre um novo sinistro ocorrido com veículo da frota.</p>
         </div>
-        <button type="button" className="botao" onClick={() => navegar("/frotas/sinistros")}>← Voltar</button>
+        <button type="button" className="botao" onClick={() => navegar("/frotas/sinistros")}>
+          <Icone nome="seta-esquerda" tamanho={15} /> Voltar
+        </button>
       </div>
 
       <form onSubmit={salvar}>
@@ -187,7 +189,7 @@ export default function NovoSinistro() {
         <div className="pagina-acoes">
           <button type="button" className="botao" onClick={() => navegar("/frotas/sinistros")}>Cancelar</button>
           <button type="submit" className="botao botao--primario" disabled={salvando}>
-            <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : "Registrar sinistro"}
+            <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Registrar sinistro"}
           </button>
         </div>
       </form>

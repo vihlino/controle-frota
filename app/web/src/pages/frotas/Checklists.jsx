@@ -12,7 +12,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Selo from "../../components/Selo.jsx";
 import Acoes from "../../components/Acoes.jsx";
-import { Texto, Selecao, Data } from "../../components/Campos.jsx";
+import { Texto, Selecao, Periodo } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
 import { dataHora, hora, numero, rotulo } from "../../lib/formato.js";
@@ -169,10 +169,9 @@ export default function Checklists() {
             value={lista.filtros.status}
             onChange={(e) => lista.alterarFiltro("status", e.target.value)}
           />
-          <Data rotulo="De" id="dataDe" value={lista.filtros.dataDe}
-                onChange={(e) => lista.alterarFiltro("dataDe", e.target.value)} />
-          <Data rotulo="Até" id="dataAte" value={lista.filtros.dataAte}
-                onChange={(e) => lista.alterarFiltro("dataAte", e.target.value)} />
+          <Periodo id="periodo" de={lista.filtros.dataDe} ate={lista.filtros.dataAte}
+                   aoMudarDe={(v) => lista.alterarFiltro("dataDe", v)}
+                   aoMudarAte={(v) => lista.alterarFiltro("dataAte", v)} />
         </>
       }
     />

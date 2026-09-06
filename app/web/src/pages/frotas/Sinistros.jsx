@@ -12,7 +12,7 @@ import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
 import Acoes from "../../components/Acoes.jsx";
 import Modal from "../../components/Modal.jsx";
-import { Texto, Selecao, Data, Area } from "../../components/Campos.jsx";
+import { Texto, Selecao, Data, Area, Periodo } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
 import { data, hora, rotulo, simNao } from "../../lib/formato.js";
@@ -167,7 +167,7 @@ export default function Sinistros() {
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={() => navegar("/frotas/sinistros/novo")}>
-            <Icone nome="alert-triangle" tamanho={16} /> Registrar sinistro
+            <Icone nome="alert-triangle" tamanho={15} /> Registrar sinistro
           </button>
         )
       }
@@ -199,10 +199,9 @@ export default function Sinistros() {
           <Selecao rotulo="Situação" id="status" vazio="Todas" opcoes={SITUACOES}
                    value={lista.filtros.status}
                    onChange={(e) => lista.alterarFiltro("status", e.target.value)} />
-          <Data rotulo="De" id="dataDe" value={lista.filtros.dataDe}
-                onChange={(e) => lista.alterarFiltro("dataDe", e.target.value)} />
-          <Data rotulo="Até" id="dataAte" value={lista.filtros.dataAte}
-                onChange={(e) => lista.alterarFiltro("dataAte", e.target.value)} />
+          <Periodo id="periodo" de={lista.filtros.dataDe} ate={lista.filtros.dataAte}
+                   aoMudarDe={(v) => lista.alterarFiltro("dataDe", v)}
+                   aoMudarAte={(v) => lista.alterarFiltro("dataAte", v)} />
         </>
       }
     >
@@ -216,7 +215,7 @@ export default function Sinistros() {
             <>
               <button className="botao" onClick={() => setRegistrando(false)}>Cancelar</button>
               <button className="botao botao--primario" form="form-sinistro" disabled={salvando}>
-                <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : "Registrar sinistro"}
+                <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Registrar sinistro"}
               </button>
             </>
           }

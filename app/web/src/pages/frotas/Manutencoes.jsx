@@ -15,7 +15,7 @@ import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
 import Acoes from "../../components/Acoes.jsx";
 import Modal from "../../components/Modal.jsx";
-import { Texto, Selecao, Data, Area } from "../../components/Campos.jsx";
+import { Texto, Selecao, Data, Area, Periodo } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
 import { data, dinheiro, numero, rotulo } from "../../lib/formato.js";
@@ -163,7 +163,7 @@ export default function Manutenções() {
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={() => navegar("/frotas/manutencoes/agendar")}>
-            <Icone nome="kpi-wrench" tamanho={16} /> Agendar manutenção
+            <Icone nome="kpi-wrench" tamanho={15} /> Agendar manutenção
           </button>
         )
       }
@@ -198,10 +198,9 @@ export default function Manutenções() {
           <Selecao rotulo="Prioridade" id="gravidade" vazio="Todas" opcoes={PRIORIDADES}
                    value={lista.filtros.gravidade}
                    onChange={(e) => lista.alterarFiltro("gravidade", e.target.value)} />
-          <Data rotulo="De" id="dataDe" value={lista.filtros.dataDe}
-                onChange={(e) => lista.alterarFiltro("dataDe", e.target.value)} />
-          <Data rotulo="Até" id="dataAte" value={lista.filtros.dataAte}
-                onChange={(e) => lista.alterarFiltro("dataAte", e.target.value)} />
+          <Periodo id="periodo" de={lista.filtros.dataDe} ate={lista.filtros.dataAte}
+                   aoMudarDe={(v) => lista.alterarFiltro("dataDe", v)}
+                   aoMudarAte={(v) => lista.alterarFiltro("dataAte", v)} />
         </>
       }
     >
@@ -215,7 +214,7 @@ export default function Manutenções() {
             <>
               <button className="botao" onClick={() => setAgendando(false)}>Cancelar</button>
               <button className="botao botao--primario" form="form-os" disabled={salvando}>
-                <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : "Agendar manutenção"}
+                <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Agendar manutenção"}
               </button>
             </>
           }

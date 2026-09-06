@@ -13,7 +13,7 @@ import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
 import Acoes from "../../components/Acoes.jsx";
 import Modal from "../../components/Modal.jsx";
-import { Texto, Selecao, Data, Area } from "../../components/Campos.jsx";
+import { Texto, Selecao, Data, Area, Periodo } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
 import { data, numero, rotulo } from "../../lib/formato.js";
@@ -171,7 +171,7 @@ export default function Inspeções() {
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={() => navegar("/frotas/inspecoes/nova")}>
-            <Icone nome="calendar" tamanho={16} /> Agendar inspeção
+            <Icone nome="calendar" tamanho={15} /> Agendar inspeção
           </button>
         )
       }
@@ -199,10 +199,9 @@ export default function Inspeções() {
                    ]}
                    value={lista.filtros.status}
                    onChange={(e) => lista.alterarFiltro("status", e.target.value)} />
-          <Data rotulo="De" id="dataDe" value={lista.filtros.dataDe}
-                onChange={(e) => lista.alterarFiltro("dataDe", e.target.value)} />
-          <Data rotulo="Até" id="dataAte" value={lista.filtros.dataAte}
-                onChange={(e) => lista.alterarFiltro("dataAte", e.target.value)} />
+          <Periodo id="periodo" de={lista.filtros.dataDe} ate={lista.filtros.dataAte}
+                   aoMudarDe={(v) => lista.alterarFiltro("dataDe", v)}
+                   aoMudarAte={(v) => lista.alterarFiltro("dataAte", v)} />
         </>
       }
     >

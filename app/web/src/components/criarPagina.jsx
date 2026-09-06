@@ -29,7 +29,7 @@ import Icone from "./Icone.jsx";
 import Modal from "./Modal.jsx";
 import Acoes from "./Acoes.jsx";
 import { useConfirmacaoSenha } from "./ConfirmarSenha.jsx";
-import { Texto, Selecao, Data, Area } from "./Campos.jsx";
+import { Texto, Selecao, Data, Area, Periodo } from "./Campos.jsx";
 import { useLista } from "./useLista.js";
 import { api } from "../lib/api.js";
 import { data as dataBr } from "../lib/formato.js";
@@ -291,6 +291,23 @@ export default function criarPagina(config) {
      * @param {Function} aoMudar (nome, valor) => void
      */
     function renderCampo(c, valores, aoMudar) {
+      // O periodo nao e um campo comum: ele governa DOIS nomes de filtro
+      // (de e ate) dentro de uma caixa so, entao nao passa pelo caminho
+      // generico abaixo.
+      if (c.tipo === "periodo") {
+        return (
+          <Periodo
+            key={c.nome}
+            id={c.nome}
+            rotulo={c.rotulo}
+            de={valores[c.de] ?? ""}
+            ate={valores[c.ate] ?? ""}
+            aoMudarDe={(v) => aoMudar(c.de, v)}
+            aoMudarAte={(v) => aoMudar(c.ate, v)}
+          />
+        );
+      }
+
       const Componente = CAMPOS[c.tipo] || Texto;
 
       // As opcoes de um select podem vir de duas formas: uma lista fixa
@@ -327,7 +344,7 @@ export default function criarPagina(config) {
         acao={
           temFormulario && podeGerenciar && (
             <button className="botao botao--primario" onClick={() => abrir(null)}>
-              <Icone nome={config.iconeAcao || "mais"} tamanho={16} /> {config.rotuloAcao}
+              <Icone nome={config.iconeAcao || "mais"} tamanho={15} /> {config.rotuloAcao}
             </button>
           )
         }
@@ -363,7 +380,7 @@ export default function criarPagina(config) {
                     permite deixar o botao no rodape do modal, fora do
                     formulario, sem perder o envio nem a validacao do HTML. */}
                 <button className="botao botao--primario" form="form-pagina" disabled={salvando}>
-                  <Icone nome="salvar" tamanho={16} monocromatico />{" "}
+                  <Icone nome="salvar" tamanho={15} monocromatico />{" "}
                   {salvando ? "Salvando..." : config.rotuloSalvar || "Salvar"}
                 </button>
               </>

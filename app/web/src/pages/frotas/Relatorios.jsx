@@ -137,7 +137,7 @@ export default function Relatórios() {
       acao={
         podeGerar && (
           <button className="botao botao--primario" onClick={() => setGerando(true)}>
-            <Icone nome="chart-line" tamanho={16} /> Gerar relatório
+            <Icone nome="chart-line" tamanho={15} /> Gerar relatório
           </button>
         )
       }

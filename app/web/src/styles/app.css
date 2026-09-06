@@ -891,9 +891,15 @@ button { font: inherit; cursor: pointer; }
   top: 50%;
   transform: translateY(-50%);
   color: var(--texto-2);
-  pointer-events: none;
   line-height: 0;
+  /* Virou <button>: precisa receber o clique (antes era pointer-events:none)
+     e nao pode trazer a aparencia de botao do navegador. */
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
 }
+.campo-data__icone:hover { color: var(--marca-texto); }
 .campo-data input:focus ~ .campo-data__icone { color: var(--marca-texto); }
 
 .campo input:hover,
@@ -932,14 +938,65 @@ button { font: inherit; cursor: pointer; }
 /* Barra de filtros. Os campos ficam mais estreitos que antes (210px -> 170px)
    para caber mais de um por linha em tela media - com 210px, "Buscar", "Setor"
    e "Situacao" ocupavam a largura toda e empurravam os botoes para baixo. */
+/* A barra de filtros e apoio, nao o assunto da tela: campos mais baixos,
+   rotulo menor e tudo numa linha so enquanto couber. Em grade de colunas
+   iguais (como era) uma tela com seis filtros ja quebrava para a segunda
+   linha mesmo sobrando espaco, porque cada coluna reservava 170px fixos. */
 .filtros {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--e-3);
   align-items: end;
-  padding: var(--e-4) var(--e-5);
+  padding: var(--e-3) var(--e-4);
   margin-bottom: var(--e-4);
 }
+.filtros > .campo { flex: 1 1 140px; min-width: 120px; }
+/* Busca e periodo pedem mais espaco que um select de tres opcoes. */
+.filtros > .campo:first-child { flex: 1.6 1 190px; }
+.filtros > .campo:has(.campo-periodo) { flex: 1.8 1 250px; }
+.filtros .campo label {
+  font-size: var(--t-sm);
+  color: var(--texto-2);
+  font-weight: var(--peso-medio);
+}
+.filtros .campo input,
+.filtros .campo select {
+  min-height: 36px;
+  font-size: var(--t-base);
+  padding: var(--e-1) var(--e-3);
+}
+.filtros .campo { gap: var(--e-1); }
+
+/* Periodo: dois campos de data dentro de UMA caixa. */
+.campo-periodo {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  min-height: 36px;
+  padding: 0 var(--e-3);
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  transition: border-color var(--transicao), box-shadow var(--transicao);
+}
+.campo-periodo:focus-within {
+  border-color: var(--marca);
+  box-shadow: var(--foco);
+}
+.filtros .campo-periodo input,
+.campo-periodo input {
+  min-height: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  width: 100%;
+  min-width: 0;
+  font-size: var(--t-base);
+  box-shadow: none;
+}
+.campo-periodo input:focus { border: none; box-shadow: none; }
+.campo-periodo__sep { flex: none; font-size: var(--t-sm); color: var(--texto-3); }
+.campo-periodo__icone { flex: none; color: var(--texto-2); line-height: 0; }
 /* Com o painel recolhido sobra so a fileira de botoes. */
 .filtros[data-aberto="false"] {
   display: flex;

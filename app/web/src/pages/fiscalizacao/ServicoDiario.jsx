@@ -9,7 +9,7 @@ import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
 import Modal from "../../components/Modal.jsx";
-import { Selecao, Data, Texto } from "../../components/Campos.jsx";
+import { Selecao, Data, Texto, Periodo } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
 import { data, hora, numero } from "../../lib/formato.js";
@@ -111,7 +111,7 @@ export default function ServiçoDiário() {
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={() => setCriando(true)}>
-            <Icone nome="calendar" tamanho={16} /> Novo serviço diário
+            <Icone nome="calendar" tamanho={15} /> Novo serviço diário
           </button>
         )
       }
@@ -131,10 +131,9 @@ export default function ServiçoDiário() {
           <Selecao rotulo="Situação" id="status" vazio="Todas" opcoes={SITUACOES}
                    value={lista.filtros.status}
                    onChange={(e) => lista.alterarFiltro("status", e.target.value)} />
-          <Data rotulo="De" id="dataDe" value={lista.filtros.dataDe}
-                onChange={(e) => lista.alterarFiltro("dataDe", e.target.value)} />
-          <Data rotulo="Até" id="dataAte" value={lista.filtros.dataAte}
-                onChange={(e) => lista.alterarFiltro("dataAte", e.target.value)} />
+          <Periodo id="periodo" de={lista.filtros.dataDe} ate={lista.filtros.dataAte}
+                   aoMudarDe={(v) => lista.alterarFiltro("dataDe", v)}
+                   aoMudarAte={(v) => lista.alterarFiltro("dataAte", v)} />
         </>
       }
     >
@@ -146,7 +145,7 @@ export default function ServiçoDiário() {
             <>
               <button className="botao" onClick={() => setCriando(false)}>Cancelar</button>
               <button className="botao botao--primario" form="form-serviço" disabled={salvando}>
-                <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : "Criar serviço"}
+                <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Criar serviço"}
               </button>
             </>
           }

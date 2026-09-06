@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
+import Icone from "../../components/Icone.jsx";
 import Trilha from "../../components/Trilha.jsx";
 import { Texto, Selecao, Data, Area } from "../../components/Campos.jsx";
 import { api } from "../../lib/api.js";
@@ -86,7 +87,9 @@ export default function AgendarManutencao() {
           <h1>Agendar manutenção</h1>
           <p>Preencha as informações para agendar uma nova manutenção.</p>
         </div>
-        <button type="button" className="botao" onClick={() => navegar("/frotas/manutencoes")}>← Voltar</button>
+        <button type="button" className="botao" onClick={() => navegar("/frotas/manutencoes")}>
+          <Icone nome="seta-esquerda" tamanho={15} /> Voltar
+        </button>
       </div>
 
       <form onSubmit={salvar}>

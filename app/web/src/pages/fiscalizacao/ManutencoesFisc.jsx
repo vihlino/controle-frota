@@ -44,7 +44,6 @@ export default criarPagina({
         { valor: "CANCELADA", rotulo: "Cancelada" },
       ],
     },
-    { nome: "dataDe", rotulo: "De", tipo: "data" },
-    { nome: "dataAte", rotulo: "Até", tipo: "data" },
+    { nome: "periodo", rotulo: "Período", tipo: "periodo", de: "dataDe", ate: "dataAte" },
   ],
 });

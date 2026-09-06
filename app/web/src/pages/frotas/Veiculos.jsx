@@ -33,7 +33,7 @@ const TIPOS = [
   { valor: "CAMINHONETE", rotulo: "Caminhonete" },
   { valor: "CAMINHAO", rotulo: "Caminhão" },
 ];
-const COMBUSTIVEIS = ["FLEX", "GASOLINA", "ETANOL", "DIESEL", "GNV", "ELETRICO", "HIBRIDO"];
+const COMBUSTIVEIS = ["FLEX", "GASOLINA", "ETANOL", "DIESEL", "ELETRICO", "HIBRIDO"];
 
 const VAZIO = {
   placa: "", marca: "", modelo: "", ano_fabricacao: "", ano_modelo: "", cor: "",
@@ -175,7 +175,6 @@ export default function Veículos() {
             ...(podeGerenciar ? [{ rotulo: "Editar veículo", aoClicar: () => abrirEdicao(v) }] : []),
             { rotulo: "Histórico", aoClicar: () => navegar(`/frotas/checklists?veiculo=${v.id_veiculo}`) },
             { rotulo: "Documentos", aoClicar: () => navegar(`/frotas/documentos?veiculo=${v.id_veiculo}`) },
-            { rotulo: "QR Code", aoClicar: () => navegar(`/frotas/veiculos/${v.id_veiculo}/qrcode`) },
             ...(podeGerenciar
               ? [{ rotulo: "Excluir veículo", perigo: true, aoClicar: () => excluir(v) }]
               : []),
@@ -193,7 +192,7 @@ export default function Veículos() {
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={abrirNovo}>
-            <Icone nome="mais" tamanho={16} /> Novo veículo
+            <Icone nome="mais" tamanho={15} /> Novo veículo
           </button>
         )
       }
@@ -235,7 +234,7 @@ export default function Veículos() {
             <>
               <button className="botao" onClick={() => setEditando(null)}>Cancelar</button>
               <button className="botao botao--primario" form="form-veículo" disabled={salvando}>
-                <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : "Salvar veículo"}
+                <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Salvar veículo"}
               </button>
             </>
           }

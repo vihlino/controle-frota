@@ -95,9 +95,65 @@ export function Data({ rotulo, id, largo, ajuda, ...resto }) {
             campo virava texto comum - sem calendario nenhum. Era esta a causa
             do "icone da data nao abre" na tela de editar servidor. */}
         <input id={id} onClick={abrirCalendario} {...resto} type="date" />
-        <span className="campo-data__icone">
-          <Icone nome="calendar" tamanho={18} />
-        </span>
+        {/* O icone tambem abre o calendario. Quem prefere DIGITAR (foi pedido
+            assim) clica no texto e escreve dd/mm/aaaa; quem prefere escolher
+            clica no calendario. Os dois caminhos existem no mesmo campo. */}
+        <button
+          type="button"
+          className="campo-data__icone"
+          tabIndex={-1}
+          aria-label="Abrir calendário"
+          onClick={(e) => {
+            const campo = e.currentTarget.parentElement?.querySelector("input");
+            if (campo) {
+              campo.focus();
+              abrirCalendario({ currentTarget: campo });
+            }
+          }}
+        >
+          <Icone nome="calendar" tamanho={15} />
+        </button>
+      </span>
+    </Campo>
+  );
+}
+
+/**
+ * Periodo - "de" e "ate" num campo so.
+ *
+ * Dois campos de data lado a lado ocupavam duas colunas inteiras da barra de
+ * filtros, e eram justamente os que empurravam o resto para a segunda linha.
+ * Aqui eles dividem uma caixa unica, com o calendario no canto: mesma
+ * informacao, metade do espaco.
+ *
+ * Cada metade continua sendo um <input type="date"> de verdade - da para
+ * digitar a data e da para abrir o calendario, como no campo Data.
+ */
+export function Periodo({ rotulo = "Período", id, de, ate, aoMudarDe, aoMudarAte, largo, ajuda }) {
+  function abrirCalendario(campo) {
+    if (!campo || typeof campo.showPicker !== "function") return;
+    try {
+      campo.showPicker();
+    } catch {
+      // Sem suporte no navegador: o campo continua digitavel.
+    }
+  }
+
+  return (
+    <Campo rotulo={rotulo} htmlFor={`${id}-de`} largo={largo} ajuda={ajuda}>
+      <span className="campo-periodo">
+        <input
+          id={`${id}-de`} type="date" value={de} aria-label={`${rotulo} - data inicial`}
+          onChange={(e) => aoMudarDe(e.target.value)}
+          onClick={(e) => abrirCalendario(e.currentTarget)}
+        />
+        <span className="campo-periodo__sep" aria-hidden="true">até</span>
+        <input
+          id={`${id}-ate`} type="date" value={ate} aria-label={`${rotulo} - data final`}
+          onChange={(e) => aoMudarAte(e.target.value)}
+          onClick={(e) => abrirCalendario(e.currentTarget)}
+        />
+        <span className="campo-periodo__icone"><Icone nome="calendar" tamanho={15} /></span>
       </span>
     </Campo>
   );

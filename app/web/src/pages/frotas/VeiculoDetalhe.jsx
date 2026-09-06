@@ -80,9 +80,11 @@ export default function VeículoDetalhe() {
           </p>
         </div>
         <div className="cabecalho-pagina__acoes">
-          <button className="botao" onClick={() => navegar("/frotas/veiculos")}>Voltar</button>
+          <button className="botao" onClick={() => navegar("/frotas/veiculos")}>
+            <Icone nome="seta-esquerda" tamanho={15} /> Voltar
+          </button>
           <Link className="botao botao--primario" to={`/frotas/veiculos/${id}/qrcode`}>
-            <Icone nome="checklist" tamanho={15} /> QR Code
+            <Icone nome="codigo-qr" tamanho={15} /> QR Code
           </Link>
         </div>
       </div>
@@ -95,7 +97,7 @@ export default function VeículoDetalhe() {
                nota="Realizadas" tom="roxo" />
           <Kpi icone="kpi-wrench" rotulo="OS em aberto" valor={resumo.os_abertas}
                nota={dinheiro(resumo.custo_manutencao)} tom="ambar" />
-          <Kpi icone="alert-triangle" rotulo="Sinistros" valor={resumo.sinistros}
+          <Kpi icone="sinistro" rotulo="Sinistros" valor={resumo.sinistros}
                nota={`${numero(resumo.documentos_vencidos)} doc. vencidos`} tom="vermelho" />
         </div>
       )}
@@ -149,10 +151,10 @@ export default function VeículoDetalhe() {
             <Icone nome="checklist" tamanho={20} /> Checklists
           </Link>
           <Link className="acao-rapida" to={`/frotas/documentos?veiculo=${id}`}>
-            <Icone nome="nav-gestao" tamanho={20} /> Documentos
+            <Icone nome="documentos" tamanho={20} /> Documentos
           </Link>
           <Link className="acao-rapida" to={`/frotas/inspecoes?veiculo=${id}`}>
-            <Icone nome="calendar" tamanho={20} /> Inspeções
+            <Icone nome="inspecao" tamanho={20} /> Inspeções
           </Link>
           <Link className="acao-rapida" to={`/frotas/manutencoes?veiculo=${id}`}>
             <Icone nome="kpi-wrench" tamanho={20} /> Manutenções

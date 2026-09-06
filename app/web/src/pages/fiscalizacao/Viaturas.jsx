@@ -21,7 +21,7 @@ const TIPOS = [
   { valor: "CAMINHONETE", rotulo: "Caminhonete" },
   { valor: "CAMINHAO", rotulo: "Caminhão" },
 ];
-const COMBUSTIVEIS = ["FLEX", "GASOLINA", "ETANOL", "DIESEL", "GNV", "ELETRICO", "HIBRIDO"];
+const COMBUSTIVEIS = ["FLEX", "GASOLINA", "ETANOL", "DIESEL", "ELETRICO", "HIBRIDO"];
 
 // Viaturas da fiscalização sao os veículos da frota vinculados ao setor de
 // Fiscalização. A tela reusa o mesmo recurso de veículos.

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
+import Icone from "../../components/Icone.jsx";
 import Trilha from "../../components/Trilha.jsx";
 import { Texto, Selecao, Data, Area } from "../../components/Campos.jsx";
 import { api } from "../../lib/api.js";
@@ -83,7 +84,9 @@ export default function NovaInspecao() {
           <h1>Nova inspeção</h1>
           <p>Agende uma nova inspeção periódica para o veículo.</p>
         </div>
-        <button type="button" className="botao" onClick={() => navegar("/frotas/inspecoes")}>← Voltar</button>
+        <button type="button" className="botao" onClick={() => navegar("/frotas/inspecoes")}>
+          <Icone nome="seta-esquerda" tamanho={15} /> Voltar
+        </button>
       </div>
 
       <form onSubmit={salvar}>

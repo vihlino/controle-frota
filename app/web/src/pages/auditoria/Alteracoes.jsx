@@ -64,7 +64,6 @@ export default criarPagina({
   ],
   filtros: [
     { nome: "busca", rotulo: "Buscar", dica: "Registro ou usuário" },
-    { nome: "dataDe", rotulo: "De", tipo: "data" },
-    { nome: "dataAte", rotulo: "Até", tipo: "data" },
+    { nome: "periodo", rotulo: "Período", tipo: "periodo", de: "dataDe", ate: "dataAte" },
   ],
 });

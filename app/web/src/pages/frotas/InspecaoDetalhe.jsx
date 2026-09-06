@@ -86,7 +86,7 @@ export default function InspeçãoDetalhe() {
         </div>
         <div className="cabecalho-pagina__acoes">
           <button className="botao" onClick={() => navegar("/frotas/inspecoes")}>
-            Voltar para inspeções
+            <Icone nome="seta-esquerda" tamanho={15} /> Voltar
           </button>
           <button className="botao" onClick={() => window.print()}>
             <Icone nome="arrow-up" tamanho={15} /> Imprimir / PDF

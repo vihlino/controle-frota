@@ -195,7 +195,7 @@ export default function Documentos() {
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={() => navegar("/frotas/documentos/novo")}>
-            <Icone nome="mais" tamanho={16} /> Novo documento
+            <Icone nome="mais" tamanho={15} /> Novo documento
           </button>
         )
       }
@@ -240,7 +240,7 @@ export default function Documentos() {
             <>
               <button className="botao" onClick={() => setEditando(null)}>Cancelar</button>
               <button className="botao botao--primario" form="form-doc" disabled={salvando}>
-                <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : "Salvar documento"}
+                <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Salvar documento"}
               </button>
             </>
           }

@@ -150,7 +150,7 @@ export default function Parâmetros() {
                       {editando === p.id_parametro ? (
                         <span className="acoes-linha">
                           <button className="botao botao--pequeno botao--primario"
-                                  onClick={() => salvar(p)}><Icone nome="salvar" tamanho={14} monocromatico /> Salvar</button>
+                                  onClick={() => salvar(p)}><Icone nome="salvar" tamanho={15} monocromatico /> Salvar</button>
                           <button className="botao botao--pequeno"
                                   onClick={() => setEditando(null)}>Cancelar</button>
                         </span>

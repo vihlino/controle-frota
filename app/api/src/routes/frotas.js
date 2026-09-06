@@ -42,8 +42,10 @@ export const veiculos = criarCrud({
     "renavam", "chassi", "tipo_combustivel", "capacidade", "quilometragem_atual",
     "id_setor", "observacoes", "status",
   ],
+  // A cor NAO entra aqui: a tela sempre a ofereceu como opcional, e exigi-la
+  // no servidor era a razao do erro ao salvar um veiculo sem cor.
   obrigatorios: [
-    "placa", "marca", "modelo", "ano_fabricacao", "ano_modelo", "cor",
+    "placa", "marca", "modelo", "ano_fabricacao", "ano_modelo",
     "tipo_veiculo", "tipo_combustivel", "id_setor",
   ],
   // A tela de Viaturas, na Fiscalizacao, e ESTE mesmo cadastro filtrado - uma

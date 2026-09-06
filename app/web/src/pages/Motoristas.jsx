@@ -21,7 +21,6 @@ export default criarPagina({
   vazio: "Nenhum motorista cadastrado.",
   rotuloAcao: "Novo motorista",
   rotuloSalvar: "Salvar motorista",
-  iconeAcao: "cnh",
 
   // Quem gerencia a frota cadastra motorista sem precisar da permissao de
   // Administracao. CONFIG_SERVIDOR exige ADMIN_GERENCIAR_SERVIDORES, o que

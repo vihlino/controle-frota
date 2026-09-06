@@ -24,6 +24,7 @@
  */
 import { useCallback, useRef, useState } from "react";
 import Modal from "./Modal.jsx";
+import Icone from "./Icone.jsx";
 import { api } from "../lib/api.js";
 
 export function useConfirmacaoSenha() {
@@ -88,6 +89,7 @@ export function useConfirmacaoSenha() {
             form="form-confirmar-senha"
             disabled={verificando || !senha}
           >
+            <Icone nome="salvar" tamanho={15} monocromatico />{" "}
             {verificando ? "Conferindo..." : "Confirmar"}
           </button>
         </>

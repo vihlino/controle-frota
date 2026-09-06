@@ -113,7 +113,7 @@ export default function ExportarLogs() {
         </p>
 
         <button className="botao botao--primario" onClick={exportar} disabled={exportando || !previa}>
-          <Icone nome="arrow-up" tamanho={16} />
+          <Icone nome="arrow-up" tamanho={15} />
           {exportando ? " Gerando arquivo..." : " Exportar CSV"}
         </button>
       </Cartao>

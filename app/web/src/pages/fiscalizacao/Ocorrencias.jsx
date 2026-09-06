@@ -53,8 +53,7 @@ export default criarPagina({
     { nome: "busca", rotulo: "Buscar", dica: "Protocolo, tipo ou local" },
     { nome: "tipo", rotulo: "Tipo", tipo: "selecao", opcoes: TIPOS, vazio: "Todos" },
     { nome: "status", rotulo: "Situação", tipo: "selecao", opcoes: SITUACOES, vazio: "Todas" },
-    { nome: "dataDe", rotulo: "De", tipo: "data" },
-    { nome: "dataAte", rotulo: "Até", tipo: "data" },
+    { nome: "periodo", rotulo: "Período", tipo: "periodo", de: "dataDe", ate: "dataAte" },
   ],
   formulario: [
     { nome: "tipo", rotulo: "Tipo *", tipo: "selecao", opcoes: TIPOS, obrigatorio: true, padrao: "FISCALIZACAO" },

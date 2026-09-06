@@ -34,35 +34,30 @@ import { useEffect, useState } from "react";
 const cache = new Map();
 
 /**
- * A cor deve virar currentColor?
+ * Deixa todo arquivo no MESMO ponto de partida, seja ele exportado a 24px ou
+ * a 512px.
  *
- * Sim em dois casos:
+ * Duas coisas acontecem aqui, e as duas so na TAG RAIZ:
  *
- *  1. E um preto, ou quase. Os SVGs exportados do editor nao usam #000000
- *     limpo: aparecem #020202, #030303, #0A0A0A, #0F0F0F, "black". Todos
- *     precisam ceder o controle da cor para o CSS.
+ *  1. width/height saem. Quem manda no tamanho e a prop `tamanho`; o numero
+ *     que veio do editor de imagem nao interessa. Mexer so na raiz importa:
+ *     ha arquivos com <rect width="..."> la dentro, e apagar aquilo
+ *     desmontaria o desenho.
  *
- *  2. E uma cor de ESTADO cravada no arquivo (o vermelho de "Atrasados", o
- *     verde de "Concluidas"). O significado esta certo, mas quem deve pintar
- *     e o contexto - o tom do KPI, o selo - usando a paleta de tokens. Um
- *     #FF0000 solto no arquivo briga com o --vermelho do sistema.
- *
- * Tudo o mais fica como esta: o amarelo da logo, por exemplo, e da marca e
- * nao deve seguir a cor do texto ao redor.
- *
- * @param {string} cor  O valor do atributo fill ou stroke.
+ *  2. se nao houver viewBox, ele e criado a partir do width/height originais.
+ *     Sem viewBox o SVG nao escala: um icone de 512 continuaria desenhando
+ *     512px dentro da caixa de 20px e apareceria cortado.
  */
-function ehPreto(cor) {
-  const c = cor.trim().toLowerCase();
-  if (c === "none" || c === "currentcolor") return false;
-  if (c === "black") return true;
-
-  // Os arquivos exportados do editor nao usam #000000 limpo: aparecem
-  // #010101, #020202, #0A0A0A, #0F0F0F. Todos sao preto para o olho.
-  const m = /^#([0-9a-f]{6})$/.exec(c);
-  if (!m) return false;
-  const [r, g, b] = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
-  return r < 0x30 && g < 0x30 && b < 0x30;
+function normalizar(texto) {
+  return texto.replace(/<svg\b[^>]*>/i, (tag) => {
+    const largura = /\swidth="([\d.]+)[a-z%]*"/i.exec(tag)?.[1];
+    const altura = /\sheight="([\d.]+)[a-z%]*"/i.exec(tag)?.[1];
+    let nova = tag.replace(/\swidth="[^"]*"/i, "").replace(/\sheight="[^"]*"/i, "");
+    if (!/\sviewBox=/i.test(nova) && largura && altura) {
+      nova = nova.replace("<svg", `<svg viewBox="0 0 ${largura} ${altura}"`);
+    }
+    return nova;
+  });
 }
 
 /**
@@ -75,12 +70,7 @@ async function carregar(nome) {
 
   const promessa = fetch(`/icons/${nome}.svg`)
     .then((r) => (r.ok ? r.text() : ""))
-    .then((texto) =>
-      // Remove width/height do arquivo, para o tamanho ser decidido aqui pela
-      // prop `tamanho`, e nao pelo que veio do editor de imagem. As CORES
-      // ficam como estao: elas sao do simbolo.
-      texto.replace(/\swidth="[\d.]+"/i, "").replace(/\sheight="[\d.]+"/i, "")
-    )
+    .then(normalizar)
     .catch(() => ""); // icone que nao existe nao quebra a tela, so nao aparece
 
   cache.set(nome, promessa);
@@ -118,10 +108,28 @@ export default function Icone({ nome, tamanho = 20, className = "", monocromatic
   // que pediram - fundo escuro. Feito na hora de desenhar, e nao no cache,
   // para o MESMO icone poder aparecer colorido numa tela e monocromatico na
   // outra sem precisar de dois arquivos.
+  //
+  // O `fill="currentColor"` no <svg> raiz existe por causa dos arquivos que
+  // NAO declaram cor nenhuma - varios dos icones novos sao assim. Um <path>
+  // sem fill herda do pai; sem esse atributo o navegador usa o padrao dele,
+  // que e PRETO CRAVADO, e o icone ficava invisivel no menu escuro (foi o que
+  // aconteceu com Equipe e Ajuda). Com a heranca declarada, esses arquivos
+  // acompanham a cor do texto: cinza no item comum, preto no item ativo.
   const conteudo = monocromatico
-    ? svg.replace(/(stroke|fill)="([^"]+)"/gi, (todo, attr, cor) =>
-        ehPreto(cor) ? `${attr}="currentColor"` : todo
-      )
+    ? svg
+        // TODA cor cede - nao so o preto. Os arquivos novos vem em cinzas,
+        // azuis e ate com gradiente; enquanto so o preto era trocado, esses
+        // ficavam com a cor do arquivo no menu escuro e nao acompanhavam o
+        // item ativo (foi o caso de Equipe e Ajuda). "none" fica como esta:
+        // ali a ausencia de preenchimento e o desenho.
+        .replace(/(stroke|fill)="([^"]+)"/gi, (todo, attr, cor) =>
+          cor.trim().toLowerCase() === "none" ? todo : `${attr}="currentColor"`
+        )
+        .replace(/<svg\b[^>]*>/i, (tag) =>
+          // So quando a raiz nao declara cor: um fill="none" ali e informacao
+          // (icone de traco), e sobrescrever aquilo encheria o desenho.
+          /\sfill=/i.test(tag) ? tag : tag.replace("<svg", '<svg fill="currentColor"')
+        )
     : svg;
 
   return (

@@ -93,7 +93,7 @@ export default function Perfis() {
         </div>
         {podeEditar && escolhido && (
           <button className="botao botao--primario" onClick={salvar} disabled={salvando}>
-            <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : `Salvar permissões de ${escolhido.nome}`}
+            <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : `Salvar permissões de ${escolhido.nome}`}
           </button>
         )}
       </div>

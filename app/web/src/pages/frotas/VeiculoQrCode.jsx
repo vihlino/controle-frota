@@ -99,7 +99,7 @@ export default function VeiculoQrCode() {
           <p>Use o QR Code abaixo para acesso rápido ao checklist deste veículo.</p>
         </div>
         <button className="botao" onClick={() => navegar("/frotas/veiculos")}>
-          <Icone nome="seta-esquerda" tamanho={16} /> Voltar para veículos
+          <Icone nome="seta-esquerda" tamanho={15} /> Voltar
         </button>
       </div>
 
@@ -150,7 +150,7 @@ export default function VeiculoQrCode() {
 
                 <a className="botao botao--primario qr__baixar" href={qr.imagem}
                    download={`qrcode-${veiculo.placa}.png`}>
-                  <Icone nome="baixar" tamanho={16} /> Baixar QR Code
+                  <Icone nome="baixar" tamanho={15} /> Baixar QR Code
                 </a>
                 <button className="botao qr__imprimir" onClick={imprimir}>
                   Imprimir

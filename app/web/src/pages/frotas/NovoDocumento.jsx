@@ -80,7 +80,9 @@ export default function NovoDocumento() {
           <h1>Novo documento</h1>
           <p>Cadastre um novo documento para a frota.</p>
         </div>
-        <button type="button" className="botao" onClick={() => navegar("/frotas/documentos")}>← Voltar</button>
+        <button type="button" className="botao" onClick={() => navegar("/frotas/documentos")}>
+          <Icone nome="seta-esquerda" tamanho={15} /> Voltar
+        </button>
       </div>
 
       <form onSubmit={salvar}>
@@ -158,7 +160,7 @@ export default function NovoDocumento() {
         <div className="pagina-acoes">
           <button type="button" className="botao" onClick={() => navegar("/frotas/documentos")}>Cancelar</button>
           <button type="submit" className="botao botao--primario" disabled={salvando}>
-            <Icone nome="salvar" tamanho={16} monocromatico /> {salvando ? "Salvando..." : "Salvar documento"}
+            <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Salvar documento"}
           </button>
         </div>
       </form>

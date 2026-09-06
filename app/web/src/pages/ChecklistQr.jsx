@@ -701,7 +701,7 @@ export default function ChecklistQr() {
             </div>
           ) : (
             <button type="button" className="botao qr-chamado-abrir" onClick={novoChamado}>
-              <Icone nome="mais" tamanho={18} /> Abrir OS de manutenção
+              <Icone nome="mais" tamanho={15} /> Abrir OS de manutenção
             </button>
           )}
 
@@ -735,7 +735,7 @@ export default function ChecklistQr() {
                   <button type="button" className="qr-chamado__remover"
                           onClick={() => setChamados((lista) => lista.filter((_, j) => j !== i))}
                           aria-label="Remover chamado">
-                    <Icone nome="fechar" tamanho={16} />
+                    <Icone nome="fechar" tamanho={15} />
                   </button>
                 </div>
               ))}
@@ -757,7 +757,7 @@ export default function ChecklistQr() {
                   <button type="button" className="qr-foto-item__remover"
                           onClick={() => removerFoto(i)}
                           aria-label={`Remover foto ${i + 1}`}>
-                    <Icone nome="fechar" tamanho={16} />
+                    <Icone nome="fechar" tamanho={15} />
                   </button>
                   <figcaption>{pesoLegivel(f.bytes)}</figcaption>
                 </figure>

@@ -125,7 +125,7 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
             <span className="topo__usuario-nome">{usuario?.nome}</span>
             <span className="topo__usuario-perfil">{usuario?.perfil}</span>
           </span>
-          <Icone nome="chevron-down" tamanho={16} />
+          <Icone nome="chevron-down" tamanho={15} />
         </button>
 
         <MenuSuspenso aberto={menuAberto} aoFechar={fecharMenu} ancora={caixa} largura={260}>

@@ -71,7 +71,7 @@ export default function Lateral() {
         {(
           <>
             <span className="lateral__rotulo">Ajuda</span>
-            <Icone nome="chevron-right" tamanho={16} className="lateral__ajuda-seta" monocromatico />
+            <Icone nome="chevron-right" tamanho={15} className="lateral__ajuda-seta" monocromatico />
           </>
         )}
       </Link>

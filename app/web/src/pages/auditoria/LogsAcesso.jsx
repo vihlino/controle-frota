@@ -59,7 +59,6 @@ export default criarPagina({
       nome: "sucesso", rotulo: "Resultado", tipo: "selecao", vazio: "Todos",
       opcoes: [{ valor: "true", rotulo: "Sucesso" }, { valor: "false", rotulo: "Falha" }],
     },
-    { nome: "dataDe", rotulo: "De", tipo: "data" },
-    { nome: "dataAte", rotulo: "Até", tipo: "data" },
+    { nome: "periodo", rotulo: "Período", tipo: "periodo", de: "dataDe", ate: "dataAte" },
   ],
 });
