@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%" fill="currentColor">
+  <!-- Cabeça -->
+  <circle cx="256" cy="142" r="110" />
+
+  <!-- Corpo / Ombros e Braços -->
+  <path d="M 256,260 C 314,260 364,278 402,308 C 438,337 466,378 468,432 C 469,455 450,474 427,474 C 400,474 380,454 374,428 C 369,406 384,379 369,365 C 345,342 305,330 256,330 C 207,330 167,342 143,365 C 128,379 143,406 138,428 C 132,454 112,474 85,474 C 62,474 43,455 44,432 C 46,378 74,337 110,308 C 148,278 198,260 256,260 Z" />
+
+  <!-- Volante: Aro Externo -->
+  <path d="M 128,470 C 130,392 184,324 256,324 C 328,324 382,392 384,470" 
+        fill="none" 
+        stroke="currentColor" 
+        stroke-width="24" 
+        stroke-linecap="round" />
+
+  <!-- Volante: Raio Esquerdo -->
+  <line x1="228" y1="432" x2="174" y2="378" 
+        stroke="currentColor" 
+        stroke-width="22" 
+        stroke-linecap="round" />
+
+  <!-- Volante: Raio Direito -->
+  <line x1="284" y1="432" x2="338" y2="378" 
+        stroke="currentColor" 
+        stroke-width="22" 
+        stroke-linecap="round" />
+
+  <!-- Volante: Centro / Cubo -->
+  <circle cx="256" cy="448" r="38" fill="none" stroke="currentColor" stroke-width="24" />
+  <circle cx="256" cy="448" r="21" />
+</svg>

@@ -15,9 +15,9 @@ export const MENU = [
     permissao: "FROTAS_VISUALIZAR",
     itens: [
       { rotulo: "Veículos",       para: "/frotas/veiculos",       icone: "kpi-car" },
-      { rotulo: "Motoristas",     para: "/frotas/motoristas",     icone: "cnh" },
+      { rotulo: "Motoristas",     para: "/frotas/motoristas",     icone: "motorista" },
       { rotulo: "Checklists",     para: "/frotas/checklists",     icone: "checklist" },
-      { rotulo: "Inspeções",      para: "/frotas/inspecoes",      icone: "calendar" },
+      { rotulo: "Inspeções",      para: "/frotas/inspecoes",      icone: "inspecao" },
       { rotulo: "Manutenções",    para: "/frotas/manutencoes",    icone: "kpi-wrench" },
       { rotulo: "Documentos",     para: "/frotas/documentos",     icone: "documentos" },
       { rotulo: "Sinistros",      para: "/frotas/sinistros",      icone: "sinistro" },
@@ -29,8 +29,8 @@ export const MENU = [
     permissao: "FISCALIZACAO_VISUALIZAR",
     itens: [
       { rotulo: "Serviço Diário", para: "/fiscalizacao/servico-diario", icone: "calendar" },
-      { rotulo: "Motoristas",    para: "/fiscalizacao/motoristas",    icone: "cnh" },
-      { rotulo: "Equipes",       para: "/fiscalizacao/equipes",       icone: "usuarios" },
+      { rotulo: "Motoristas",    para: "/fiscalizacao/motoristas",    icone: "motorista" },
+      { rotulo: "Equipes",       para: "/fiscalizacao/equipes",       icone: "equipe" },
       { rotulo: "Viaturas",      para: "/fiscalizacao/viaturas",      icone: "fisc-viatura" },
       { rotulo: "Ocorrências",   para: "/fiscalizacao/ocorrencias",   icone: "fisc-ocorrencias" },
       { rotulo: "Manutenções",   para: "/fiscalizacao/manutencoes",   icone: "kpi-wrench" },
