@@ -30,7 +30,7 @@ const CATEGORIAS = ["Licenciamento", "Seguro", "Imposto", "Inspeção", "Manual"
 const VAZIO = {
   id_veículo: "", tipo_documento: "", numero_documento: "", categoria: "Licenciamento",
   data_emissao: "", data_validade: "", status: "VALIDO", id_responsavel: "",
-  bloqueia_veiculo: false, observacoes: "",
+  observacoes: "",
 };
 
 // Traduz os dias restantes na frase que aparece embaixo da data.
@@ -106,7 +106,6 @@ export default function Documentos() {
         ...formulario,
         id_veiculo: Number(formulario.id_veículo),
         id_responsavel: formulario.id_responsavel ? Number(formulario.id_responsavel) : null,
-        bloqueia_veiculo: !!formulario.bloqueia_veiculo,
       };
       if (editando === "novo") await api("/frotas/documentos", { method: "POST", body: corpo });
       else await api(`/frotas/documentos/${editando}`, { method: "PUT", body: corpo });
@@ -166,10 +165,6 @@ export default function Documentos() {
     { chave: "responsavel", rotulo: "Responsável", render: (d) => d.responsavel || "-" },
     { chave: "status", rotulo: "Situação", ordenavel: true, render: (d) => <Selo valor={d.status} /> },
     {
-      chave: "bloqueia_veiculo", rotulo: "Bloqueia",
-      render: (d) => (d.bloqueia_veículo ? <Selo texto="Bloqueia" tom="vermelho" /> : "-"),
-    },
-    {
       chave: "ações", rotulo: "Ações",
       render: (d) => (
         <Acoes
@@ -217,7 +212,7 @@ export default function Documentos() {
           <Texto rotulo="Buscar" id="busca" placeholder="Placa, tipo ou número"
                  value={lista.filtros.busca}
                  onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
-          <Selecao rotulo="Veículo" id="veículo" vazio="Todos os veículos"
+          <Selecao rotulo="Veículo" id="veículo" vazio="Todos"
                    opcoes={veículos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.modelo}` }))}
                    value={lista.filtros.veiculo}
                    onChange={(e) => lista.alterarFiltro("veiculo", e.target.value)} />

@@ -93,6 +93,8 @@ router.get("/veiculos/:id/resumo", autenticar, verFrotas, async (req, res, next)
            WHERE id_veiculo = $1 AND status NOT IN ('RESOLVIDA','CANCELADA')) AS os_abertas,
          (SELECT COUNT(*)::int FROM sinistro WHERE id_veiculo = $1) AS sinistros,
          (SELECT COUNT(*)::int FROM documento_veiculo
+           WHERE id_veiculo = $1) AS documentos,
+         (SELECT COUNT(*)::int FROM documento_veiculo
            WHERE id_veiculo = $1 AND status = 'VENCIDO') AS documentos_vencidos,
          (SELECT COALESCE(SUM(custo), 0) FROM ordem_servico WHERE id_veiculo = $1) AS custo_manutencao`,
       [id]

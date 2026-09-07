@@ -38,7 +38,7 @@ export default function RelatórioVer() {
   const { id } = useParams();
   const navegar = useNavigate();
   const { definirCabecalho } = useOutletContext();
-  const { podeVer } = useSessao();
+  const { podeVer, usuario } = useSessao();
   const [relatório, setRelatório] = useState(null);
   const [erro, setErro] = useState("");
   const [atestando, setAtestando] = useState(false);
@@ -47,20 +47,59 @@ export default function RelatórioVer() {
 
   const podeAtestar = podeVer("RELATORIOS_ATESTAR");
 
+  // ATE TRES pessoas atestam o mesmo relatório, e ninguem atesta duas vezes.
+  // A conta tambem vale para esconder o botao: melhor nao oferecer do que
+  // deixar clicar e devolver erro.
+  const atestacoes = relatório?.atestacoes || [];
+  const jaAtestei = atestacoes.some((a) => a.id_usuario === usuario?.id_usuario);
+  const podeAtestarAgora =
+    relatório &&
+    relatório.status !== "CANCELADO" &&
+    atestacoes.length < 3 &&
+    !jaAtestei;
+
   useEffect(() => {
     definirCabecalho({ titulo: "", legenda: "" });
   }, [definirCabecalho]);
 
   function carregar() {
-    api(`/relatórios/${id}`).then(setRelatório).catch((e) => setErro(e.message));
+    api(`/relatorios/${id}`).then(setRelatório).catch((e) => setErro(e.message));
   }
   useEffect(carregar, [id]);
+
+  /**
+   * Baixa o relatório como CSV - o mesmo conteudo que esta na tela, no arquivo
+   * que abre no Excel.
+   *
+   * O arquivo sai do SNAPSHOT que ja esta carregado, sem nova consulta ao
+   * servidor: e o mesmo material que foi selado na geracao e que sera
+   * atestado. Ponto e virgula como separador e BOM no comeco porque e assim
+   * que o Excel em portugues abre o arquivo sem embaralhar acento e coluna.
+   */
+  function baixarCsv() {
+    const escapar = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const linhas = [
+      conteudo.colunas.map((c) => escapar(c.rotulo)).join(";"),
+      ...conteudo.linhas.map((linha) =>
+        conteudo.colunas.map((c) => escapar(celula(linha[c.chave], c.tipo))).join(";")
+      ),
+    ];
+    const arquivo = new Blob(["\uFEFF" + linhas.join("\r\n")], {
+      type: "text/csv;charset=utf-8",
+    });
+    const endereco = URL.createObjectURL(arquivo);
+    const link = document.createElement("a");
+    link.href = endereco;
+    link.download = `${relatório.nome.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-")}-${relatório.periodo_inicio}-a-${relatório.periodo_fim}.csv`;
+    link.click();
+    URL.revokeObjectURL(endereco);
+  }
 
   async function atestar(e) {
     e.preventDefault();
     setSalvando(true);
     try {
-      await api(`/relatórios/${id}/atestar`, { method: "POST", body: { observacao } });
+      await api(`/relatorios/${id}/atestar`, { method: "POST", body: { observacao } });
       setAtestando(false);
       setObservacao("");
       carregar();
@@ -75,7 +114,6 @@ export default function RelatórioVer() {
   if (!relatório) return <div className="carregando">Carregando o relatório...</div>;
 
   const conteudo = relatório.conteudo_snapshot || { colunas: [], linhas: [] };
-  const ateste = relatório.atestações?.find((a) => a.status === "ATESTADO");
 
   return (
     <>
@@ -98,12 +136,15 @@ export default function RelatórioVer() {
           <button className="botao" onClick={() => navegar("/frotas/relatorios")}>
             <Icone nome="seta-esquerda" tamanho={15} /> Voltar
           </button>
+          <button className="botao" onClick={baixarCsv}>
+            <Icone nome="baixar" tamanho={15} /> Baixar
+          </button>
           <button className="botao" onClick={() => window.print()}>
             <Icone nome="arrow-up" tamanho={15} /> Imprimir / PDF
           </button>
-          {podeAtestar && relatório.status !== "ATESTADO" && relatório.status !== "CANCELADO" && (
+          {podeAtestar && podeAtestarAgora && (
             <button className="botao botao--primario" onClick={() => setAtestando(true)}>
-              Atestar relatório
+              <Icone nome="salvar" tamanho={15} monocromatico /> Atestar relatório
             </button>
           )}
         </div>
@@ -121,10 +162,6 @@ export default function RelatórioVer() {
           {/* Versao escura: o relatorio e impresso em papel branco, e a logo de
               letras brancas sumiria ali. */}
           <img src="/icons/logo-sitra-escura.png" alt="SITRA" className="documento__logo" />
-          <div className="documento__orgao">
-            <strong>CMTT</strong>
-            <span>Companhia Municipal de Trânsito e Transporte</span>
-          </div>
           <div className="documento__selo">
             <Selo
               texto={relatório.status === "ATESTADO" ? "Atestado" : "Aguardando ateste"}
@@ -149,7 +186,7 @@ export default function RelatórioVer() {
             <div><dt>Registros</dt><dd>{numero(conteudo.linhas.length)}</dd></div>
             <div>
               <dt>Código de verificacao</dt>
-              <dd className="documento__hash">{relatório.hash_conteudo?.slice(0, 16)}</dd>
+              <dd className="documento__hash">{relatório.hash_sha256?.slice(0, 16) || "—"}</dd>
             </div>
           </dl>
         </div>
@@ -179,30 +216,37 @@ export default function RelatórioVer() {
         </div>
 
         <footer className="documento__rodape">
-          <div className="documento__assinatura">
-            {ateste ? (
-              <>
-                <p className="documento__ateste">Relatório atestado por</p>
-                <p className="documento__assinante">{ateste.nome}</p>
-                <p className="documento__cargo">{ateste.cargo}</p>
-                <p className="documento__quando">Em {dataHora(ateste.data_atestação)}</p>
-                {ateste.observacao && (
-                  <p className="documento__observacao">{ateste.observacao}</p>
-                )}
-              </>
-            ) : (
-              <>
+          {/* Ate TRES assinaturas, lado a lado. Quem ainda nao atestou aparece
+              como linha em branco: no papel, o espaco vazio e o convite para
+              assinar - some-lo esconderia que faltam atestos. */}
+          <div className="documento__assinaturas">
+            {atestacoes.map((a) => (
+              <div className="documento__assinatura" key={a.ordem}>
+                <p className="documento__ateste">Atestado por</p>
+                <p className="documento__assinante">{a.nome}</p>
+                <p className="documento__cargo">{a.cargo}</p>
+                <p className="documento__quando">Em {dataHora(a.data_atestacao)}</p>
+                {a.observacao && <p className="documento__observacao">{a.observacao}</p>}
+              </div>
+            ))}
+            {atestacoes.length === 0 && (
+              <div className="documento__assinatura">
                 <p className="documento__ateste">Aguardando ateste do responsável</p>
                 <p className="documento__assinante">_______________________________</p>
                 <p className="documento__cargo">Nome e cargo do responsável</p>
-              </>
+              </div>
             )}
           </div>
 
           <div className="documento__orgao-rodape">
-            <strong>CMTT</strong>
-            <span>Companhia Municipal de Trânsito e Transporte</span>
-            <small>Documento gerado automaticamente pelo SITRA.</small>
+            <img src="/icons/cmtt-logo.svg" alt="CMTT" className="documento__logo-cmtt" />
+            <div>
+              <strong>Companhia Municipal de Trânsito e Transporte</strong>
+              <small>
+                Documento gerado automaticamente pelo SITRA. Não necessita de
+                assinatura quando usado para fins internos da administração.
+              </small>
+            </div>
           </div>
         </footer>
       </article>

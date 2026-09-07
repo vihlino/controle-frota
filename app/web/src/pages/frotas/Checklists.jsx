@@ -49,7 +49,12 @@ export default function Checklists() {
   const navegar = useNavigate();
   const [parâmetros] = useSearchParams();
   const lista = useLista("frotas/checklists", {
-    busca: "", veiculo: parâmetros.get("veiculo") || "", status: "", dataDe: "", dataAte: "",
+    busca: "",
+    veiculo: parâmetros.get("veiculo") || "",
+    status: "",
+    // O painel manda "Movimentacoes de hoje" para ca ja com o dia preenchido.
+    dataDe: parâmetros.get("dataDe") || "",
+    dataAte: parâmetros.get("dataAte") || "",
   });
   const [veículos, setVeículos] = useState([]);
 

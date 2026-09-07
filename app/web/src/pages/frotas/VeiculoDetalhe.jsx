@@ -95,10 +95,18 @@ export default function VeículoDetalhe() {
                nota="Registros de uso" tom="azul" />
           <Kpi icone="calendar" rotulo="Inspeções" valor={resumo.inspecoes}
                nota="Realizadas" tom="roxo" />
+          {/* So a contagem. O aviso de vencimento ja existe em dois lugares
+              melhores - o sino do topo e o painel - e repetir aqui faria o
+              cartao mudar de cor por um assunto que nao e dele. */}
+          <Kpi icone="documentos" rotulo="Documentos" valor={resumo.documentos}
+               nota="Cadastrados" tom="azul" />
           <Kpi icone="kpi-wrench" rotulo="OS em aberto" valor={resumo.os_abertas}
                nota={dinheiro(resumo.custo_manutencao)} tom="ambar" />
+          {/* A nota fala do PROPRIO numero do cartao. Antes era a contagem de
+              documentos vencidos embaixo do numero de sinistros: dois assuntos
+              sem relacao um com o outro, no mesmo cartao. */}
           <Kpi icone="sinistro" rotulo="Sinistros" valor={resumo.sinistros}
-               nota={`${numero(resumo.documentos_vencidos)} doc. vencidos`} tom="vermelho" />
+               nota="Danos registrados" tom="vermelho" />
         </div>
       )}
 

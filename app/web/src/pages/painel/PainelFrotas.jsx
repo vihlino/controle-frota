@@ -15,6 +15,9 @@ const ROTULOS_OS = {
 
 export default function PainelFrotas({ dados }) {
   const { kpis, ultimosChecklists, veiculosEmUso, vencimentos, ordensServico } = dados;
+  // Data de hoje no formato do filtro (aaaa-mm-dd), pelo relogio de quem
+  // esta olhando a tela - e o mesmo dia que o cartao mostra.
+  const hoje = new Date().toLocaleDateString("sv-SE");
   const difChecklists = kpis.checklistsHoje.valor - kpis.checklistsHoje.ontem;
 
   return (
@@ -29,9 +32,8 @@ export default function PainelFrotas({ dados }) {
         <Kpi icone="kpi-wrench"    rotulo="Em manutenção"      valor={kpis.emManutencao.valor}
              nota={`${porcentagem(kpis.emManutencao.percentual)} da frota`} tom="ambar" />
         <Kpi icone="checklist"     rotulo="Checklists de hoje" valor={kpis.checklistsHoje.valor}
-             nota={difChecklists >= 0
-               ? `↑ ${numero(Math.abs(difChecklists))} em relação a ontem`
-               : `↓ ${numero(Math.abs(difChecklists))} em relação a ontem`} tom="roxo" />
+             nota={`${difChecklists >= 0 ? "↑" : "↓"} ${numero(Math.abs(difChecklists))} relação a ontem`}
+             tom="roxo" />
       </div>
 
       <div className="grade-2">
@@ -65,8 +67,15 @@ export default function PainelFrotas({ dados }) {
           </div>
         </Cartao>
 
+        {/* O "Ver todas" leva para a lista JA no dia de hoje: o cartao fala de
+            hoje, e cair na lista inteira obrigava a refazer o filtro na mao. */}
         <Cartao titulo="Movimentações de hoje"
-                acao={<Link className="cartao__acao" to="/frotas/checklists">Ver todas</Link>}>
+                acao={
+                  <Link className="cartao__acao"
+                        to={`/frotas/checklists?dataDe=${hoje}&dataAte=${hoje}`}>
+                    Ver todas
+                  </Link>
+                }>
           <div className="rolagem-x">
             <table className="tabela">
               <thead>
@@ -167,7 +176,7 @@ export default function PainelFrotas({ dados }) {
             <Icone nome="kpi-wrench" tamanho={20} /> + Nova OS
           </Link>
           <Link className="acao-rapida" to="/frotas/documentos/novo">
-            <Icone nome="nav-gestao" tamanho={20} /> + Adicionar documento
+            <Icone nome="documentos" tamanho={20} /> + Adicionar documento
           </Link>
           <Link className="acao-rapida" to="/frotas/relatorios">
             <Icone nome="chart-line" tamanho={20} /> Relatórios

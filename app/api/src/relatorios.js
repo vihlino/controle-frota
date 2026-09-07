@@ -83,12 +83,13 @@ export const MODELOS = {
              (v.marca || ' ' || v.modelo) AS veiculo, v.placa,
              os.tipo, COALESCE(os.descricao, os.servico_realizado) AS descricao,
              os.oficina, os.quilometragem, os.custo,
-             COALESCE(r.nome, sol.nome) AS responsavel,
+             COALESCE(r.nome, sol.nome, cond.nome) AS responsavel,
              os.proxima_manutencao, os.observacoes
         FROM ordem_servico os
         JOIN veiculo v ON v.id_veiculo = os.id_veiculo
-        JOIN usuario  u_sol ON u_sol.id_usuario = os.id_solicitante
-        JOIN servidor sol ON sol.id_servidor = u_sol.id_servidor
+        LEFT JOIN usuario  u_sol ON u_sol.id_usuario = os.id_solicitante
+        LEFT JOIN servidor sol ON sol.id_servidor = u_sol.id_servidor
+        LEFT JOIN servidor cond ON cond.id_servidor = os.id_servidor_solicitante
         LEFT JOIN usuario  u_r ON u_r.id_usuario = os.id_responsavel
         LEFT JOIN servidor r ON r.id_servidor = u_r.id_servidor
        WHERE os.data_abertura::date BETWEEN $1 AND $2

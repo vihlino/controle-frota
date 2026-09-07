@@ -189,12 +189,12 @@ try {
       await cliente.query(
         `INSERT INTO documento_veiculo
            (id_veiculo, tipo_documento, numero_documento, data_emissao, data_validade,
-            status, categoria, id_responsavel, bloqueia_veiculo)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+            status, categoria, id_responsavel)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
         [
           idVeiculo, tipo, String(inteiro(100000000, 999999999)),
           dataRelativa(dias - 365), dataRelativa(dias), status,
-          CATEGORIAS[tipo], aleatorio(servidores), tipo === "CRLV",
+          CATEGORIAS[tipo], aleatorio(servidores),
         ]
       );
       documentos++;

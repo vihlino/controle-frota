@@ -94,7 +94,12 @@ export function Data({ rotulo, id, largo, ajuda, ...resto }) {
             espalhado por ultimo, esse undefined apagava o type="date" e o
             campo virava texto comum - sem calendario nenhum. Era esta a causa
             do "icone da data nao abre" na tela de editar servidor. */}
-        <input id={id} onClick={abrirCalendario} {...resto} type="date" />
+        {/* Sem onClick aqui: o clique no texto so posiciona o cursor, para
+            quem prefere DIGITAR a data. Abrir o calendario a cada clique
+            atrapalhava exatamente isso - a pessoa clicava para corrigir o mes
+            e o seletor tomava a frente. Quem quer o calendario clica no
+            icone ao lado. */}
+        <input id={id} {...resto} type="date" />
         {/* O icone tambem abre o calendario. Quem prefere DIGITAR (foi pedido
             assim) clica no texto e escreve dd/mm/aaaa; quem prefere escolher
             clica no calendario. Os dois caminhos existem no mesmo campo. */}
@@ -145,15 +150,31 @@ export function Periodo({ rotulo = "Período", id, de, ate, aoMudarDe, aoMudarAt
         <input
           id={`${id}-de`} type="date" value={de} aria-label={`${rotulo} - data inicial`}
           onChange={(e) => aoMudarDe(e.target.value)}
-          onClick={(e) => abrirCalendario(e.currentTarget)}
         />
         <span className="campo-periodo__sep" aria-hidden="true">até</span>
         <input
           id={`${id}-ate`} type="date" value={ate} aria-label={`${rotulo} - data final`}
           onChange={(e) => aoMudarAte(e.target.value)}
-          onClick={(e) => abrirCalendario(e.currentTarget)}
         />
-        <span className="campo-periodo__icone"><Icone nome="calendar" tamanho={15} /></span>
+        {/* Um icone so para os dois campos, e ele ABRE o calendario da data
+            inicial. Antes era um desenho morto ao lado do seletor nativo do
+            navegador: dois calendarios na mesma caixa, e nenhum dos dois era
+            o nosso. */}
+        <button
+          type="button"
+          className="campo-periodo__icone"
+          tabIndex={-1}
+          aria-label="Abrir calendário"
+          onClick={(e) => {
+            const campo = e.currentTarget.parentElement?.querySelector("input");
+            if (campo) {
+              campo.focus();
+              abrirCalendario(campo);
+            }
+          }}
+        >
+          <Icone nome="calendar" tamanho={15} />
+        </button>
       </span>
     </Campo>
   );

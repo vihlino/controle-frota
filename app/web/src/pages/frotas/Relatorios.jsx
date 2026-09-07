@@ -13,7 +13,7 @@ import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
 import Modal from "../../components/Modal.jsx";
-import { Selecao, Data } from "../../components/Campos.jsx";
+import { Selecao, Data, Texto, Periodo } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
 import { data, dataHora, numero } from "../../lib/formato.js";
@@ -33,7 +33,7 @@ const TOM_STATUS = {
 export default function Relatórios() {
   const navegar = useNavigate();
   const { podeVer } = useSessao();
-  const lista = useLista("relatorios", { busca: "", tipo: "", status: "" });
+  const lista = useLista("relatorios", { busca: "", tipo: "", status: "", dataDe: "", dataAte: "" });
   const [tipos, setTipos] = useState([]);
   const [gerando, setGerando] = useState(false);
   const [formulario, setFormulario] = useState({ tipo: "", periodo_inicio: "", periodo_fim: "" });
@@ -166,7 +166,13 @@ export default function Relatórios() {
       vazio="Nenhum relatório gerado ainda."
       filtros={
         <>
-          <Selecao rotulo="Tipo de relatório" id="tipo" vazio="Todos os tipos"
+          <Texto rotulo="Buscar" id="busca" placeholder="Nome ou tipo do relatório"
+                 value={lista.filtros.busca}
+                 onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
+          <Periodo id="periodo" de={lista.filtros.dataDe} ate={lista.filtros.dataAte}
+                   aoMudarDe={(v) => lista.alterarFiltro("dataDe", v)}
+                   aoMudarAte={(v) => lista.alterarFiltro("dataAte", v)} />
+          <Selecao rotulo="Tipo de relatório" id="tipo" vazio="Todos"
                    opcoes={tipos.map((t) => ({ valor: t.tipo, rotulo: t.nome }))}
                    value={lista.filtros.tipo}
                    onChange={(e) => lista.alterarFiltro("tipo", e.target.value)} />

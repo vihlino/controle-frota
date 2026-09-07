@@ -68,11 +68,14 @@ button { font: inherit; cursor: pointer; }
 
 /* Menores que os botoes do corpo da pagina: aqui eles sao a acao da tela, e
    nao o assunto dela - o titulo e. */
+/* Curtos de proposito: no canto superior direito cabem tres ou quatro deles
+   (Voltar, Ver veiculo, QR Code...) e o que sobra de espaco ali e pouco. O
+   TAMANHO DA LETRA nao muda - o que encolhe e o respiro em volta. */
 .cabecalho-pagina .botao,
 .cabecalho-pagina__acoes .botao {
-  padding: 8px 14px;
+  padding: 7px 10px;
   font-size: 13.5px;
-  gap: 7px;
+  gap: 6px;
 }
 
 /* ---------- barra lateral ---------- */
@@ -393,21 +396,40 @@ button { font: inherit; cursor: pointer; }
    tom suave a esquerda, rotulo, numero grande e nota. O tom do circulo diz o
    que o numero significa (ver --verde/--vermelho/--ambar/--azul/--roxo nos
    tokens); ele nunca e escolhido por gosto. */
+/* A FILEIRA DE KPIs
+   Os cartoes tem largura MAXIMA: com `1fr` puro, tres KPIs numa tela larga
+   viravam tres blocos de 400px cada um, com o numero perdido no meio de um
+   vazio enorme. Aqui eles crescem ate 240px e param; o que sobra da linha
+   fica sobrando mesmo, encostado a direita. */
 .kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
-  gap: var(--e-4);
-  margin-bottom: var(--e-6);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 205px));
+  justify-content: start;
+  gap: var(--e-3);
+  margin-bottom: var(--e-5);
 }
 .kpi {
-  padding: var(--e-5);
+  padding: var(--e-2) var(--e-3);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--e-3);
 }
+/* Rotulo em cima, numero e nota na MESMA linha embaixo. Antes eram tres
+   linhas empilhadas, e o cartao ficava alto sem precisar. */
+.kpi > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  /* Tudo alinhado a esquerda: rotulo em cima, numero e nota embaixo, os tres
+     comecando na mesma coluna. Centralizado, o numero dancava de cartao para
+     cartao conforme o tamanho da nota ao lado. */
+  gap: 0 var(--e-2);
+  flex: 1;
+  min-width: 0;
+}
 .kpi__icone {
-  width: 52px;
-  height: 52px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--raio-full);
   background: var(--superficie-3);
   color: var(--texto-2);
@@ -416,26 +438,27 @@ button { font: inherit; cursor: pointer; }
   flex: none;
 }
 .kpi__rotulo {
-  font-size: var(--t-base);
-  line-height: var(--altura-normal);
-  color: var(--texto-2);
-  font-weight: var(--peso-medio);
-  /* Duas linhas reservadas: rotulos de tamanhos diferentes ("Disponivel" e
-     "Checklists de hoje") deixariam os numeros em alturas diferentes na mesma
-     fileira. Com a altura fixa, a fileira inteira alinha. */
-  min-height: calc(2 * var(--altura-normal) * var(--t-base));
-}
-.kpi__valor {
-  font-size: var(--t-3xl);
-  font-weight: var(--peso-forte);
-  line-height: var(--altura-apertada);
-  color: var(--texto);
-  margin: var(--e-1) 0;
-}
-.kpi__nota {
+  /* Linha inteira: e o rotulo que manda o numero e a nota para a linha de
+     baixo. A reserva de duas linhas saiu junto com o empilhamento - agora o
+     alinhamento da fileira vem do `align-items: center` do cartao. */
+  flex: 1 0 100%;
   font-size: var(--t-sm);
   line-height: var(--altura-normal);
   color: var(--texto-2);
+  font-weight: var(--peso-medio);
+}
+.kpi__valor {
+  font-size: var(--t-2xl);
+  font-weight: var(--peso-forte);
+  line-height: var(--altura-apertada);
+  color: var(--texto);
+  margin: var(--e-1) 0 0;
+}
+.kpi__nota {
+  font-size: var(--t-xs);
+  line-height: var(--altura-normal);
+  color: var(--texto-2);
+  margin-top: var(--e-1);
 }
 .kpi__variacao {
   font-size: var(--t-sm);
@@ -792,6 +815,18 @@ button { font: inherit; cursor: pointer; }
 
 /* ---------- botoes e campos ---------- */
 
+/* O icone de qualquer botao tem o tamanho da LETRA daquele botao - 1em.
+   Antes o tamanho vinha em pixels de dentro do JSX (15px), o mesmo numero para
+   um botao de 14px e outro de 13,5px: em uns o simbolo ficava maior que o
+   texto ao lado, em outros menor. O !important e necessario porque o
+   componente Icone escreve width/height no style do elemento, e estilo inline
+   ganha de folha de estilo. */
+.botao .icone,
+.aba .icone {
+  width: 1em !important;
+  height: 1em !important;
+}
+
 .botao {
   display: inline-flex;
   align-items: center;
@@ -877,13 +912,17 @@ button { font: inherit; cursor: pointer; }
    qualquer lugar do campo abre o calendario (showPicker). */
 .campo-data { position: relative; display: flex; }
 .campo-data input { padding-right: var(--e-8); }
+/* O seletor nativo do Chrome sai da frente COMPLETAMENTE.
+   Ele estava esticado por cima do campo inteiro (inset: 0, 100% x 100%): todo
+   clique caia nele, e nao no texto - dai a impressao de que so dava para
+   digitar clicando no rotulo, que e o unico ponto que jogava o foco para
+   dentro do input. Sem o quadradinho na frente, clicar no campo posiciona o
+   cursor e o calendario continua a um clique, no nosso icone. */
 .campo-data input::-webkit-calendar-picker-indicator {
   opacity: 0;
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
+  width: 0;
+  padding: 0;
+  margin: 0;
 }
 .campo-data__icone {
   position: absolute;
@@ -950,10 +989,14 @@ button { font: inherit; cursor: pointer; }
   padding: var(--e-3) var(--e-4);
   margin-bottom: var(--e-4);
 }
-.filtros > .campo { flex: 1 1 140px; min-width: 120px; }
-/* Busca e periodo pedem mais espaco que um select de tres opcoes. */
-.filtros > .campo:first-child { flex: 1.6 1 190px; }
-.filtros > .campo:has(.campo-periodo) { flex: 1.8 1 250px; }
+/* LARGURA FIXA, e nao proporcional.
+   Com `flex: 1 1` cada tela distribuia a sobra entre os campos que tinha: a
+   Buscar de Veiculos (3 campos) saia com o dobro da de Inspecoes (5 campos), e
+   nada ficava alinhado entre uma tela e outra. Agora o campo tem o tamanho que
+   o CONTEUDO dele pede, igual em todo lugar, e a sobra fica para a direita. */
+.filtros > .campo { flex: 0 1 190px; min-width: 150px; }
+.filtros > .campo:first-child { flex: 0 1 290px; min-width: 200px; }
+.filtros > .campo:has(.campo-periodo) { flex: 0 1 250px; }
 .filtros .campo label {
   font-size: var(--t-sm);
   color: var(--texto-2);
@@ -966,6 +1009,16 @@ button { font: inherit; cursor: pointer; }
   padding: var(--e-1) var(--e-3);
 }
 .filtros .campo { gap: var(--e-1); }
+/* O Limpar acompanha a altura dos campos e nao cresce: e a acao mais fraca da
+   barra, nao pode competir com eles em peso. */
+.filtros .botao,
+.filtros__acoes .botao {
+  flex: none;
+  min-height: 36px;
+  padding: var(--e-1) var(--e-3);
+  font-size: var(--t-base);
+  gap: var(--e-2);
+}
 
 /* Periodo: dois campos de data dentro de UMA caixa. */
 .campo-periodo {
@@ -996,7 +1049,26 @@ button { font: inherit; cursor: pointer; }
 }
 .campo-periodo input:focus { border: none; box-shadow: none; }
 .campo-periodo__sep { flex: none; font-size: var(--t-sm); color: var(--texto-3); }
-.campo-periodo__icone { flex: none; color: var(--texto-2); line-height: 0; }
+/* O seletor nativo do navegador some tambem aqui: com ele visivel eram DOIS
+   calendarios na mesma caixa - o quadradinho do Chrome em cada metade e o
+   nosso icone no canto. */
+.campo-periodo input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  width: 0;
+  padding: 0;
+  margin: 0;
+}
+.campo-periodo__icone {
+  flex: none;
+  color: var(--texto-2);
+  line-height: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+.campo-periodo__icone:hover { color: var(--marca-texto); }
+.campo-periodo:focus-within .campo-periodo__icone { color: var(--marca-texto); }
 /* Com o painel recolhido sobra so a fileira de botoes. */
 .filtros[data-aberto="false"] {
   display: flex;
@@ -1139,6 +1211,8 @@ button { font: inherit; cursor: pointer; }
    e so onde o icone mora.
    O `tom` continua chegando do componente e e ignorado aqui de proposito -
    apagar a prop de todas as telas de uma vez seria mudanca grande sem ganho. */
+.kpi__icone .icone { width: 20px !important; height: 20px !important; }
+
 .kpi__icone,
 .kpi__icone[data-tom] {
   background: var(--marca-claro);
@@ -2075,13 +2149,32 @@ button { font: inherit; cursor: pointer; }
   border-top: 2px solid #0d0d0d;
   flex-wrap: wrap;
 }
-.documento__assinatura { text-align: center; flex: 1; min-width: 260px; }
+/* Ate tres assinaturas dividem a mesma faixa; com uma so, ela ocupa o lugar
+   de sempre. */
+.documento__assinaturas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  flex: 1;
+  min-width: 260px;
+}
+.documento__assinatura { text-align: center; flex: 1 1 200px; min-width: 200px; }
 .documento__ateste { font-size: 12px; color: #5b6167; margin: 0 0 22px; }
 .documento__assinante { font-size: 15px; font-weight: 700; margin: 0; }
 .documento__cargo { font-size: 12.5px; color: #5b6167; margin: 3px 0 0; }
 .documento__quando { font-size: 12px; color: #8b9198; margin: 5px 0 0; }
 .documento__observacao { font-size: 12.5px; color: #5b6167; font-style: italic; margin: 8px 0 0; }
-.documento__orgao-rodape { text-align: right; font-size: 12px; color: #5b6167; }
+.documento__orgao-rodape {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: right;
+  font-size: 12px;
+  color: #5b6167;
+}
+/* A marca da CMTT assina o documento no rodape; o SITRA identifica o sistema
+   no cabecalho. Sao papeis diferentes: um e o orgao, o outro e a ferramenta. */
+.documento__logo-cmtt { width: 92px; height: auto; flex: none; }
 .documento__orgao-rodape strong { display: block; font-size: 15px; color: #111315; letter-spacing: 0.05em; }
 .documento__orgao-rodape small { display: block; margin-top: 6px; font-size: 11px; color: #8b9198; }
 

@@ -636,7 +636,7 @@ export default function ChecklistQr() {
             freio falhando. Pode abrir mais de um no mesmo checklist. */}
         <section className="qr-cartao">
           <h2 className="qr-cartao__titulo qr-cartao__titulo--icone">
-            <span className="qr-cartao__simbolo"><Icone nome="kpi-wrench" tamanho={19} /></span>
+            <span className="qr-cartao__simbolo"><Icone nome="kpi-wrench" tamanho={20} /></span>
             Abrir chamado
           </h2>
           <p className="qr-cartao__nota">

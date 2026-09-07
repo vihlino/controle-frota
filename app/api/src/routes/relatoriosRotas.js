@@ -51,6 +51,17 @@ router.get("/", autenticar, exigePermissao("RELATORIOS_VISUALIZAR"), async (req,
       valores.push(req.query.status);
       condicoes.push(`r.status = $${valores.length}`);
     }
+    // Periodo: pega o relatorio cuja GERACAO caiu na faixa. E assim que a
+    // pessoa procura ("os relatorios de agosto"), e nao pelo periodo interno
+    // do documento, que ela nem sempre lembra.
+    if (req.query.dataDe) {
+      valores.push(req.query.dataDe);
+      condicoes.push(`r.data_geracao >= $${valores.length}::date`);
+    }
+    if (req.query.dataAte) {
+      valores.push(req.query.dataAte);
+      condicoes.push(`r.data_geracao < ($${valores.length}::date + 1)`);
+    }
     if (req.query.busca) {
       valores.push(`%${String(req.query.busca).trim()}%`);
       condicoes.push(`(r.nome ILIKE $${valores.length} OR r.tipo ILIKE $${valores.length})`);
@@ -109,7 +120,18 @@ router.post("/", autenticar, exigePermissao("RELATORIOS_GERAR"), async (req, res
       return res.status(400).json({ erro: "A data final não pode ser anterior a inicial." });
     }
 
-    const dados = await query(modelo.sql, [periodo_inicio, periodo_fim]);
+    // A consulta do modelo roda isolada: se ela falhar (uma coluna renomeada
+    // no banco, por exemplo), a mensagem diz QUAL relatorio quebrou, em vez de
+    // um 500 seco que obriga a abrir o log do servidor para descobrir.
+    let dados;
+    try {
+      dados = await query(modelo.sql, [periodo_inicio, periodo_fim]);
+    } catch (e) {
+      console.error(`[relatorio ${tipo}] falha na consulta:`, e.message);
+      return res.status(500).json({
+        erro: `Não foi possível montar o relatório "${modelo.nome}": ${e.message}`,
+      });
+    }
 
     const conteudo = {
       colunas: modelo.colunas,
@@ -162,8 +184,8 @@ router.get("/:id", autenticar, exigePermissao("RELATORIOS_VISUALIZAR"), async (r
     if (!relatorio) return res.status(404).json({ erro: "Relatório não encontrado" });
 
     const atestacoes = await query(
-      `SELECT a.ordem, a.status, a.data_solicitacao, a.data_atestacao, a.observacao,
-              s.nome, s.cargo_funcao AS cargo
+      `SELECT a.ordem, a.id_usuario, a.status, a.data_solicitacao, a.data_atestacao,
+              a.observacao, s.nome, s.cargo_funcao AS cargo
          FROM atestacao a
          JOIN usuario u  ON u.id_usuario  = a.id_usuario
          JOIN servidor s ON s.id_servidor = u.id_servidor
@@ -200,19 +222,37 @@ router.post("/:id/atestar", autenticar, exigePermissao("RELATORIOS_ATESTAR"),
         await cliente.query("ROLLBACK");
         return res.status(404).json({ erro: "Relatório não encontrado" });
       }
-      if (relatorio.rows[0].status === "ATESTADO") {
-        await cliente.query("ROLLBACK");
-        return res.status(409).json({ erro: "Este relatório ja foi atestado." });
-      }
       if (relatorio.rows[0].status === "CANCELADO") {
         await cliente.query("ROLLBACK");
         return res.status(409).json({ erro: "Relatório cancelado não pode ser atestado." });
       }
 
-      const proxima = await cliente.query(
-        "SELECT COALESCE(MAX(ordem), 0) + 1 AS ordem FROM atestacao WHERE id_relatorio = $1",
-        [idRelatorio]
+      // ATE TRES ATESTOS por relatorio.
+      // Um so bastava para o documento valer, mas quem confere a frota queria
+      // o aval de mais de uma pessoa no MESMO papel - o gestor, o fiscal e o
+      // responsavel pelo setor, por exemplo. Tres e o limite: dali em diante
+      // a lista de assinaturas vira ruido e nao acrescenta responsabilidade.
+      const jaFeitos = await cliente.query(
+        `SELECT COALESCE(MAX(ordem), 0) AS ultima,
+                COUNT(*)::int AS total,
+                COUNT(*) FILTER (WHERE id_usuario = $2)::int AS meus
+           FROM atestacao WHERE id_relatorio = $1`,
+        [idRelatorio, req.usuario.id_usuario]
       );
+      const { ultima, total, meus } = jaFeitos.rows[0];
+
+      if (meus > 0) {
+        await cliente.query("ROLLBACK");
+        return res.status(409).json({ erro: "Voce ja atestou este relatório." });
+      }
+      if (total >= 3) {
+        await cliente.query("ROLLBACK");
+        return res.status(409).json({
+          erro: "Este relatório ja tem os tres atestos permitidos.",
+        });
+      }
+
+      const proxima = { rows: [{ ordem: Number(ultima) + 1 }] };
 
       await cliente.query(
         `INSERT INTO atestacao

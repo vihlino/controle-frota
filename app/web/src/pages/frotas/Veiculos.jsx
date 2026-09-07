@@ -175,6 +175,7 @@ export default function Veículos() {
             ...(podeGerenciar ? [{ rotulo: "Editar veículo", aoClicar: () => abrirEdicao(v) }] : []),
             { rotulo: "Histórico", aoClicar: () => navegar(`/frotas/checklists?veiculo=${v.id_veiculo}`) },
             { rotulo: "Documentos", aoClicar: () => navegar(`/frotas/documentos?veiculo=${v.id_veiculo}`) },
+            { rotulo: "Manutenções", aoClicar: () => navegar(`/frotas/manutencoes?veiculo=${v.id_veiculo}`) },
             ...(podeGerenciar
               ? [{ rotulo: "Excluir veículo", perigo: true, aoClicar: () => excluir(v) }]
               : []),

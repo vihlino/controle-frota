@@ -272,6 +272,25 @@ async function iniciarServidor() {
  * incompleto.
  */
 
+/*
+ * ---------------------------------------------------------------------------
+ * Rede de seguranca: erro solto nao derruba a API
+ * ---------------------------------------------------------------------------
+ * Uma promessa rejeitada sem catch, ou uma excecao fora de qualquer rota,
+ * mata o processo do Node sem dizer onde foi. Do lado do navegador isso
+ * aparece como ECONNRESET e a tela inteira para de responder.
+ *
+ * Aqui o erro e IMPRESSO COM A PILHA e o servidor continua de pe, para que a
+ * causa apareca no terminal em vez de sumir junto com o processo.
+ */
+process.on("unhandledRejection", (erro) => {
+  console.error("[erro solto] promessa rejeitada sem tratamento:", erro);
+});
+
+process.on("uncaughtException", (erro) => {
+  console.error("[erro solto] excecao nao capturada:", erro);
+});
+
 iniciarServidor().catch((erro) => {
 
   console.error(

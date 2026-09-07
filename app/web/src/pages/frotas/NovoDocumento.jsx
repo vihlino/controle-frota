@@ -61,7 +61,6 @@ export default function NovoDocumento() {
           ...formulario,
           id_veiculo: Number(formulario.id_veiculo),
           id_responsavel: formulario.id_responsavel ? Number(formulario.id_responsavel) : null,
-          bloqueia_veiculo: false,
         },
       });
       navegar("/frotas/documentos");

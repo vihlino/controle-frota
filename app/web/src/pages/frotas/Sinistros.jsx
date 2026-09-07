@@ -189,7 +189,7 @@ export default function Sinistros() {
           <Texto rotulo="Buscar" id="busca" placeholder="Placa, local, número ou B.O."
                  value={lista.filtros.busca}
                  onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
-          <Selecao rotulo="Veículo" id="veiculo" vazio="Todos os veículos"
+          <Selecao rotulo="Veículo" id="veiculo" vazio="Todos"
                    opcoes={veículos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.modelo}` }))}
                    value={lista.filtros.veiculo}
                    onChange={(e) => lista.alterarFiltro("veiculo", e.target.value)} />

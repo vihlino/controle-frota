@@ -78,6 +78,20 @@ export const pool = new pg.Pool({
   user: process.env.PGUSER || "sitra",
   password: process.env.PGPASSWORD,
   ssl: process.env.PGSSL === "true" ? { rejectUnauthorized: false } : undefined,
+  keepAlive: true,
+});
+
+/*
+ * Conexao ociosa que cai nao pode derrubar a API.
+ *
+ * O Postgres do Render encerra conexoes paradas. Quando isso acontece, o
+ * driver emite "error" no pool. Sem ninguem escutando, o Node trata como
+ * excecao nao capturada e MATA o processo - o navegador ve ECONNRESET e a
+ * tela inteira para de responder. Escutando aqui, a conexao morta e
+ * descartada em silencio e o pool abre outra na proxima consulta.
+ */
+pool.on("error", (erro) => {
+  console.error("Conexao ociosa do banco caiu (descartada):", erro.message);
 });
 
 /*

@@ -97,7 +97,7 @@ export default function PainelFiscalizacao({ dados }) {
         <div className="grade-4" style={{ gap: "16px" }}>
           <div className="kpi-mini">
             <div className="kpi-mini__icone" style={{ background: "var(--amarelo)" }}>
-              <Icone nome="fisc-servidores" tamanho={22} />
+              <Icone nome="fisc-servidores" tamanho={20} />
             </div>
             <div className="kpi-mini__dados">
               <div className="kpi-mini__valor">{ativas}</div>
@@ -107,7 +107,7 @@ export default function PainelFiscalizacao({ dados }) {
           </div>
           <div className="kpi-mini">
             <div className="kpi-mini__icone" style={{ background: "var(--verde)" }}>
-              <Icone nome="fisc-servidores" tamanho={22} />
+              <Icone nome="fisc-servidores" tamanho={20} />
             </div>
             <div className="kpi-mini__dados">
               <div className="kpi-mini__valor">{totalEquipes - ativas}</div>
@@ -117,7 +117,7 @@ export default function PainelFiscalizacao({ dados }) {
           </div>
           <div className="kpi-mini">
             <div className="kpi-mini__icone" style={{ background: "var(--amarelo)" }}>
-              <Icone nome="fisc-viatura" tamanho={22} />
+              <Icone nome="fisc-viatura" tamanho={20} />
             </div>
             <div className="kpi-mini__dados">
               <div className="kpi-mini__valor">{kpis.viaturasEmUso}</div>
@@ -127,7 +127,7 @@ export default function PainelFiscalizacao({ dados }) {
           </div>
           <div className="kpi-mini">
             <div className="kpi-mini__icone" style={{ background: "var(--laranja, #f97316)" }}>
-              <Icone nome="checklist" tamanho={22} />
+              <Icone nome="checklist" tamanho={20} />
             </div>
             <div className="kpi-mini__dados">
               <div className="kpi-mini__valor">{kpis.checklistsHoje}</div>

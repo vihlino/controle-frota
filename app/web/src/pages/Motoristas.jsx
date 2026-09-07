@@ -20,6 +20,10 @@ export default criarPagina({
   unidade: "motoristas",
   vazio: "Nenhum motorista cadastrado.",
   rotuloAcao: "Novo motorista",
+  // CONFIG_SERVIDOR traz iconeAcao: "fisc-servidores"; aqui o botao volta ao
+  // "+" que todos os outros cadastros usam. Era so isto que fazia o botao
+  // desta tela destoar de "Novo veiculo".
+  iconeAcao: "mais",
   rotuloSalvar: "Salvar motorista",
 
   // Quem gerencia a frota cadastra motorista sem precisar da permissao de
