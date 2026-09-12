@@ -3,10 +3,18 @@ import Cartao from "../../components/Cartao.jsx";
 import Icone from "../../components/Icone.jsx";
 import Kpi from "../../components/Kpi.jsx";
 import Selo from "../../components/Selo.jsx";
-import { hora, numero } from "../../lib/formato.js";
+import VeiculoCel from "../../components/VeiculoCel.jsx";
+import { data, hora, numero } from "../../lib/formato.js";
+
+const ROTULOS_OS = {
+  EM_ANALISE:           { titulo: "OS em aberto",        descricao: "Ordens de serviço abertas" },
+  EM_MANUTENCAO:        { titulo: "Em execução",         descricao: "Serviços em andamento" },
+  AGUARDANDO_PECAS:     { titulo: "Aguardando peças",    descricao: "Aguardando chegada de peças" },
+  AGUARDANDO_APROVACAO: { titulo: "Aguardando aprovação", descricao: "Aguardando aprovação" },
+};
 
 export default function PainelFiscalizacao({ dados }) {
-  const { kpis, ultimasOcorrencias, servicosHoje } = dados;
+  const { kpis, ultimasOcorrencias, servicosHoje, ultimosChecklists, ordensServico } = dados;
   const totalEquipes = kpis.equipes?.total || 0;
   const ativas = kpis.equipes?.ativas || 0;
   const pctEquipes = totalEquipes ? Math.round((ativas / totalEquipes) * 100) : 0;
@@ -92,59 +100,72 @@ export default function PainelFiscalizacao({ dados }) {
         </Cartao>
       </div>
 
-      <Cartao titulo="Equipes e viaturas"
-              acao={<Link className="cartao__acao" to="/fiscalizacao/equipes">Ver detalhes</Link>}>
-        <div className="grade-4" style={{ gap: "16px" }}>
-          <div className="kpi-mini">
-            <div className="kpi-mini__icone" style={{ background: "var(--amarelo)" }}>
-              <Icone nome="fisc-servidores" tamanho={20} />
-            </div>
-            <div className="kpi-mini__dados">
-              <div className="kpi-mini__valor">{ativas}</div>
-              <div className="kpi-mini__rotulo">Equipes ativas</div>
-              <div className="kpi-mini__nota">{pctEquipes}% do total</div>
-            </div>
+      <div className="grade-2">
+        <Cartao titulo="Últimos checklists"
+                acao={<Link className="cartao__acao" to="/fiscalizacao/checklists">Ver todos</Link>}>
+          <div className="rolagem-x">
+            <table className="tabela">
+              <thead>
+                <tr>
+                  <th>Enviado em</th><th>Data do Registro</th><th>Equipe</th>
+                  <th>Viatura</th><th>Placa</th><th>Km Rodado</th><th>Situação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(ultimosChecklists || []).map((c) => (
+                  <tr key={c.id_checklist}>
+                    <td>{hora(c.hora_saida)}</td>
+                    <td>{data(c.data_abertura)}</td>
+                    <td>{c.equipe || "—"}</td>
+                    <td><VeiculoCel marca={c.marca} modelo={c.modelo}
+                                   tipo={c.tipo_veiculo} foto={c.foto} /></td>
+                    <td>{c.placa}</td>
+                    <td>{c.km_rodado === null ? "—" : `${numero(c.km_rodado)} km`}</td>
+                    <td><Selo valor={c.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {(!ultimosChecklists || ultimosChecklists.length === 0) && (
+              <div className="vazio">Nenhum checklist registrado.</div>
+            )}
           </div>
-          <div className="kpi-mini">
-            <div className="kpi-mini__icone" style={{ background: "var(--verde)" }}>
-              <Icone nome="fisc-servidores" tamanho={20} />
-            </div>
-            <div className="kpi-mini__dados">
-              <div className="kpi-mini__valor">{totalEquipes - ativas}</div>
-              <div className="kpi-mini__rotulo">Equipes inativas</div>
-              <div className="kpi-mini__nota">Fora de serviço</div>
-            </div>
+        </Cartao>
+
+        <Cartao titulo="Manutenções em aberto"
+                acao={
+                  <Link className="cartao__acao" to="/frotas/manutencoes">
+                    Ver todas as OS <span aria-hidden="true">→</span>
+                  </Link>
+                }>
+          <div className="lista-os">
+            {(ordensServico || []).map((os) => {
+              const rotulo = ROTULOS_OS[os.status] || { titulo: os.status, descricao: "" };
+              return (
+                <div className="lista-os__item" key={os.status}>
+                  <span className="lista-os__icone"><Icone nome="kpi-wrench" tamanho={20} /></span>
+                  <div>
+                    <div className="lista-os__titulo">{rotulo.titulo}</div>
+                    <div className="lista-os__desc">{rotulo.descricao}</div>
+                  </div>
+                  <span className="lista-os__valor">{numero(os.quantidade)}</span>
+                </div>
+              );
+            })}
+            {(!ordensServico || ordensServico.length === 0) && (
+              <div className="vazio">Nenhuma OS em aberto.</div>
+            )}
           </div>
-          <div className="kpi-mini">
-            <div className="kpi-mini__icone" style={{ background: "var(--amarelo)" }}>
-              <Icone nome="fisc-viatura" tamanho={20} />
-            </div>
-            <div className="kpi-mini__dados">
-              <div className="kpi-mini__valor">{kpis.viaturasEmUso}</div>
-              <div className="kpi-mini__rotulo">Viaturas em uso</div>
-              <div className="kpi-mini__nota">Em campo</div>
-            </div>
-          </div>
-          <div className="kpi-mini">
-            <div className="kpi-mini__icone" style={{ background: "var(--laranja, #f97316)" }}>
-              <Icone nome="checklist" tamanho={20} />
-            </div>
-            <div className="kpi-mini__dados">
-              <div className="kpi-mini__valor">{kpis.checklistsHoje}</div>
-              <div className="kpi-mini__rotulo">Checklists hoje</div>
-              <div className="kpi-mini__nota">Enviados</div>
-            </div>
-          </div>
-        </div>
-      </Cartao>
+        </Cartao>
+      </div>
 
       <Cartao titulo="Ações rápidas">
         <div className="acoes-rapidas">
           <Link className="acao-rapida" to="/fiscalizacao/servico-diario?novo=1">
-            <Icone nome="calendar" tamanho={20} /> + Serviço Diário
+            + Serviço Diário
           </Link>
           <Link className="acao-rapida" to="/fiscalizacao/ocorrencias?novo=1">
-            <Icone nome="fisc-ocorrencias" tamanho={20} /> + Ocorrência
+            + Ocorrência
           </Link>
           {/* Sem "+": esta tela so LISTA os checklists, que nascem no celular
               pelo QR Code do veiculo. Um "+" prometeria um cadastro que nao

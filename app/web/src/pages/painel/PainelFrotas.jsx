@@ -167,16 +167,16 @@ export default function PainelFrotas({ dados }) {
             recebem ?novo=1, lido pelo gerador de paginas. */}
         <div className="acoes-rapidas">
           <Link className="acao-rapida" to="/frotas/veiculos?novo=1">
-            <Icone nome="kpi-car" tamanho={20} /> + Cadastrar veículo
+            + Cadastrar veículo
           </Link>
           <Link className="acao-rapida" to="/frotas/inspecoes/nova">
-            <Icone nome="calendar" tamanho={20} /> + Nova inspeção
+            + Nova inspeção
           </Link>
           <Link className="acao-rapida" to="/frotas/manutencoes/agendar">
-            <Icone nome="kpi-wrench" tamanho={20} /> + Nova OS
+            + Nova OS
           </Link>
           <Link className="acao-rapida" to="/frotas/documentos/novo">
-            <Icone nome="documentos" tamanho={20} /> + Adicionar documento
+            + Adicionar documento
           </Link>
           <Link className="acao-rapida" to="/frotas/relatorios">
             <Icone nome="chart-line" tamanho={20} /> Relatórios

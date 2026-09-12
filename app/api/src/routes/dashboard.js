@@ -85,7 +85,8 @@ async function painelFrotas() {
 }
 
 async function painelFiscalizacao() {
-  const [servico, ocorrencias, equipes, checklists, ultimasOcorrencias, servicosHoje, viaturas] = await Promise.all([
+  const [servico, ocorrencias, equipes, checklists, ultimasOcorrencias, servicosHoje,
+         viaturas, ultimosChecklists, os] = await Promise.all([
     query(`SELECT COUNT(*) FILTER (WHERE status = 'EM_ANDAMENTO')::int AS em_andamento,
                   COUNT(*)::int AS hoje
              FROM servico_diario WHERE data = CURRENT_DATE`),
@@ -112,6 +113,22 @@ async function painelFiscalizacao() {
     query(`SELECT COUNT(*) FILTER (WHERE status = 'EM_USO')::int AS em_uso,
                   COUNT(*)::int AS total
              FROM veiculo`),
+    // Ultimos checklists das viaturas. O checklist da Fiscalizacao pertence a
+    // uma EQUIPE, nao a um condutor: quem sai na viatura e a dupla escalada no
+    // servico diario. Por isso a coluna e a equipe, e nao um nome.
+    query(`SELECT c.id_checklist, c.data_abertura, c.hora_saida, c.status,
+                  (c.odometro_chegada - c.odometro_saida) AS km_rodado,
+                  e.numero AS equipe, v.placa, v.marca, v.modelo
+             FROM checklist_fiscalizacao c
+             JOIN veiculo v ON v.id_veiculo = c.id_veiculo
+             LEFT JOIN equipe e ON e.id_equipe = c.id_equipe
+            ORDER BY c.data_abertura DESC, c.hora_saida DESC LIMIT 5`),
+    // Ordens de servico em aberto. A mesma consulta do painel de Frotas, de
+    // proposito: viatura e veiculo da frota sao o MESMO cadastro, entao a
+    // oficina e a fila de manutencao tambem sao as mesmas. Dois numeros
+    // diferentes para a mesma fila seria mentira.
+    query(`SELECT status, COUNT(*)::int AS quantidade FROM ordem_servico
+            WHERE status NOT IN ('RESOLVIDA', 'CANCELADA') GROUP BY status`),
   ]);
 
   return {
@@ -124,6 +141,8 @@ async function painelFiscalizacao() {
     },
     ultimasOcorrencias: ultimasOcorrencias.rows,
     servicosHoje: servicosHoje.rows,
+    ultimosChecklists: ultimosChecklists.rows,
+    ordensServico: os.rows,
   };
 }
 
