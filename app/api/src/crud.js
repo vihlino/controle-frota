@@ -57,14 +57,37 @@ import { registrarAuditoria } from "./auditoria.js";
  * @param {string} config.entidade    Nome usado nos registros de auditoria.
  * @param {boolean} config.somenteLeitura  Se true, nao cria POST/PUT/DELETE.
  * @param {string} config.condicaoFixa     Condicao SQL sempre aplicada.
+ * @param {Function} config.escopo    Recorte que depende de QUEM pediu:
+ *                                    recebe req e devolve {coluna, valor} ou
+ *                                    null. Vale em TODAS as rotas do recurso -
+ *                                    listar, abrir por id, editar e excluir -
+ *                                    para que nao exista o caso de um registro
+ *                                    sumir da lista mas abrir pela URL.
  * @returns {Router} Roteador do Express pronto para montar no server.
  */
+/**
+ * Traduz erro do Postgres em mensagem que serve para quem esta na tela.
+ *
+ * 23505 e "ja existe um registro com esse valor unico". Sem tratamento, a API
+ * devolvia o texto cru do banco - com nome de indice e de coluna - e em
+ * producao nem isso: o tratador de erros esconde a mensagem e sobra "erro
+ * interno", que nao diz a quem cadastra que o problema e so o nome repetido.
+ *
+ * @param {Error} e         O erro vindo do driver.
+ * @param {string} entidade Nome amigavel do registro. Ex.: "cargo".
+ * @returns {string|null} A mensagem, ou null se nao for esse tipo de erro.
+ */
+function mensagemDeConflito(e, entidade) {
+  if (e.code !== "23505") return null;
+  return `Já existe outro ${entidade || "registro"} com esses dados. Confira se o nome já não está cadastrado.`;
+}
+
 export function criarCrud(config) {
   const router = Router();
   const {
     tabela, id, select, from, busca = [], filtros = {}, ordenaveis = {},
     ordemPadrao, campos = [], obrigatorios = [], permissoes = {}, entidade,
-    somenteLeitura = false, condicaoFixa,
+    somenteLeitura = false, condicaoFixa, escopo,
   } = config;
 
   // Monta os middlewares de permissao uma vez so. Se a configuracao nao pediu
@@ -89,10 +112,23 @@ export function criarCrud(config) {
    * @param {object} consulta  req.query
    * @returns {{where: string, valores: Array}}
    */
-  function montarFiltros(consulta) {
+  function montarFiltros(req) {
+    const consulta = req.query || {};
     // condicaoFixa restringe o recurso inteiro (ex.: so registros que mudaram dados).
     const condicoes = condicaoFixa ? [condicaoFixa] : [];
     const valores = [];
+
+    // ESCOPO: o recorte que depende de QUEM esta pedindo.
+    //
+    // Diferente dos filtros, que vem da tela e a pessoa pode tirar, este e
+    // imposto pelo servidor - e como a Fiscalizacao passa a enxergar apenas os
+    // servidores do proprio setor. Entra como qualquer outra condicao, com o
+    // valor parametrizado, e por isso nao ha como driblar pela URL.
+    const recorte = escopo ? escopo(req) : null;
+    if (recorte) {
+      valores.push(recorte.valor);
+      condicoes.push(`${recorte.coluna} = $${valores.length}`);
+    }
 
     for (const [parametro, coluna] of Object.entries(filtros)) {
       const valor = consulta[parametro];
@@ -154,7 +190,7 @@ export function criarCrud(config) {
       const direcao = String(req.query.direcao).toUpperCase() === "DESC" ? "DESC" : "ASC";
       const ordenacao = escolhida ? `${escolhida} ${direcao}` : ordemPadrao;
 
-      const { where, valores } = montarFiltros(req.query);
+      const { where, valores } = montarFiltros(req);
 
       // Conta o total com os MESMOS filtros da listagem, senao a paginacao
       // mostraria um numero que nao corresponde ao que esta na tela.
@@ -194,7 +230,7 @@ export function criarCrud(config) {
    */
   router.get("/opcoes", autenticar, ...podeVer, async (req, res, next) => {
     try {
-      const { where, valores } = montarFiltros(req.query);
+      const { where, valores } = montarFiltros(req);
       const { rows } = await query(
         `SELECT ${select} FROM ${from} ${where} ORDER BY ${ordemPadrao} LIMIT 500`,
         valores
@@ -210,9 +246,14 @@ export function criarCrud(config) {
    */
   router.get("/:id", autenticar, ...podeVer, async (req, res, next) => {
     try {
+      // O MESMO recorte vale aqui. Sem isto, quem nao pode ver um registro na
+      // lista ainda o abriria trocando o numero na barra de enderecos - o
+      // filtro da listagem seria enfeite.
+      const recorte = escopo ? escopo(req) : null;
+      const extra = recorte ? ` AND ${recorte.coluna} = $2` : "";
       const { rows } = await query(
-        `SELECT ${select} FROM ${from} WHERE ${tabela}.${id} = $1`,
-        [Number(req.params.id)]
+        `SELECT ${select} FROM ${from} WHERE ${tabela}.${id} = $1${extra}`,
+        recorte ? [Number(req.params.id), recorte.valor] : [Number(req.params.id)]
       );
       if (!rows[0]) return res.status(404).json({ erro: "Registro não encontrado" });
       res.json(rows[0]);
@@ -269,6 +310,8 @@ export function criarCrud(config) {
 
       res.status(201).json(rows[0]); // 201 = criado
     } catch (e) {
+      const conflito = mensagemDeConflito(e, entidade || tabela);
+      if (conflito) return res.status(409).json({ erro: conflito });
       next(e);
     }
   });
@@ -288,9 +331,16 @@ export function criarCrud(config) {
       await cliente.query("BEGIN");
       const idRegistro = Number(req.params.id);
 
+      // O recorte tambem vale para editar. Hoje quem tem escopo restrito nem
+      // tem permissao de gerenciar, entao isto nunca chega a barrar ninguem -
+      // esta aqui para que continue verdade no dia em que essa permissao for
+      // concedida, em vez de virar um buraco silencioso.
+      const recorte = escopo ? escopo(req) : null;
       const anterior = await cliente.query(
-        `SELECT * FROM ${tabela} WHERE ${id} = $1 FOR UPDATE`,
-        [idRegistro]
+        `SELECT * FROM ${tabela}
+          WHERE ${id} = $1${recorte ? ` AND ${recorte.coluna} = $2` : ""}
+          FOR UPDATE`,
+        recorte ? [idRegistro, recorte.valor] : [idRegistro]
       );
       if (!anterior.rows[0]) {
         await cliente.query("ROLLBACK");
@@ -330,6 +380,8 @@ export function criarCrud(config) {
     } catch (e) {
       // Qualquer erro desfaz tudo: o registro fica como estava.
       await cliente.query("ROLLBACK").catch(() => {});
+      const conflito = mensagemDeConflito(e, entidade || tabela);
+      if (conflito) return res.status(409).json({ erro: conflito });
       next(e);
     } finally {
       // Devolver a conexao para a piscina e OBRIGATORIO. Sem isso, o pool
@@ -347,9 +399,14 @@ export function criarCrud(config) {
   router.delete("/:id", autenticar, ...podeGerenciar, async (req, res, next) => {
     try {
       const idRegistro = Number(req.params.id);
+      // Mesmo recorte do GET e do PUT: fora do escopo, o registro simplesmente
+      // nao existe para quem pediu.
+      const recorte = escopo ? escopo(req) : null;
       const { rows } = await query(
-        `DELETE FROM ${tabela} WHERE ${id} = $1 RETURNING *`,
-        [idRegistro]
+        `DELETE FROM ${tabela}
+          WHERE ${id} = $1${recorte ? ` AND ${recorte.coluna} = $2` : ""}
+          RETURNING *`,
+        recorte ? [idRegistro, recorte.valor] : [idRegistro]
       );
       if (!rows[0]) return res.status(404).json({ erro: "Registro não encontrado" });
 

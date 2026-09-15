@@ -43,6 +43,7 @@ import relatorios from "./routes/relatoriosRotas.js";
 import qrcode from "./routes/qrcode.js";
 import detalhes from "./routes/detalhes.js";
 import setores from "./routes/setores.js";
+import cargos from "./routes/cargos.js";
 import alertas from "./routes/alertas.js";
 import sistema from "./routes/sistema.js";
 
@@ -115,12 +116,34 @@ async function iniciarServidor() {
     : ["http://localhost:5173"];
   app.use(cors({ origin: origens, credentials: true }));
 
-  // Rate limit geral: 200 req/min por IP
-  app.use(rateLimit({ windowMs: 60_000, max: 200, standardHeaders: true, legacyHeaders: false }));
+  // Rate limit geral: 200 req/min por IP. A resposta vai em JSON com o campo
+  // "erro" porque e o formato que o front sabe ler: em texto puro ele caia na
+  // mensagem generica e ninguem entendia que era so esperar.
+  app.use(rateLimit({
+    windowMs: 60_000, max: 200, standardHeaders: true, legacyHeaders: false,
+    message: { erro: "Muitas requisições em pouco tempo. Espere um instante." },
+  }));
 
-  // Rate limit restrito no login: 10 tentativas/15min por IP
+  /*
+   * Rate limit do login: 10 tentativas ERRADAS por 15 minutos, por IP.
+   *
+   * skipSuccessfulRequests e o detalhe que faz diferenca. Sem ele, o login que
+   * DEU CERTO tambem gastava uma das 10 vagas - e quem entra e sai do sistema
+   * algumas vezes (trocar de usuario para conferir permissao, a API reiniciando
+   * e derrubando a sessao) ficava trancado do lado de fora por 15 minutos com a
+   * senha certa na mao. O limite existe para travar quem fica CHUTANDO senha, e
+   * chute errado continua contando normalmente.
+   *
+   * A chave e o IP. Atencao para quando o SITRA sair do Render e for para o
+   * servidor da CMTT: se a API ficar atras de um proxy que NAO preenche
+   * X-Forwarded-For, todo mundo chega com o mesmo IP, dividindo as 10 vagas
+   * entre a empresa inteira - as 8h da manha, com varios servidores entrando
+   * juntos, a maioria levaria bloqueio. Ou o proxy preenche o cabecalho, ou o
+   * "trust proxy" logo acima precisa ser revisto junto com a configuracao dele.
+   */
   app.use("/api/sessao/login", rateLimit({
     windowMs: 15 * 60_000, max: 10, standardHeaders: true, legacyHeaders: false,
+    skipSuccessfulRequests: true,
     message: { erro: "Muitas tentativas de login. Tente novamente em 15 minutos." },
   }));
 
@@ -131,6 +154,9 @@ async function iniciarServidor() {
   // esta confirmando a PROPRIA senha, que ela sabe.
   app.use("/api/sessao/confirmar", rateLimit({
     windowMs: 15 * 60_000, max: 10, standardHeaders: true, legacyHeaders: false,
+    // Mesmo motivo do login: so a tentativa ERRADA conta. Quem confirma a
+    // propria senha varias vezes num dia de cadastro nao esta atacando nada.
+    skipSuccessfulRequests: true,
     message: { erro: "Muitas tentativas. Tente novamente em 15 minutos." },
   }));
 
@@ -197,6 +223,7 @@ async function iniciarServidor() {
   app.use("/api/frotas", detalhes);
 
   app.use("/api/setores", setores);
+  app.use("/api/cargos", cargos);
 
   app.use("/api/alertas", alertas);
   app.use("/api/sistema", sistema);

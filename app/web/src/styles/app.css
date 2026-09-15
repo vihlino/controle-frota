@@ -1361,6 +1361,52 @@ button { font: inherit; cursor: pointer; }
   gap: 16px;
 }
 
+/* ---------- formulario com largura por campo ----------
+ *
+ * A grade acima da a TODO campo a mesma largura. Funciona na maioria das
+ * telas, mas fica estranha quando os campos pedem tamanhos muito diferentes:
+ * "Ano de fabricacao" cabe em quatro digitos e ganhava a mesma caixa de
+ * "Modelo", que precisa de espaco.
+ *
+ * Esta variante troca a grade por 12 colunas e deixa cada campo dizer quantas
+ * ocupa. E opcional de proposito - so o formulario que pedir a classe muda, e
+ * as outras telas continuam exatamente como estao.
+ */
+.formulario-grade--colunas {
+  grid-template-columns: repeat(12, 1fr);
+  gap: 14px 16px;
+}
+/* Sem tamanho declarado, o campo ocupa um terco da linha - que e mais ou menos
+   o que a grade antiga dava, para o campo que nao precisa de ajuste. */
+.formulario-grade--colunas > .campo { grid-column: span 4; }
+/* "mini" ocupa as mesmas 3 colunas de "curto", mas ESTREITA o controle.
+ *
+ * Dar 2 colunas ao campo de ano deixava a caixa do tamanho certo e o rotulo
+ * errado: "Ano fabricação *" nao cabia numa linha, quebrava em duas e empurrava
+ * aquele campo para baixo dos vizinhos - a fileira inteira ficava torta. Com a
+ * celula do tamanho do ROTULO e o controle limitado por max-width, o campo fica
+ * pequeno como se quer e as caixas da fileira continuam alinhadas. */
+.formulario-grade--colunas > .campo[data-tamanho="mini"] { grid-column: span 3; }
+.formulario-grade--colunas > .campo[data-tamanho="mini"] input,
+.formulario-grade--colunas > .campo[data-tamanho="mini"] select { max-width: 112px; }
+.formulario-grade--colunas > .campo[data-tamanho="curto"] { grid-column: span 3; }
+.formulario-grade--colunas > .campo[data-tamanho="medio"] { grid-column: span 4; }
+.formulario-grade--colunas > .campo[data-tamanho="longo"] { grid-column: span 6; }
+.formulario-grade--colunas > .campo[data-largo="sim"] { grid-column: 1 / -1; }
+
+/* Em tela estreita, 12 colunas viram campos ilegiveis de dois centimetros.
+   Abaixo de 720px a grade volta a ser de dois em dois, e o campo mini fica
+   sozinho na sua metade. */
+@media (max-width: 720px) {
+  .formulario-grade--colunas { grid-template-columns: repeat(2, 1fr); }
+  .formulario-grade--colunas > .campo,
+  .formulario-grade--colunas > .campo[data-tamanho="mini"],
+  .formulario-grade--colunas > .campo[data-tamanho="curto"],
+  .formulario-grade--colunas > .campo[data-tamanho="medio"] { grid-column: span 1; }
+  .formulario-grade--colunas > .campo[data-tamanho="longo"],
+  .formulario-grade--colunas > .campo[data-largo="sim"] { grid-column: 1 / -1; }
+}
+
 /* ---------- abas do dashboard ---------- */
 
 .abas {

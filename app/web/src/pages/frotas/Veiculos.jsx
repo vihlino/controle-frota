@@ -241,38 +241,54 @@ export default function Veículos() {
           }
         >
           {erroForm && <div className="login__erro">{erroForm}</div>}
-          <form id="form-veículo" className="formulario-grade" onSubmit={salvar}>
+          <form id="form-veículo" className="formulario-grade formulario-grade--colunas" onSubmit={salvar}>
             {/* Tres blocos, na ordem em que a pessoa tem a informacao na mao:
                 o que esta no documento do veiculo, depois onde ele fica dentro
                 da CMTT, e por fim o que nao cabe em campo nenhum. Os campos
                 sem "*" sao opcionais - e isso esta dito no proprio rotulo, e
-                nao so na validacao, para a pessoa saber ANTES de travar. */}
+                nao so na validacao, para a pessoa saber ANTES de travar.
+
+                A LARGURA DE CADA CAMPO E DECLARADA AQUI. Antes todos tinham o
+                mesmo tamanho, e "Ano de fabricacao" - quatro digitos - ganhava
+                a mesma caixa de "Modelo". O tamanho agora acompanha o que cabe
+                dentro: ano e capacidade sao "mini", os seletores (que ninguem
+                digita) sao "curto", e so o que e texto livre e longo fica
+                "medio" ou maior. */}
             <h3 className="formulario__secao">Dados gerais</h3>
-            <Texto rotulo="Placa *" id="placa" required maxLength={10} {...campo("placa")} placeholder="Ex.: ABC-1D23" />
-            <Texto rotulo="Marca *" id="marca" required {...campo("marca")} placeholder="Ex.: Chevrolet" />
-            <Texto rotulo="Modelo *" id="modelo" required {...campo("modelo")} placeholder="Ex.: S10 LS 2.8" />
-            <Texto rotulo="Renavam (opcional)" id="renavam" {...campo("renavam")} placeholder="Ex.: 01234567890" />
-            <Texto rotulo="Chassi (opcional)" id="chassi" {...campo("chassi")} placeholder="Ex.: 9BG1489NK0JC123456" />
-            <Texto rotulo="Ano de fabricação *" id="ano_fabricacao" type="number"
-                   min="1900" max="2100" required {...campo("ano_fabricacao")} placeholder="Ex.: 2022" />
+            <Texto rotulo="Placa *" id="placa" required maxLength={10} tamanho="curto" {...campo("placa")} placeholder="Ex.: ABC-1D23" />
+            <Texto rotulo="Marca *" id="marca" required tamanho="curto" {...campo("marca")} placeholder="Ex.: Chevrolet" />
+            <Texto rotulo="Modelo *" id="modelo" required tamanho="longo" {...campo("modelo")} placeholder="Ex.: S10 LS 2.8" />
+
+            <Texto rotulo="Ano fabricação *" id="ano_fabricacao" type="number"
+                   min="1900" max="2100" required tamanho="mini" {...campo("ano_fabricacao")} placeholder="2022" />
             <Texto rotulo="Ano modelo *" id="ano_modelo" type="number"
-                   min="1900" max="2100" required {...campo("ano_modelo")} placeholder="Ex.: 2022" />
-            <Texto rotulo="Cor (opcional)" id="cor" {...campo("cor")} placeholder="Ex.: Branco" />
-            <Selecao rotulo="Combustível (opcional)" id="tipo_combustivel"
+                   min="1900" max="2100" required tamanho="mini" {...campo("ano_modelo")} placeholder="2022" />
+            <Selecao rotulo="Tipo de veículo *" id="tipo_veiculo" required tamanho="curto"
+                     opcoes={TIPOS} {...campo("tipo_veiculo")} />
+            <Texto rotulo="Cor (opcional)" id="cor" tamanho="curto" {...campo("cor")} placeholder="Ex.: Branco" />
+
+            <Texto rotulo="Renavam (opcional)" id="renavam" tamanho="medio" {...campo("renavam")} placeholder="Ex.: 01234567890" />
+            <Texto rotulo="Chassi (opcional)" id="chassi" tamanho="longo" {...campo("chassi")} placeholder="Ex.: 9BG1489NK0JC123456" />
+
+            <Selecao rotulo="Combustível (opcional)" id="tipo_combustivel" tamanho="medio"
                      opcoes={COMBUSTIVEIS.map((c) => ({ valor: c, rotulo: c }))}
                      {...campo("tipo_combustivel")} />
-            <Selecao rotulo="Tipo de veículo *" id="tipo_veiculo" required
-                     opcoes={TIPOS} {...campo("tipo_veiculo")} />
-            <Texto rotulo="Capacidade (opcional)" id="capacidade"
-                   {...campo("capacidade")} placeholder="Ex.: 5 lugares" />
-            <Texto rotulo="Odômetro atual" id="quilometragem_atual" type="number" min="0"
+            <Texto rotulo="Capacidade (opcional)" id="capacidade" tamanho="mini"
+                   {...campo("capacidade")} placeholder="Ex.: 5" />
+            <Texto rotulo="Odômetro atual" id="quilometragem_atual" type="number" min="0" tamanho="curto"
                    {...campo("quilometragem_atual")} placeholder="Ex.: 45230" />
 
             <h3 className="formulario__secao">Vinculações</h3>
-            <Selecao rotulo="Setor *" id="id_setor" required vazio="Selecione"
+            {/* O SETOR e o que decide se o veiculo e viatura. Nao existe mais
+                campo separado para isso: veiculo vinculado a Fiscalizacao
+                aparece na tela de Viaturas, e todos aparecem em Frotas. Quem
+                cadastra responde uma pergunta so, e as duas telas concordam
+                sem ninguem ter que lembrar de marcar nada. */}
+            <Selecao rotulo="Setor *" id="id_setor" required vazio="Selecione" tamanho="medio"
                      opcoes={setores.map((s) => ({ valor: s.id_setor, rotulo: s.nome }))}
+                     ajuda="Veículos vinculados à Fiscalização aparecem também na tela de Viaturas."
                      {...campo("id_setor")} />
-            <Selecao rotulo="Situação (opcional)" id="status" opcoes={SITUACOES} {...campo("status")} />
+            <Selecao rotulo="Situação (opcional)" id="status" tamanho="curto" opcoes={SITUACOES} {...campo("status")} />
 
             <h3 className="formulario__secao">Observações</h3>
             <Area rotulo="Observações (opcional)" id="observacoes" largo {...campo("observacoes")}

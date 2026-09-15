@@ -31,7 +31,11 @@ export const veiculos = criarCrud({
            (SELECT codigo FROM qr_code q WHERE q.id_veiculo = veiculo.id_veiculo) AS qr_codigo`,
   from: "veiculo JOIN setor ON setor.id_setor = veiculo.id_setor",
   busca: ["veiculo.placa", "veiculo.marca", "veiculo.modelo", "veiculo.renavam", "veiculo.chassi"],
-  filtros: { setor: "veiculo.id_setor", status: "veiculo.status", tipo: "veiculo.tipo_veiculo" },
+  filtros: {
+    setor: "veiculo.id_setor", status: "veiculo.status", tipo: "veiculo.tipo_veiculo",
+    // A tela de Viaturas da Fiscalizacao usa este filtro.
+    viatura: "veiculo.viatura",
+  },
   ordenaveis: {
     placa: "veiculo.placa", marca: "veiculo.marca", modelo: "veiculo.modelo",
     ano_modelo: "veiculo.ano_modelo", setor: "setor.nome", status: "veiculo.status",
@@ -41,12 +45,19 @@ export const veiculos = criarCrud({
     "placa", "marca", "modelo", "ano_fabricacao", "ano_modelo", "cor", "tipo_veiculo",
     "renavam", "chassi", "tipo_combustivel", "capacidade", "quilometragem_atual",
     "id_setor", "observacoes", "status",
+    // "viatura" NAO entra: a coluna e calculada pelo banco a partir do setor
+    // (migracao 016). Aceita-la aqui deixaria a tela gravar um valor que o
+    // gatilho sobrescreve no mesmo instante - o pior tipo de campo, o que
+    // parece funcionar e nao funciona.
   ],
-  // A cor NAO entra aqui: a tela sempre a ofereceu como opcional, e exigi-la
-  // no servidor era a razao do erro ao salvar um veiculo sem cor.
+  // Cor e combustivel NAO entram aqui: a tela sempre ofereceu os dois como
+  // opcionais. A cor ja tinha sido tirada; o combustivel continuava exigido, e
+  // era a razao de "Preencha: tipo_combustivel" ao cadastrar um veiculo sem
+  // informar o combustivel - uma mensagem sobre um campo que a propria tela
+  // diz ser opcional. A migracao 014 tirou o NOT NULL das duas colunas.
   obrigatorios: [
     "placa", "marca", "modelo", "ano_fabricacao", "ano_modelo",
-    "tipo_veiculo", "tipo_combustivel", "id_setor",
+    "tipo_veiculo", "id_setor",
   ],
   // A tela de Viaturas, na Fiscalizacao, e ESTE mesmo cadastro filtrado - uma
   // viatura e um veiculo da frota vinculado ao setor de Fiscalizacao, nao um

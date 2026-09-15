@@ -52,7 +52,7 @@ export const MENU = [
       { rotulo: "Usuários",              para: "/admin/usuarios",   icone: "usuarios" },
       { rotulo: "Servidores",            para: "/admin/servidores", icone: "fisc-servidores" },
       { rotulo: "Perfis e Permissões",   para: "/admin/perfis",     icone: "perfis" },
-      { rotulo: "Setores",               para: "/admin/setores",    icone: "setores" },
+      { rotulo: "Setores e Cargos",      para: "/admin/setores",    icone: "setores" },
       { rotulo: "Parâmetros do Sistema", para: "/admin/parametros", icone: "nav-administracao" },
       { rotulo: "Backups e dados",       para: "/admin/backups",    icone: "administracao-alt" },
     ],

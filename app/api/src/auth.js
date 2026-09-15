@@ -95,13 +95,24 @@ async function estadoDoUsuario(id) {
   // que arredonda) porque o `iat` do token vem em segundos truncados: com
   // arredondamento, quem trocasse a propria senha seria deslogado no mesmo
   // instante, por um resto de milissegundos.
+  // O SETOR vem junto, e nao dentro do token, de proposito.
+  //
+  // A Fiscalizacao so pode enxergar os servidores do proprio setor, e quem diz
+  // qual e esse setor e o cadastro - nao o token. Se o setor viajasse dentro do
+  // token, mudar alguem de setor so teria efeito no proximo login (ate 8 horas
+  // depois), e os tokens ja emitidos continuariam dando acesso ao setor antigo.
+  // Lido aqui, junto com o resto do estado, a mudanca vale no maximo 30
+  // segundos depois - o tempo do cache logo abaixo - sem consulta extra
+  // nenhuma, porque esta consulta ja acontecia a cada requisicao.
   const { rows } = await query(
-    `SELECT status,
-            FLOOR(EXTRACT(EPOCH FROM senha_alterada_em
+    `SELECT u.status,
+            s.id_setor,
+            FLOOR(EXTRACT(EPOCH FROM u.senha_alterada_em
                           AT TIME ZONE current_setting('TimeZone')))::bigint
               AS senha_alterada_epoch
-       FROM usuario
-      WHERE id_usuario = $1`,
+       FROM usuario u
+       JOIN servidor s ON s.id_servidor = u.id_servidor
+      WHERE u.id_usuario = $1`,
     [id]
   );
   const estado = rows[0] || null;
@@ -131,8 +142,10 @@ export async function autenticar(req, res, next) {
     return res.status(401).json({ erro: "Sessão expirada. Entre novamente." });
   }
 
+  let estadoAtual;
   try {
     const estado = await estadoDoUsuario(dados.id_usuario);
+    estadoAtual = estado;
 
     // Usuario apagado ou desativado depois que o token foi emitido.
     if (!estado || !estado.status) {
@@ -150,7 +163,10 @@ export async function autenticar(req, res, next) {
     return next(e);
   }
 
-  req.usuario = dados;
+  // O setor vem do banco, nunca do token: e ele que decide o que a
+  // Fiscalizacao enxerga, e essa decisao nao pode depender de um dado que o
+  // cliente carrega consigo.
+  req.usuario = { ...dados, id_setor: estadoAtual?.id_setor ?? null };
   next();
 }
 

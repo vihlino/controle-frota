@@ -23,8 +23,13 @@ const TIPOS = [
 ];
 const COMBUSTIVEIS = ["FLEX", "GASOLINA", "ETANOL", "DIESEL", "ELETRICO", "HIBRIDO"];
 
-// Viaturas da fiscalização sao os veículos da frota vinculados ao setor de
-// Fiscalização. A tela reusa o mesmo recurso de veículos.
+// Viatura e o veículo vinculado ao setor de Fiscalização. A tela reusa o mesmo
+// recurso de veículos, filtrado pela coluna `viatura`.
+//
+// Essa coluna nao e preenchida a mao: o banco a calcula a partir do setor
+// (migracao 016). Filtrar por ela, e nao pelo nome do setor, deixa a consulta
+// simples e direta - mas quem decide continua sendo o setor escolhido no
+// cadastro do veiculo.
 export default criarPagina({
   recurso: "frotas/veiculos",
   id: "id_veiculo",
@@ -33,7 +38,12 @@ export default criarPagina({
   descricao: "Veículos utilizados pela fiscalização.",
   trilha: [{ rotulo: "Fiscalização" }, { rotulo: "Viaturas" }],
   unidade: "viaturas",
-  vazio: "Nenhuma viatura encontrada.",
+  vazio: "Nenhuma viatura encontrada. Vincule o veículo ao setor de Fiscalização no cadastro de Frotas.",
+
+  // O recorte da tela. Vai na consulta, e nao na barra de filtros, para que a
+  // contagem e a paginacao tambem sejam das viaturas - e para que ninguem veja
+  // a frota inteira tirando um filtro da tela.
+  filtrosFixos: { viatura: "true" },
   mapaOpcoes: {
     setores: (s) => ({ valor: s.id_setor, rotulo: s.nome }),
   },
@@ -84,10 +94,6 @@ export default criarPagina({
       dica: "Ex.: 45230" },
     { nome: "id_setor", rotulo: "Setor *", tipo: "selecao", opcoes: "setores",
       obrigatorio: true },
-    { nome: "status", rotulo: "Situação", tipo: "selecao", padrao: "DISPONIVEL",
-      opcoes: SITUACOES },
-    { nome: "observacoes", rotulo: "Observações", tipo: "area", largo: true,
-      dica: "Ex.: Viatura com adesivagem da fiscalização" },
   ],
   aoSalvar: (f) => ({
     ...f,

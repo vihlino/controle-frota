@@ -15,9 +15,18 @@ import Icone from "./Icone.jsx";
  *   Diferente de `placeholder`, que fica DENTRO e some ao digitar - e por isso
  *   nao serve para instrucao que a pessoa precisa ler enquanto preenche.
  */
-export function Campo({ rotulo, htmlFor, children, largo, ajuda }) {
+/**
+ * @param {string} [tamanho]  Largura do campo dentro de um
+ *   `.formulario-grade--colunas`: "mini", "curto", "medio" ou "longo".
+ *   Ignorado nos formularios que nao usam essa variante da grade.
+ */
+export function Campo({ rotulo, htmlFor, children, largo, ajuda, tamanho }) {
   return (
-    <div className="campo" data-largo={largo ? "sim" : undefined}>
+    <div
+      className="campo"
+      data-largo={largo ? "sim" : undefined}
+      data-tamanho={tamanho}
+    >
       {rotulo && <label htmlFor={htmlFor}>{rotulo}</label>}
       {children}
       {ajuda && <span className="campo__ajuda">{ajuda}</span>}
@@ -25,26 +34,26 @@ export function Campo({ rotulo, htmlFor, children, largo, ajuda }) {
   );
 }
 
-export function Texto({ rotulo, id, largo, ajuda, ...resto }) {
+export function Texto({ rotulo, id, largo, ajuda, tamanho, ...resto }) {
   return (
-    <Campo rotulo={rotulo} htmlFor={id} largo={largo} ajuda={ajuda}>
+    <Campo rotulo={rotulo} htmlFor={id} largo={largo} ajuda={ajuda} tamanho={tamanho}>
       <input id={id} {...resto} />
     </Campo>
   );
 }
 
-export function Area({ rotulo, id, largo, ajuda, ...resto }) {
+export function Area({ rotulo, id, largo, ajuda, tamanho, ...resto }) {
   return (
-    <Campo rotulo={rotulo} htmlFor={id} largo={largo} ajuda={ajuda}>
+    <Campo rotulo={rotulo} htmlFor={id} largo={largo} ajuda={ajuda} tamanho={tamanho}>
       <textarea id={id} rows={3} {...resto} />
     </Campo>
   );
 }
 
 // opcoes: [{valor, rotulo}]. "vazio" e o texto da opcao neutra ("Todos").
-export function Selecao({ rotulo, id, opcoes = [], vazio, largo, ajuda, ...resto }) {
+export function Selecao({ rotulo, id, opcoes = [], vazio, largo, ajuda, tamanho, ...resto }) {
   return (
-    <Campo rotulo={rotulo} htmlFor={id} largo={largo} ajuda={ajuda}>
+    <Campo rotulo={rotulo} htmlFor={id} largo={largo} ajuda={ajuda} tamanho={tamanho}>
       <select id={id} {...resto}>
         {vazio !== undefined && <option value="">{vazio}</option>}
         {opcoes.map((o) => (
@@ -68,7 +77,7 @@ export function Selecao({ rotulo, id, opcoes = [], vazio, largo, ajuda, ...resto
  * showPicker() nao existe em todo navegador (Safari antigo, Firefox antigo);
  * quando falta, o campo continua funcionando como sempre - digitando.
  */
-export function Data({ rotulo, id, largo, ajuda, ...resto }) {
+export function Data({ rotulo, id, largo, ajuda, tamanho, ...resto }) {
   // SO no clique. Tinha tambem um onFocus, e os dois juntos quebravam: o
   // focus abria o calendario e o click, no mesmo gesto, chamava showPicker de
   // novo - a segunda chamada lanca NotAllowedError ("requires a user
@@ -87,7 +96,7 @@ export function Data({ rotulo, id, largo, ajuda, ...resto }) {
   }
 
   return (
-    <Campo rotulo={rotulo} htmlFor={id} largo={largo} ajuda={ajuda}>
+    <Campo rotulo={rotulo} htmlFor={id} largo={largo} ajuda={ajuda} tamanho={tamanho}>
       <span className="campo-data">
         {/* type="date" DEPOIS do espalhamento, de proposito. Quem chama
             manda `type={c.html}`, que vale undefined para um campo de data;

@@ -36,6 +36,12 @@ export default criarPagina({
   // a contagem e a paginacao tambem batem.
   filtrosFixos: { condutor: "true" },
 
+  // A coluna "Acesso" (tem usuario do sistema ou nao) sai daqui. Ela responde
+  // uma pergunta da Administracao - quem ja tem login -, que nao e a pergunta
+  // de quem abre esta tela para escolher o motorista de um veiculo. Continua
+  // existindo em Administracao > Servidores, onde faz sentido.
+  colunas: CONFIG_SERVIDOR.colunas.filter((c) => c.chave !== "tem_usuario"),
+
   // Quem entra por aqui ja e condutor por definicao.
   formulario: CONFIG_SERVIDOR.formulario.map((c) =>
     c.nome === "condutor" ? { ...c, padrao: "true" } : c

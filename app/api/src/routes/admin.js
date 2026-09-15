@@ -31,18 +31,46 @@ export const setores = criarCrud({
   permissoes: { ver: VER, gerenciar: "ADMIN_GERENCIAR_SETORES" },
 });
 
+/*
+ * CARGOS
+ *
+ * id_setor NULO significa "vale para todos os setores" - e o caso da maioria
+ * (gestor, assistente, motorista existem em varios setores). Preenchido, o
+ * cargo passa a ser exclusivo daquele setor, como Fiscal de Transito, que so
+ * existe na Fiscalizacao.
+ */
+export const cargos = criarCrud({
+  tabela: "cargo",
+  id: "id_cargo",
+  entidade: "cargo",
+  select: `cargo.*, setor.nome AS setor,
+           (SELECT COUNT(*)::int FROM servidor s WHERE s.id_cargo = cargo.id_cargo) AS servidores`,
+  from: "cargo LEFT JOIN setor ON setor.id_setor = cargo.id_setor",
+  busca: ["cargo.nome", "cargo.descricao"],
+  filtros: { setor: "cargo.id_setor", status: "cargo.status" },
+  ordenaveis: { nome: "cargo.nome", setor: "setor.nome", status: "cargo.status" },
+  ordemPadrao: "cargo.nome",
+  campos: ["nome", "id_setor", "descricao", "status"],
+  obrigatorios: ["nome"],
+  // Quem manda na estrutura organizacional manda tambem nos cargos: e a mesma
+  // tela e a mesma decisao administrativa.
+  permissoes: { ver: VER, gerenciar: "ADMIN_GERENCIAR_SETORES" },
+});
+
 export const servidores = criarCrud({
   tabela: "servidor",
   id: "id_servidor",
   entidade: "servidor",
-  select: `servidor.*, setor.nome AS setor,
+  select: `servidor.*, setor.nome AS setor, cargo.nome AS cargo,
            (SELECT COUNT(*)::int FROM usuario u WHERE u.id_servidor = servidor.id_servidor) AS tem_usuario`,
-  from: "servidor LEFT JOIN setor ON setor.id_setor = servidor.id_setor",
+  from: `servidor LEFT JOIN setor ON setor.id_setor = servidor.id_setor
+                  LEFT JOIN cargo ON cargo.id_cargo = servidor.id_cargo`,
   busca: ["servidor.nome", "servidor.matricula", "servidor.cpf", "servidor.email"],
   filtros: {
     setor: "servidor.id_setor",
     status: "servidor.status",
     condutor: "servidor.condutor",
+    cargo: "servidor.id_cargo",
   },
   ordenaveis: {
     nome: "servidor.nome", matricula: "servidor.matricula",
@@ -52,7 +80,7 @@ export const servidores = criarCrud({
   campos: [
     "nome", "cpf", "data_nascimento", "telefone", "email", "matricula",
     "cnh", "categoria_cnh", "cnh_data_emissao", "cnh_data_validade",
-    "cargo_funcao", "id_setor", "status", "condutor",
+    "cargo_funcao", "id_cargo", "id_setor", "status", "condutor",
   ],
   // telefone, email e cargo_funcao sairam daqui: nem todo servidor tem e-mail
   // corporativo, e exigir isso obriga quem cadastra a inventar um valor.
@@ -76,6 +104,29 @@ export const servidores = criarCrud({
   // primeira versao, com a descricao exata deste caso ("consultar e gerenciar
   // servidores utilizados no modulo de Frotas"), mas nenhuma linha de codigo
   // chegava a consultar essa permissao. Agora ela vale.
+  /*
+   * A FISCALIZACAO SO ENXERGA O PROPRIO DEPARTAMENTO
+   *
+   * A base de servidores e da Administracao, mas Frotas e Fiscalizacao
+   * consultam a mesma lista (motoristas, responsavel por documento, fiscal da
+   * equipe). Dar a lista inteira a Fiscalizacao seria entregar o cadastro da
+   * prefeitura toda a quem precisa apenas da propria equipe.
+   *
+   * O recorte e o setor DO USUARIO, lido do cadastro dele - nao um setor
+   * chamado "Fiscalizacao" escrito aqui. Assim a regra continua valendo se o
+   * setor for renomeado, e serve igual se amanha um segundo departamento
+   * precisar do mesmo tratamento.
+   *
+   * Quem tem visao de Administracao ou de Frotas nao e recortado: esses perfis
+   * existem justamente para enxergar a prefeitura inteira.
+   */
+  escopo: (req) => {
+    const p = req.usuario?.permissoes || [];
+    const amplo = p.includes(VER) || p.includes("FROTAS_VISUALIZAR");
+    if (amplo || !p.includes("FISCALIZACAO_VISUALIZAR")) return null;
+    // Sem setor no cadastro, o recorte fecha em vez de abrir: -1 nao existe.
+    return { coluna: "servidor.id_setor", valor: req.usuario?.id_setor ?? -1 };
+  },
   permissoes: {
     ver: [VER, "FROTAS_VISUALIZAR", "FISCALIZACAO_VISUALIZAR"],
     gerenciar: ["ADMIN_GERENCIAR_SERVIDORES", "FROTAS_GERENCIAR_SERVIDORES"],
@@ -118,6 +169,7 @@ export const parametros = criarCrud({
 
 const router = Router();
 router.use("/setores", setores);
+router.use("/cargos", cargos);
 router.use("/servidores", servidores);
 router.use("/perfis", perfis);
 router.use("/parametros", parametros);

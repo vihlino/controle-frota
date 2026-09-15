@@ -72,17 +72,32 @@ const BASE = (typeof __API_URL__ !== "undefined" && __API_URL__) ? __API_URL__ :
 export async function api(caminho, opcoes = {}) {
   const token = lerToken();
 
-  const resposta = await fetch(`${BASE}/api${caminho}`, {
-    ...opcoes,
-    headers: {
-      "Content-Type": "application/json",
-      // O token so entra se existir - as rotas publicas (checklist via QR Code)
-      // funcionam sem ele.
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...opcoes.headers,
-    },
-    body: opcoes.body ? JSON.stringify(opcoes.body) : undefined,
-  });
+  // O servidor fora do ar e uma falha DIFERENTE de "a senha esta errada", e
+  // precisa dizer isso. Antes, o fetch estourando virava a mesma mensagem
+  // generica de qualquer erro, e a pessoa ficava digitando a senha certa de
+  // novo e de novo achando que tinha errado alguma coisa.
+  //
+  // status 0 marca "nao cheguei no servidor": as telas podem distinguir isso
+  // de um erro que o servidor mandou.
+  let resposta;
+  try {
+    resposta = await fetch(`${BASE}/api${caminho}`, {
+      ...opcoes,
+      headers: {
+        "Content-Type": "application/json",
+        // O token so entra se existir - as rotas publicas (checklist via QR Code)
+        // funcionam sem ele.
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...opcoes.headers,
+      },
+      body: opcoes.body ? JSON.stringify(opcoes.body) : undefined,
+    });
+  } catch {
+    throw new ErroApi(
+      "Não foi possível falar com o servidor. Verifique se a API está no ar e tente de novo.",
+      0
+    );
+  }
 
   // 204 = "deu certo, sem conteudo". E o que o DELETE devolve. Tentar ler JSON
   // de uma resposta vazia daria erro.
@@ -105,7 +120,15 @@ export async function api(caminho, opcoes = {}) {
     if (resposta.status === 401 && !senhaErrada) {
       gravarToken(null);
     }
-    throw new ErroApi(dados.erro || "Não foi possivel completar a operação.", resposta.status);
+    // O rate limit responde em TEXTO puro, sem o campo "erro" - caia no
+    // generico e a pessoa nao fazia ideia de que so precisava esperar.
+    const generica =
+      resposta.status === 429
+        ? "Muitas tentativas em pouco tempo. Espere um instante e tente de novo."
+        : resposta.status >= 500
+          ? "O servidor falhou ao responder. Tente de novo em instantes."
+          : "Não foi possível completar a operação.";
+    throw new ErroApi(dados.erro || generica, resposta.status);
   }
 
   return dados;

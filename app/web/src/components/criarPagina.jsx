@@ -55,6 +55,9 @@ const CAMPOS = { texto: Texto, selecao: Selecao, data: Data, area: Area };
  *                                     coluna de ações).
  * @param {object} [config.opcoes]     {chave: "/rota/da/api"} - listas que
  *                                     alimentam os <select>.
+ * @param {Function} [config.aoMudarCampo]  (nome, valor, formulario, listas) => objeto
+ *                                    com campos a corrigir junto. Serve para
+ *                                    quando mexer num campo invalida outro.
  * @param {object} config.mapaOpcoes   {chave: (item) => ({valor, rotulo})} -
  *                                     como transformar cada item da lista acima
  *                                     em opcao do select.
@@ -66,7 +69,11 @@ const CAMPOS = { texto: Texto, selecao: Selecao, data: Data, area: Area };
  * @returns {Function} O componente React da tela.
  */
 export default function criarPagina(config) {
-  return function Pagina() {
+  // `secao` vem por PROPRIEDADE, e nao pela configuracao, porque e conteudo
+  // que muda a cada render - as abas de Setores e Cargos, por exemplo, que
+  // precisam saber qual esta aberta. A configuracao e montada uma vez so,
+  // quando o modulo carrega, e nao serviria para isso.
+  return function Pagina({ secao }) {
     const { podeVer, usuario } = useSessao();
 
     // Transforma [{nome:"busca"},{nome:"setor"}] em {busca:"", setor:""},
@@ -124,9 +131,12 @@ export default function criarPagina(config) {
       if (campo.tipo === "data") return dataBr(bruto);
 
       if (campo.tipo === "selecao") {
-        const lista = typeof campo.opcoes === "string"
-          ? (opcoes[campo.opcoes] || []).map(config.mapaOpcoes[campo.opcoes])
-          : campo.opcoes || [];
+        const lista =
+          typeof campo.opcoes === "function"
+            ? campo.opcoes(registro, opcoes)
+            : typeof campo.opcoes === "string"
+              ? (opcoes[campo.opcoes] || []).map(config.mapaOpcoes[campo.opcoes])
+              : campo.opcoes || [];
         const achado = lista.find((o) => String(o.valor) === String(bruto));
         return achado ? achado.rotulo : String(bruto);
       }
@@ -312,10 +322,19 @@ export default function criarPagina(config) {
 
       // As opcoes de um select podem vir de duas formas: uma lista fixa
       // escrita na configuração, ou o nome de uma lista carregada da API.
+      // As opcoes de um select vem de tres formas:
+      //   - lista fixa escrita na configuracao;
+      //   - nome de uma lista carregada da API;
+      //   - uma FUNCAO, quando as opcoes dependem do que ja foi preenchido no
+      //     formulario. E o caso do cargo, que muda conforme o setor: a lista
+      //     completa e carregada uma vez e a funcao escolhe o que mostrar, sem
+      //     ir ao servidor a cada troca de setor.
       const listaOpcoes = c.opcoes
-        ? typeof c.opcoes === "string"
-          ? (opcoes[c.opcoes] || []).map(config.mapaOpcoes[c.opcoes])
-          : c.opcoes
+        ? typeof c.opcoes === "function"
+          ? c.opcoes(valores, opcoes)
+          : typeof c.opcoes === "string"
+            ? (opcoes[c.opcoes] || []).map(config.mapaOpcoes[c.opcoes])
+            : c.opcoes
         : undefined;
 
       return (
@@ -338,6 +357,7 @@ export default function criarPagina(config) {
 
     return (
       <PaginaLista
+        secao={secao}
         trilha={config.trilha}
         titulo={config.titulo}
         descricao={config.descricao}
@@ -403,7 +423,17 @@ export default function criarPagina(config) {
                     <h3 className="formulario__secao" key={`secao-${i}`}>{c.secao}</h3>
                   ) : (
                     renderCampo(c, formulario, (nome, valor) =>
-                      setFormulario((f) => ({ ...f, [nome]: valor }))
+                      setFormulario((f) => {
+                        const novo = { ...f, [nome]: valor };
+                        // Um campo pode invalidar outro. Trocar o setor do
+                        // servidor, por exemplo, derruba um cargo que so
+                        // existia no setor anterior - sem isto o formulario
+                        // ficaria com um cargo escolhido que nem aparece mais
+                        // na lista, e salvaria assim mesmo.
+                        return config.aoMudarCampo
+                          ? { ...novo, ...(config.aoMudarCampo(nome, valor, novo, opcoes) || {}) }
+                          : novo;
+                      })
                     )
                   )
                 )}

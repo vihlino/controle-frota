@@ -13,7 +13,7 @@ import Icone from "../components/Icone.jsx";
 import { useSessao } from "../lib/sessao.jsx";
 
 export default function Login() {
-  const { entrar } = useSessao();
+  const { entrar, erroConexao } = useSessao();
   const navegar = useNavigate();
   const [login, setLogin] = useState("");
   const [senha, setSenha] = useState("");
@@ -69,6 +69,11 @@ export default function Login() {
           </div>
 
           {erro && <div className="login__erro">{erro}</div>}
+
+          {/* A sessão pode ter sido interrompida por o servidor estar fora do
+              ar, e não por ter expirado. Sem este aviso, a pessoa via a tela
+              de entrada e concluía que tinha errado a senha. */}
+          {!erro && erroConexao && <div className="login__erro">{erroConexao}</div>}
 
           <div className="campo">
             <label htmlFor="login">Login</label>

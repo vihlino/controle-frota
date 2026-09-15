@@ -46,11 +46,15 @@ export const CONFIG_SERVIDOR = {
   mapaOpcoes: {
     setores: (s) => ({ valor: s.id_setor, rotulo: s.nome }),
   },
-  opcoes: { setores: "/setores" },
+  // A lista de cargos vem inteira e e filtrada na tela conforme o setor
+  // escolhido (ver o campo id_cargo abaixo). Por isso ela nao esta em
+  // mapaOpcoes: quem monta as opcoes dela e a funcao do proprio campo.
+  opcoes: { setores: "/setores", cargos: "/cargos" },
   colunas: [
     { chave: "nome", rotulo: "Nome", ordenavel: true },
     { chave: "matricula", rotulo: "Matrícula", ordenavel: true },
-    { chave: "cargo_funcao", rotulo: "Cargo / Função", ordenavel: true },
+    { chave: "cargo_funcao", rotulo: "Cargo / Função", ordenavel: true,
+      render: (s) => s.cargo || s.cargo_funcao || <span className="texto-fraco">—</span> },
     { chave: "setor", rotulo: "Setor", ordenavel: true },
     { chave: "telefone", rotulo: "Telefone" },
     { chave: "email", rotulo: "E-mail" },
@@ -137,12 +141,55 @@ export const CONFIG_SERVIDOR = {
 
     { secao: "Vinculação" },
     { nome: "id_setor", rotulo: "Setor *", tipo: "selecao", opcoes: "setores", obrigatorio: true },
-    { nome: "cargo_funcao", rotulo: "Cargo / Função", dica: "Ex.: Motorista" },
+    {
+      // O cargo deixou de ser texto livre. Digitado, ele virava "Motorista",
+      // "motorista" e "MOTORISTA" como se fossem tres cargos - e nenhuma regra
+      // podia depender dele. Agora vem do cadastro de Setores e Cargos.
+      //
+      // A lista mostra os cargos que valem para TODOS os setores mais os
+      // exclusivos do setor escolhido. E o que faz "Fiscal de Trânsito"
+      // aparecer so para quem esta na Fiscalizacao, enquanto "Assistente"
+      // aparece em qualquer setor.
+      nome: "id_cargo", rotulo: "Cargo / Função", tipo: "selecao",
+      // "Selecione", e nao "Escolha o setor primeiro": os cargos que valem
+      // para todos os setores ja aparecem antes de o setor ser escolhido, e
+      // avisar o contrario seria mentira.
+      vazio: "Selecione",
+      opcoes: (valores, listas) =>
+        (listas.cargos || [])
+          .filter(
+            (c) =>
+              c.id_setor === null ||
+              String(c.id_setor) === String(valores.id_setor ?? "")
+          )
+          .map((c) => ({
+            valor: c.id_cargo,
+            rotulo: c.id_setor ? `${c.nome} (exclusivo do setor)` : c.nome,
+          })),
+      ajuda: "Cadastre novos cargos em Administração > Setores e Cargos.",
+    },
     {
       nome: "status", rotulo: "Status *", tipo: "selecao", obrigatorio: true, padrao: "true",
       opcoes: [{ valor: "true", rotulo: "Ativo" }, { valor: "false", rotulo: "Inativo" }],
     },
   ],
+  // Trocar o setor pode deixar para tras um cargo exclusivo do setor anterior.
+  // Sem esta limpeza, o formulario continuaria com ele escolhido - invisivel na
+  // lista, mas gravado assim mesmo.
+  //
+  // So limpa quando o cargo REALMENTE deixou de servir: cargo que vale para
+  // todos os setores continua escolhido, senao quem so corrige o setor de um
+  // servidor perderia o cargo dele sem motivo.
+  aoMudarCampo: (nome, valor, f, listas) => {
+    if (nome !== "id_setor" || !f.id_cargo) return null;
+    const cargo = (listas?.cargos || []).find(
+      (c) => String(c.id_cargo) === String(f.id_cargo)
+    );
+    const aindaServe =
+      !cargo || cargo.id_setor === null || String(cargo.id_setor) === String(valor);
+    return aindaServe ? null : { id_cargo: "" };
+  },
+
   aoSalvar: (f) => ({
     ...f,
     id_setor: Number(f.id_setor),
@@ -158,7 +205,10 @@ export const CONFIG_SERVIDOR = {
     // diferente de "vazio".
     email: f.email?.trim() || null,
     telefone: f.telefone?.trim() || null,
-    cargo_funcao: f.cargo_funcao?.trim() || null,
+    // cargo_funcao nao vai mais daqui: o banco a preenche a partir do cargo
+    // escolhido, e ela segue existindo porque os relatorios, a lista de
+    // usuarios e o topo da tela leem essa coluna.
+    id_cargo: f.id_cargo ? Number(f.id_cargo) : null,
   }),
 };
 

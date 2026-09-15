@@ -289,6 +289,14 @@ async function garantirAdministrador(cliente) {
    * O cadastro utiliza uma matricula fixa para evitar duplicacao.
    */
 
+  // O cargo vem do cadastro de cargos, como o de qualquer servidor.
+  const { rows: cargoAdmin } = await cliente.query(
+    `INSERT INTO cargo (nome, id_setor) VALUES ('Administrador', NULL)
+     ON CONFLICT (unaccent_simples(nome)) WHERE id_setor IS NULL
+     DO UPDATE SET nome = cargo.nome
+     RETURNING id_cargo`
+  );
+
   const { rows: servidor } = await cliente.query(
     `INSERT INTO servidor
        (
@@ -299,6 +307,7 @@ async function garantirAdministrador(cliente) {
          email,
          matricula,
          cargo_funcao,
+         id_cargo,
          id_setor
        )
      VALUES
@@ -310,12 +319,13 @@ async function garantirAdministrador(cliente) {
          'admin@sitra.local',
          'ADM0001',
          'Administrador',
-         $1
+         $1,
+         $2
        )
      ON CONFLICT (matricula)
-     DO UPDATE SET nome = EXCLUDED.nome
+     DO UPDATE SET nome = EXCLUDED.nome, id_cargo = EXCLUDED.id_cargo
      RETURNING id_servidor`,
-    [setor[0].id_setor]
+    [cargoAdmin[0].id_cargo, setor[0].id_setor]
   );
 
   /*
@@ -423,12 +433,27 @@ async function garantirGestores(cliente) {
       [g.setor, g.setor]
     );
 
+    // O cargo do servidor inicial e CADASTRADO, nao digitado.
+    //
+    // Cargo virou tabela (migracao 013). Gravar so o texto aqui deixaria os
+    // usuarios de instalacao com um cargo que nao existe na lista - o unico
+    // canto do sistema com cargo solto, logo no banco recem-instalado da CMTT.
+    // Estes nascem como cargo global: administrador, gestor e afins sao
+    // funcoes que existem em mais de um setor.
+    const { rows: cargo } = await cliente.query(
+      `INSERT INTO cargo (nome, id_setor) VALUES ($1, NULL)
+       ON CONFLICT (unaccent_simples(nome)) WHERE id_setor IS NULL
+       DO UPDATE SET nome = cargo.nome
+       RETURNING id_cargo`,
+      [g.cargo]
+    );
+
     const { rows: servidor } = await cliente.query(
-      `INSERT INTO servidor (nome, cpf, data_nascimento, telefone, email, matricula, cargo_funcao, id_setor)
-       VALUES ($1, $2, '1990-01-01', '(00) 00000-0000', $3, $4, $5, $6)
-       ON CONFLICT (matricula) DO UPDATE SET nome = EXCLUDED.nome
+      `INSERT INTO servidor (nome, cpf, data_nascimento, telefone, email, matricula, cargo_funcao, id_cargo, id_setor)
+       VALUES ($1, $2, '1990-01-01', '(00) 00000-0000', $3, $4, $5, $6, $7)
+       ON CONFLICT (matricula) DO UPDATE SET nome = EXCLUDED.nome, id_cargo = EXCLUDED.id_cargo
        RETURNING id_servidor`,
-      [g.nome, g.cpf, g.email, g.matricula, g.cargo, setor[0].id_setor]
+      [g.nome, g.cpf, g.email, g.matricula, g.cargo, cargo[0].id_cargo, setor[0].id_setor]
     );
 
     const { rows: perfil } = await cliente.query(
