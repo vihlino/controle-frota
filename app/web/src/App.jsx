@@ -38,6 +38,7 @@ import Pontuacao from "./pages/fiscalizacao/Pontuacao.jsx";
 import Usuarios from "./pages/admin/Usuarios.jsx";
 import Servidores from "./pages/admin/Servidores.jsx";
 import Motoristas from "./pages/Motoristas.jsx";
+import Fiscais from "./pages/Fiscais.jsx";
 import Perfis from "./pages/admin/Perfis.jsx";
 import Setores from "./pages/admin/Setores.jsx";
 import Parametros from "./pages/admin/Parametros.jsx";
@@ -111,7 +112,9 @@ export default function App() {
         <Route path="/fiscalizacao/ocorrencias" element={<ComPermissao codigo={FISC}><Ocorrencias /></ComPermissao>} />
         <Route path="/fiscalizacao/manutencoes" element={<ComPermissao codigo={FISC}><ManutencoesFisc /></ComPermissao>} />
         <Route path="/fiscalizacao/checklists" element={<ComPermissao codigo={FISC}><ChecklistsFiscalizacao /></ComPermissao>} />
-        <Route path="/fiscalizacao/motoristas" element={<ComPermissao codigo={FISC}><Motoristas /></ComPermissao>} />
+        <Route path="/fiscalizacao/fiscais" element={<ComPermissao codigo={FISC}><Fiscais /></ComPermissao>} />
+        {/* Rota antiga: quem tiver o link salvo continua chegando na tela certa. */}
+        <Route path="/fiscalizacao/motoristas" element={<Navigate to="/fiscalizacao/fiscais" replace />} />
         <Route path="/fiscalizacao/pontuacao" element={<ComPermissao codigo="FISCALIZACAO_GERENCIAR_PONTUACAO"><Pontuacao /></ComPermissao>} />
         <Route path="/fiscalizacao/relatorios" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><Relatorios /></ComPermissao>} />
 

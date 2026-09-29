@@ -2,8 +2,8 @@
  * VeiculoQrCode.jsx - Gera e mostra o QR Code do veículo.
  *
  * A imagem vem pronta do servidor em PNG base64, e o código aponta para a tela
- * publica de checklist. Da para baixar e imprimir, que e como o adesivo chega
- * ao veiculo.
+ * publica de checklist. Da para baixar o PNG, que e como o adesivo chega ao
+ * veiculo - imprimir a PAGINA levaria menu e cabecalho para o papel.
  *
  * Se o veículo ainda não tem QR Code, a tela oferece o botao para gerar.
  */
@@ -62,10 +62,6 @@ export default function VeiculoQrCode() {
       const campo = document.querySelector(".qr__link-campo input");
       campo?.select();
     }
-  }
-
-  function imprimir() {
-    window.print();
   }
 
   if (erro) return <Cartao><div className="vazio">{erro}</div></Cartao>;
@@ -152,9 +148,6 @@ export default function VeiculoQrCode() {
                    download={`qrcode-${veiculo.placa}.png`}>
                   <Icone nome="baixar" tamanho={15} /> Baixar QR Code
                 </a>
-                <button className="botao qr__imprimir" onClick={imprimir}>
-                  Imprimir
-                </button>
               </div>
             ) : (
               <div className="vazio">
@@ -175,7 +168,7 @@ export default function VeiculoQrCode() {
         <div className="instrucoes">
           <div className="instrucoes__texto">
             <h2 className="qr-painel__titulo qr-painel__titulo--com-icone">
-              <Icone nome="ajuda" tamanho={20} /> Como utilizar
+              <Icone nome="informacao" tamanho={20} /> Como utilizar
             </h2>
             <p>O condutor ou servidor deve escanear o QR Code com o celular para:</p>
             <ul className="instrucoes__lista">

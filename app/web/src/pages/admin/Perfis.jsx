@@ -11,7 +11,7 @@ import Icone from "../../components/Icone.jsx";
 import Trilha from "../../components/Trilha.jsx";
 import Selo from "../../components/Selo.jsx";
 import { api } from "../../lib/api.js";
-import { numero } from "../../lib/formato.js";
+import { numero, rotulo } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
 
 // Acesso por módulo, tela e acao: o perfil recebe permissões e o usuário herda
@@ -21,6 +21,7 @@ export default function Perfis() {
   const { podeVer } = useSessao();
   const [perfis, setPerfis] = useState([]);
   const [catalogo, setCatalogo] = useState({ porModulo: {} });
+  const [erroCatalogo, setErroCatalogo] = useState("");
   const [escolhido, setEscolhido] = useState(null);
   const [marcadas, setMarcadas] = useState(new Set());
   const [salvando, setSalvando] = useState(false);
@@ -36,8 +37,25 @@ export default function Perfis() {
     api("/admin/perfis?porPagina=100").then((r) => {
       setPerfis(r.itens);
       if (r.itens[0]) escolher(r.itens[0]);
-    }).catch(() => {});
-    api("/permissoes").then((r) => setCatalogo(Array.isArray(r) ? r : [])).catch(() => {});
+    }).catch((e) => setErroCatalogo(e.message));
+
+    /*
+     * A API devolve { itens, porModulo } - um OBJETO. A tela testava
+     * Array.isArray e, como objeto nao e array, guardava [] em todo caso: o
+     * catalogo inteiro era descartado e a coluna das permissoes ficava vazia,
+     * com os perfis do lado e o botao de salvar no topo, sem nada para marcar.
+     *
+     * O erro tambem era engolido por um catch vazio. Uma tela em branco pode
+     * significar tres coisas - sem permissao, API fora, ou resposta em formato
+     * inesperado - e nenhuma delas se descobre olhando o branco. Agora a razao
+     * aparece escrita.
+     */
+    api("/permissoes")
+      .then((r) => {
+        if (r && r.porModulo) setCatalogo(r);
+        else setErroCatalogo("A API devolveu o catálogo de permissões em formato inesperado.");
+      })
+      .catch((e) => setErroCatalogo(e.message));
   }, []);
 
   async function escolher(perfil) {
@@ -93,12 +111,13 @@ export default function Perfis() {
         </div>
         {podeEditar && escolhido && (
           <button className="botao botao--primario" onClick={salvar} disabled={salvando}>
-            <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : `Salvar permissões de ${escolhido.nome}`}
+            <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Salvar"}
           </button>
         )}
       </div>
 
       {aviso && <div className="aviso">{aviso}</div>}
+      {erroCatalogo && <div className="login__erro">{erroCatalogo}</div>}
 
       <div className="perfis">
         <aside className="perfis__lista">
@@ -119,12 +138,18 @@ export default function Perfis() {
         </aside>
 
         <div className="perfis__permissoes">
+          {Object.keys(catalogo.porModulo || {}).length === 0 && !erroCatalogo && (
+            <Cartao>
+              <div className="vazio">Carregando as permissões...</div>
+            </Cartao>
+          )}
+
           {Object.entries(catalogo.porModulo || {}).map(([modulo, permissoes]) => {
             const todasMarcadas = permissoes.every((p) => marcadas.has(p.id_permissao));
             return (
               <Cartao
                 key={modulo}
-                titulo={modulo}
+                titulo={rotulo("moduloPermissao", modulo)}
                 acao={
                   podeEditar && (
                     <button

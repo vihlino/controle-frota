@@ -13,7 +13,8 @@ import Trilha from "../../components/Trilha.jsx";
 import Selo from "../../components/Selo.jsx";
 import Kpi from "../../components/Kpi.jsx";
 import { api } from "../../lib/api.js";
-import { data, dinheiro, numero } from "../../lib/formato.js";
+import { data, dinheiro, numero, rotulo } from "../../lib/formato.js";
+import { vinculo } from "../../lib/vinculos.js";
 
 const ROTULO_ORIGEM = {
   CHECKLIST: { texto: "Checklist", tom: "azul", icone: "checklist" },
@@ -53,10 +54,11 @@ export default function VeículoDetalhe() {
     ["Ano de fabricação", veículo.ano_fabricacao],
     ["Ano modelo", veículo.ano_modelo],
     ["Cor", veículo.cor],
-    ["Tipo de veículo", veículo.tipo_veiculo],
-    ["Combustivel", veículo.tipo_combustivel],
+    ["Tipo de veículo", rotulo("tipoVeiculo", veículo.tipo_veiculo)],
+    ["Combustível", rotulo("combustivel", veículo.tipo_combustivel)],
     ["Capacidade", veículo.capacidade || "-"],
     ["Setor", veículo.setor],
+    ["Vínculo", vinculo(veículo.vinculo)],
     ["Quilometragem atual", `${numero(veículo.quilometragem_atual)} km`],
     ["QR Code", veículo.qr_codigo || "Ainda nao gerado"],
   ];

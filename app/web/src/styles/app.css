@@ -339,7 +339,9 @@ button { font: inherit; cursor: pointer; }
   margin-bottom: 6px;
 }
 .menu-suspenso button {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
   width: 100%;
   text-align: left;
   background: none;
@@ -350,6 +352,7 @@ button { font: inherit; cursor: pointer; }
   font-size: 14px;
 }
 .menu-suspenso button:hover { background: var(--superficie-2); }
+.menu-suspenso button .icone { color: currentColor; flex: none; }
 .relativo { position: relative; }
 
 /* ---------- cartoes ---------- */
@@ -822,7 +825,8 @@ button { font: inherit; cursor: pointer; }
    componente Icone escreve width/height no style do elemento, e estilo inline
    ganha de folha de estilo. */
 .botao .icone,
-.aba .icone {
+.aba .icone,
+.menu-suspenso button .icone {
   width: 1em !important;
   height: 1em !important;
 }
@@ -895,6 +899,10 @@ button { font: inherit; cursor: pointer; }
 
 .campo input::placeholder,
 .campo textarea::placeholder { color: var(--texto-3); }
+
+/* O "*" de obrigatorio: vermelho, o mesmo do resto do sistema para "falta
+   algo". O peso normal e de proposito - ele marca, nao grita. */
+.campo__obrigatorio { color: var(--vermelho); font-weight: var(--peso-medio); }
 
 /* Com appearance:none o select perde a setinha do navegador, entao ela e
    desenhada aqui - assim ela fica igual em Chrome, Firefox e Safari. */
@@ -1341,7 +1349,7 @@ button { font: inherit; cursor: pointer; }
   margin: var(--e-4) 0 calc(var(--e-1) * -1);
   padding-bottom: var(--e-2);
   border-bottom: 1px solid var(--borda);
-  font-size: var(--t-xs);
+  font-size: var(--t-base);
   font-weight: var(--peso-semi);
   text-transform: uppercase;
   letter-spacing: var(--caixa-alta-espaco);
@@ -1374,36 +1382,31 @@ button { font: inherit; cursor: pointer; }
  */
 .formulario-grade--colunas {
   grid-template-columns: repeat(12, 1fr);
-  gap: 14px 16px;
+  gap: 16px;
 }
-/* Sem tamanho declarado, o campo ocupa um terco da linha - que e mais ou menos
-   o que a grade antiga dava, para o campo que nao precisa de ajuste. */
-.formulario-grade--colunas > .campo { grid-column: span 4; }
-/* "mini" ocupa as mesmas 3 colunas de "curto", mas ESTREITA o controle.
- *
- * Dar 2 colunas ao campo de ano deixava a caixa do tamanho certo e o rotulo
- * errado: "Ano fabricação *" nao cabia numa linha, quebrava em duas e empurrava
- * aquele campo para baixo dos vizinhos - a fileira inteira ficava torta. Com a
- * celula do tamanho do ROTULO e o controle limitado por max-width, o campo fica
- * pequeno como se quer e as caixas da fileira continuam alinhadas. */
-.formulario-grade--colunas > .campo[data-tamanho="mini"] { grid-column: span 3; }
-.formulario-grade--colunas > .campo[data-tamanho="mini"] input,
-.formulario-grade--colunas > .campo[data-tamanho="mini"] select { max-width: 112px; }
-.formulario-grade--colunas > .campo[data-tamanho="curto"] { grid-column: span 3; }
-.formulario-grade--colunas > .campo[data-tamanho="medio"] { grid-column: span 4; }
-.formulario-grade--colunas > .campo[data-tamanho="longo"] { grid-column: span 6; }
+/* Todo campo ocupa o MESMO espaco: 3 das 12 colunas, quatro por fileira. Antes
+   cada um declarava a largura que achava que precisava, e o resultado era uma
+   fileira de caixas de tamanhos diferentes - "Modelo" com o dobro da "Placa"
+   sem precisar. Campo de texto livre que realmente nao cabe usa data-largo,
+   que ocupa a linha inteira; entre esses dois nao ha meio termo. */
+.formulario-grade--colunas > .campo { grid-column: span 3; }
+/* Os nomes de tamanho continuam aceitos para nao quebrar as telas que ainda
+   os passam, mas todos valem o mesmo: a largura e uma so. */
+.formulario-grade--colunas > .campo[data-tamanho="mini"],
+.formulario-grade--colunas > .campo[data-tamanho="curto"],
+.formulario-grade--colunas > .campo[data-tamanho="medio"],
+.formulario-grade--colunas > .campo[data-tamanho="longo"] { grid-column: span 3; }
 .formulario-grade--colunas > .campo[data-largo="sim"] { grid-column: 1 / -1; }
 
 /* Em tela estreita, 12 colunas viram campos ilegiveis de dois centimetros.
-   Abaixo de 720px a grade volta a ser de dois em dois, e o campo mini fica
-   sozinho na sua metade. */
+   Abaixo de 720px a grade volta a ser de dois em dois. */
 @media (max-width: 720px) {
   .formulario-grade--colunas { grid-template-columns: repeat(2, 1fr); }
   .formulario-grade--colunas > .campo,
   .formulario-grade--colunas > .campo[data-tamanho="mini"],
   .formulario-grade--colunas > .campo[data-tamanho="curto"],
-  .formulario-grade--colunas > .campo[data-tamanho="medio"] { grid-column: span 1; }
-  .formulario-grade--colunas > .campo[data-tamanho="longo"],
+  .formulario-grade--colunas > .campo[data-tamanho="medio"],
+  .formulario-grade--colunas > .campo[data-tamanho="longo"] { grid-column: span 1; }
   .formulario-grade--colunas > .campo[data-largo="sim"] { grid-column: 1 / -1; }
 }
 
@@ -1491,6 +1494,9 @@ button { font: inherit; cursor: pointer; }
 }
 .campo--marcavel input { width: 17px; height: 17px; accent-color: var(--amarelo); }
 .campo--largo { grid-column: 1 / -1; }
+
+/* Campo de senha da caixa de confirmacao: largura de senha, nao de frase. */
+.campo--senha input { max-width: 240px; }
 .campo__ajuda {
   font-size: var(--t-sm);
   line-height: var(--altura-normal);
@@ -1551,7 +1557,7 @@ button { font: inherit; cursor: pointer; }
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px 0;
+  padding: 7px 0;
   border-bottom: 1px solid var(--borda);
   font-size: 14px;
 }
@@ -1573,14 +1579,14 @@ button { font: inherit; cursor: pointer; }
 .qr-painel {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
-  gap: var(--e-8);
+  gap: var(--e-6);
 }
-.qr-painel__dados { padding-right: var(--e-8); border-right: 1px solid var(--borda); }
+.qr-painel__dados { padding-right: var(--e-6); border-right: 1px solid var(--borda); }
 .qr-painel__titulo {
   font-size: var(--t-lg);
   font-weight: var(--peso-semi);
   color: var(--texto);
-  margin: 0 0 var(--e-5);
+  margin: 0 0 var(--e-3);
 }
 .qr-painel__titulo--com-icone {
   display: flex;
@@ -1603,22 +1609,26 @@ button { font: inherit; cursor: pointer; }
 .qr__moldura {
   border: 1px solid var(--borda);
   border-radius: var(--raio);
-  padding: 18px;
+  padding: 12px;
   display: inline-block;
   background: #fff;
 }
-.qr__moldura img { width: 260px; height: 260px; display: block; }
+.qr__moldura img { width: 200px; height: 200px; display: block; }
 .qr__texto {
   font-size: var(--t-base);
   line-height: var(--altura-normal);
   color: var(--texto-2);
-  margin: var(--e-4) auto var(--e-5);
+  margin: var(--e-3) auto var(--e-4);
   max-width: 34ch;
   text-align: center;
 }
 
 /* Campo com o link do checklist e o botao de copiar encostado na ponta. */
-.qr__link { margin-bottom: var(--e-4); text-align: left; }
+.qr__link {
+  margin: 0 auto var(--e-3);
+  max-width: 350px;
+  text-align: left;
+}
 .qr__link-rotulo {
   display: block;
   font-size: var(--t-xs);
@@ -1664,8 +1674,14 @@ button { font: inherit; cursor: pointer; }
   color: var(--verde-texto);
 }
 
-.qr__baixar { width: 100%; height: 46px; }
-.qr__imprimir { width: 100%; height: 42px; margin-top: var(--e-2); }
+/* Mais estreito que o campo do link acima, a pedido: o botao e uma acao unica
+   e nao precisa da largura de uma URL inteira. */
+.qr__baixar {
+  width: 100%;
+  max-width: 224px;
+  height: 42px;
+  margin: 0 auto;
+}
 .qr__codigo {
   font-family: ui-monospace, Consolas, monospace;
   font-size: 13px;
@@ -1842,6 +1858,24 @@ button { font: inherit; cursor: pointer; }
   gap: var(--e-4);
   margin: 0;
 }
+/* Os tres dados do convite: um em cada posicao da linha.
+ *
+ * O primeiro encostado a esquerda, o do meio centralizado na janela, o ultimo
+ * encostado a direita. Colunas de largura igual e o alinhamento do TEXTO
+ * dentro de cada uma - e isso que faz o do meio cair no centro da janela, e
+ * nao no centro de um pedaco qualquer.
+ *
+ * Primeiro/ultimo em vez de 1o/2o/3o: o convite as vezes traz tambem o numero
+ * da inspecao, e a regra continua valendo com quatro blocos. */
+.qr-dados--linha {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--e-3);
+}
+.qr-dados--linha > div:not(:first-child):not(:last-child) { text-align: center; }
+.qr-dados--linha > div:last-child { text-align: right; }
+
 .qr-dados dt {
   font-size: var(--t-xs);
   text-transform: uppercase;
@@ -2049,12 +2083,87 @@ button { font: inherit; cursor: pointer; }
   line-height: var(--altura-normal);
   color: var(--texto-2);
 }
+/* Aviso de uma frase: centralizado, no tamanho do texto corrido da tela. */
+.qr-aviso-texto {
+  margin: 0;
+  text-align: center;
+  font-size: var(--t-md);
+  line-height: var(--altura-normal);
+  color: var(--texto);
+}
+
+/* ---------- inspecao periodica (janela na tela do condutor) ---------- */
+.qr-inspecao__nota--centro { text-align: center; }
+
+.qr-inspecao__nota {
+  margin: var(--e-3) 0 0;
+  font-size: var(--t-base);
+  line-height: var(--altura-normal);
+  color: var(--texto-2);
+}
+.qr-cartao__apoio {
+  margin: 0 0 var(--e-4);
+  font-size: var(--t-base);
+  line-height: var(--altura-normal);
+  color: var(--texto-2);
+}
+
+/* Um item por linha, com os tres botoes lado a lado embaixo do nome. No
+   celular, tres botoes na mesma linha do texto ficariam com dois toques de
+   largura cada. */
+/* A lista inteira cabe na janela sem parecer um formulario: item baixo, pouco
+   respiro entre eles. Sao conferencias rapidas, nao campos para preencher. */
+.qr-inspecao__itens { display: grid; gap: var(--e-2); margin-bottom: var(--e-4); }
+/* Nome em cima, botoes embaixo, os dois centralizados: o bloco de cada item
+   vira uma unidade fechada. Encostados a esquerda, o nome curto ("Pneus") e os
+   tres botoes formavam uma borda irregular ao longo da lista inteira. */
+.qr-inspecao__item {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-sm);
+  padding: var(--e-2) var(--e-3);
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+}
+.qr-inspecao__nome { font-size: var(--t-base); font-weight: var(--peso-medio); }
+/* Os tres botoes ocupam o que o texto pede, e nao um terco da largura cada:
+   "Conforme", "Atenção" e "Avaria" sao palavras curtas, e esticadas ate a
+   margem pareciam tres botoes de acao principal. A letra continua a mesma. */
+.qr-inspecao__opcoes { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.qr-inspecao__opcoes .botao { min-height: 34px; }
+/* A observacao, quando abre, volta a ocupar a largura toda: e texto para
+   escrever, nao um rotulo para ler. */
+.qr-inspecao__obs { width: 100%; text-align: left; }
+.qr-inspecao__obs {
+  min-height: 42px;
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio-sm);
+  padding: 0 var(--e-3);
+  font-size: var(--t-md);
+}
+
+/* O tom de cada escolha so aparece quando ela esta ativa: tres botoes sempre
+   coloridos disputariam a atencao sem dizer nada. */
+.botao--mini[data-tom="amarelo"][data-ativo="sim"] {
+  background: var(--amarelo-suave, #FEF3C7);
+  border-color: var(--amarelo);
+  color: var(--amarelo-texto, #92400E);
+}
+.botao--mini[data-tom="vermelho"][data-ativo="sim"] {
+  background: var(--vermelho-suave);
+  border-color: var(--vermelho);
+  color: var(--vermelho-texto);
+}
+
 .qr-rodape__botoes { display: flex; gap: var(--e-2); }
 .qr-botao { min-height: 48px; font-size: var(--t-md); }
 /* O principal fica com a sobra; o secundario ocupa so o que o texto pede.
    Assim "Continuar para o retorno" cabe numa linha mesmo em tela de 360px. */
 .qr-rodape__botoes .qr-botao { flex: 1; min-width: 0; }
 .qr-rodape__botoes .qr-botao:not(.botao--primario) { flex: 0 1 auto; }
+/* Verbo curto nao precisa da largura da tela. */
+.qr-rodape__botoes .qr-botao--curto { flex: 0 1 auto; }
 
 /* Aparelho pequeno (iPhone SE e semelhantes): tudo em uma coluna. */
 /* Aparelho pequeno: so aperta o respiro. Data/hora e os botoes continuam
@@ -2601,6 +2710,98 @@ button { font: inherit; cursor: pointer; }
   margin-bottom: var(--e-6);
 }
 .checklist-faixa__campo { min-width: 0; }
+
+/* A mesma faixa, dentro da janela de correcao: sem sombra, mais baixa e com
+   texto menor. Ela e cabecalho de leitura - quem abriu a janela veio corrigir
+   o formulario abaixo, e a faixa so confirma "e este mesmo o registro". Com a
+   tipografia da tela de detalhes, o nome do condutor ocupava duas linhas e
+   empurrava as abas para fora da primeira tela. */
+.checklist-faixa--modal {
+  background: var(--superficie-2);
+  box-shadow: none;
+  padding: var(--e-3);
+  gap: var(--e-3);
+  margin-bottom: var(--e-4);
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+.checklist-faixa--modal .checklist-faixa__rotulo { font-size: 10px; }
+.checklist-faixa--modal .checklist-faixa__destaque { font-size: var(--t-md); }
+.checklist-faixa--modal strong { font-size: var(--t-base); }
+.checklist-faixa--modal .checklist-faixa__apoio { font-size: var(--t-sm); margin-top: 0; }
+
+/* O nome do condutor: menor que a placa, porque a placa e o que identifica o
+   registro. Uma linha so - nome comprido fica com reticencia em vez de
+   esticar a faixa. */
+.checklist-faixa__nome {
+  display: block;
+  font-size: var(--t-base);
+  font-weight: var(--peso-medio);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Valor que se le e nao se digita, dentro de um formulario: alinhado com a
+   altura dos campos vizinhos, sem parecer um input desabilitado. */
+.campo__leitura {
+  margin: 0;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  font-size: var(--t-md);
+  color: var(--texto-2);
+}
+
+/* ---------- equipamentos na janela de correcao ----------
+ *
+ * Dois em dois, como na tela do condutor: o par Presente/Ausente lado a lado e
+ * o campo "o que houve?" ocupando a largura inteira, aberto so no item
+ * ausente. Em item presente nao ha o que explicar, e o campo vazio ali daria
+ * a entender que falta preencher. */
+.eq-correcao {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: var(--e-2);
+}
+.eq-correcao__item {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-sm);
+  padding: var(--e-2) var(--e-3);
+  display: grid;
+  gap: 6px;
+}
+.eq-correcao__nome { font-size: var(--t-base); font-weight: var(--peso-medio); }
+.eq-correcao__botoes { display: flex; gap: 6px; }
+.eq-correcao__botoes .botao { flex: 1; }
+.eq-correcao__obs {
+  min-height: 32px;
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio-sm);
+  padding: 0 var(--e-3);
+  font-size: var(--t-base);
+}
+
+/* Botao pequeno de escolha. O estado ativo e preenchido, e nao so com a borda
+   mais escura: com quatro pares na tela, contorno fino nao se distingue.
+   Presente/Ausente sao duas palavras curtas - nao precisam da altura de um
+   botao de acao, que e feito para ser o destino do olhar. */
+.botao--mini {
+  padding: 4px 8px;
+  font-size: var(--t-sm);
+  min-height: 0;
+  line-height: 1.4;
+}
+.botao--mini[data-ativo="sim"] {
+  background: var(--verde-suave);
+  border-color: var(--verde);
+  color: var(--verde-texto);
+  font-weight: var(--peso-semi);
+}
+.botao--mini[data-perigo="sim"][data-ativo="sim"] {
+  background: var(--vermelho-suave);
+  border-color: var(--vermelho);
+  color: var(--vermelho-texto);
+}
 .checklist-faixa__rotulo {
   display: flex;
   align-items: center;

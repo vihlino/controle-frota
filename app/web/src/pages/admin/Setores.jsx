@@ -70,7 +70,7 @@ const PaginaCargos = criarPagina({
   vazio: "Nenhum cargo cadastrado.",
   rotuloAcao: "Novo cargo",
   iconeAcao: "fisc-servidores",
-  rotuloSalvar: "Salvar cargo",
+  rotuloSalvar: "Salvar",
   permissaoGerenciar: "ADMIN_GERENCIAR_SETORES",
   permiteExcluir: true,
   confirmarExclusao: (c) => `Excluir o cargo ${c.nome}?`,

@@ -79,6 +79,20 @@ export const pool = new pg.Pool({
   password: process.env.PGPASSWORD,
   ssl: process.env.PGSSL === "true" ? { rejectUnauthorized: false } : undefined,
   keepAlive: true,
+  /*
+   * O pool FECHA a conexao parada antes de o Render fechar.
+   *
+   * O banco do Render derruba conexao ociosa sem avisar o cliente. O pool
+   * continuava com ela na prateleira e a emprestava na consulta seguinte: a
+   * requisicao que pegasse essa conexao morta falhava com erro de conexao -
+   * um 500 em qualquer tela, sem relacao com o que a pessoa estava fazendo, e
+   * sem se repetir na tentativa seguinte (que pegava outra conexao). E o pior
+   * tipo de bug: intermitente e aparentemente aleatorio.
+   *
+   * Dez segundos e bem abaixo do limite do Render, entao o pool sempre
+   * descarta primeiro. Abrir conexao nova custa poucos milissegundos.
+   */
+  idleTimeoutMillis: 10_000,
 });
 
 /*
@@ -120,5 +134,23 @@ pool.on("connect", (cliente) => {
  * Exemplo disso em routes/qrcode.js.
  */
 export function query(text, params) {
-  return pool.query(text, params);
+  return pool.query(text, params).catch((erro) => {
+    /*
+     * Uma segunda chance, SO para erro de conexao.
+     *
+     * Se a conexao morreu entre o emprestimo e a consulta, a consulta nunca
+     * chegou ao banco - repetir nao duplica nada. Erro de dado (restricao
+     * violada, campo obrigatorio) NAO entra aqui: repetir daria o mesmo erro e
+     * esconderia a causa real de quem precisa dela.
+     */
+    const deConexao =
+      erro.code === "ECONNRESET" ||
+      erro.code === "EPIPE" ||
+      erro.code === "ETIMEDOUT" ||
+      erro.code === "57P01" || // servidor encerrou a conexao
+      /Connection terminated|connection closed/i.test(erro.message || "");
+    if (!deConexao) throw erro;
+    console.warn("Conexao do banco caiu no meio da consulta; tentando de novo.");
+    return pool.query(text, params);
+  });
 }

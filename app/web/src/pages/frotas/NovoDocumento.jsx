@@ -159,7 +159,7 @@ export default function NovoDocumento() {
         <div className="pagina-acoes">
           <button type="button" className="botao" onClick={() => navegar("/frotas/documentos")}>Cancelar</button>
           <button type="submit" className="botao botao--primario" disabled={salvando}>
-            <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Salvar documento"}
+            <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Salvar"}
           </button>
         </div>
       </form>

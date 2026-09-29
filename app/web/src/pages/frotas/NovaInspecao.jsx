@@ -118,11 +118,11 @@ export default function NovaInspecao() {
             <Selecao rotulo="Responsável pela inspeção *" id="id_gestor" required vazio="Selecione o responsável"
                      opcoes={usuarios.map((u) => ({ valor: u.id_usuario, rotulo: u.nome }))}
                      {...campo("id_gestor")} />
-            <Texto rotulo="Quilometragem prevista (opcional)" id="quilometragem" type="number" min="0"
+            <Texto rotulo="Quilometragem prevista" id="quilometragem" type="number" min="0"
                    placeholder="km" {...campo("quilometragem")} />
-            <Texto rotulo="Local da inspeção (opcional)" id="local" largo
+            <Texto rotulo="Local da inspeção" id="local" largo
                    placeholder="Ex.: Garagem Central" {...campo("local")} />
-            <Area rotulo="Observações (opcional)" id="observacoes" largo
+            <Area rotulo="Observações" id="observacoes" largo
                   placeholder="Adicione informações relevantes sobre o agendamento..."
                   {...campo("observacoes")} />
           </div>

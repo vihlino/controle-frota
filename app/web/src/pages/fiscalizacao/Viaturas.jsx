@@ -5,7 +5,7 @@
  */
 import criarPagina from "../../components/criarPagina.jsx";
 import Selo from "../../components/Selo.jsx";
-import { numero } from "../../lib/formato.js";
+import { numero, opcoes } from "../../lib/formato.js";
 
 // Mesmos valores do cadastro de Frotas: viatura e veiculo da frota, e um
 // vocabulario diferente aqui criaria dois nomes para a mesma coisa no banco.
@@ -15,13 +15,8 @@ const SITUACOES = [
   { valor: "EM_MANUTENCAO", rotulo: "Em manutenção" },
   { valor: "INATIVO", rotulo: "Indisponível" },
 ];
-const TIPOS = [
-  { valor: "AUTOMOVEL", rotulo: "Carro" },
-  { valor: "MOTOCICLETA", rotulo: "Motocicleta" },
-  { valor: "CAMINHONETE", rotulo: "Caminhonete" },
-  { valor: "CAMINHAO", rotulo: "Caminhão" },
-];
-const COMBUSTIVEIS = ["FLEX", "GASOLINA", "ETANOL", "DIESEL", "ELETRICO", "HIBRIDO"];
+const TIPOS = opcoes("tipoVeiculo");
+const COMBUSTIVEIS = opcoes("combustivel");
 
 // Viatura e o veículo vinculado ao setor de Fiscalização. A tela reusa o mesmo
 // recurso de veículos, filtrado pela coluna `viatura`.
@@ -62,7 +57,7 @@ export default criarPagina({
   ],
   rotuloAcao: "Nova viatura",
   iconeAcao: "fisc-viatura",
-  rotuloSalvar: "Salvar viatura",
+  rotuloSalvar: "Salvar",
   // A permissao e da FISCALIZACAO: esta e a tela dela. A API aceita as duas.
   permissaoGerenciar: "FISCALIZACAO_GERENCIAR_VIATURAS",
   // A tela nao tinha coluna de Acoes: sem `formulario`, o gerador entende que
@@ -72,7 +67,6 @@ export default criarPagina({
   // checklists, documentos e OS dele. Baixa de viatura se faz mudando a
   // Situacao para Indisponivel.
   permiteExcluir: false,
-  larguraFormulario: 760,
   formulario: [
     { nome: "placa", rotulo: "Placa *", obrigatorio: true, dica: "Ex.: ABC-1D23" },
     { nome: "marca", rotulo: "Marca *", obrigatorio: true, dica: "Ex.: Chevrolet" },
@@ -88,7 +82,7 @@ export default criarPagina({
       obrigatorio: true, padrao: "AUTOMOVEL", opcoes: TIPOS },
     { nome: "tipo_combustivel", rotulo: "Combustível *", tipo: "selecao",
       obrigatorio: true, padrao: "FLEX",
-      opcoes: COMBUSTIVEIS.map((c) => ({ valor: c, rotulo: c })) },
+      opcoes: COMBUSTIVEIS },
     { nome: "capacidade", rotulo: "Capacidade", dica: "Ex.: 5 lugares" },
     { nome: "quilometragem_atual", rotulo: "Quilometragem atual", html: "number",
       dica: "Ex.: 45230" },

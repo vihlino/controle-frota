@@ -147,8 +147,10 @@ export default function Manutenções() {
       render: (o) => (
         <Acoes
           acoes={[
-            { rotulo: "Visualizar detalhes", aoClicar: () => navegar(`/frotas/manutencoes/${o.id_os}`) },
-            { rotulo: "Ver veículo", aoClicar: () => navegar(`/frotas/veiculos/${o.id_veiculo}`) },
+            { rotulo: "Visualizar", icone: "visualizar",
+              aoClicar: () => navegar(`/frotas/manutencoes/${o.id_os}`) },
+            { rotulo: "Ver veículo", icone: "kpi-car",
+              aoClicar: () => navegar(`/frotas/veiculos/${o.id_veiculo}`) },
           ]}
         />
       ),
@@ -208,7 +210,6 @@ export default function Manutenções() {
         <Modal
           titulo="Agendar manutenção"
           legenda="A ordem de serviço nasce em analise."
-          largura={720}
           aoFechar={() => setAgendando(false)}
           rodape={
             <>

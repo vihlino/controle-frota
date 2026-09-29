@@ -31,7 +31,6 @@ export default criarPagina({
   rotuloAcao: "Nova ocorrência",
   iconeAcao: "fisc-ocorrencias",
   permissaoGerenciar: "FISCALIZACAO_GERENCIAR_OCORRENCIAS",
-  larguraFormulario: 720,
   mapaOpcoes: {},
   colunas: [
     { chave: "protocolo", rotulo: "No da ocorrência", ordenavel: true, render: (o) => o.protocolo || "-" },

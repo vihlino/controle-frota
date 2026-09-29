@@ -6,6 +6,7 @@
 import criarPagina from "../../components/criarPagina.jsx";
 import Selo from "../../components/Selo.jsx";
 import { data, diasAte } from "../../lib/formato.js";
+import { telefone } from "../../lib/mascaras.js";
 
 /**
  * Mostra a validade da CNH com a cor certa. E o mesmo criterio do alerta
@@ -39,10 +40,9 @@ export const CONFIG_SERVIDOR = {
   unidade: "servidores",
   vazio: "Nenhum servidor cadastrado.",
   rotuloAcao: "Novo servidor",
-  rotuloSalvar: "Salvar servidor",
+  rotuloSalvar: "Salvar",
   iconeAcao: "fisc-servidores",
   permissaoGerenciar: "ADMIN_GERENCIAR_SERVIDORES",
-  larguraFormulario: 760,
   mapaOpcoes: {
     setores: (s) => ({ valor: s.id_setor, rotulo: s.nome }),
   },
@@ -53,10 +53,14 @@ export const CONFIG_SERVIDOR = {
   colunas: [
     { chave: "nome", rotulo: "Nome", ordenavel: true },
     { chave: "matricula", rotulo: "Matrícula", ordenavel: true },
+    { chave: "data_nascimento", rotulo: "Nascimento",
+      render: (s) => data(s.data_nascimento) },
     { chave: "cargo_funcao", rotulo: "Cargo / Função", ordenavel: true,
       render: (s) => s.cargo || s.cargo_funcao || <span className="texto-fraco">—</span> },
     { chave: "setor", rotulo: "Setor", ordenavel: true },
-    { chave: "telefone", rotulo: "Telefone" },
+    // O banco guarda so os digitos; a pontuacao e desenhada na hora de
+    // mostrar, pela mesma funcao que o formulario usa.
+    { chave: "telefone", rotulo: "Telefone", render: (s) => telefone(s.telefone) || "—" },
     { chave: "email", rotulo: "E-mail" },
     {
       chave: "cnh", rotulo: "CNH",
@@ -99,11 +103,15 @@ export const CONFIG_SERVIDOR = {
     { nome: "nome", rotulo: "Nome completo *", obrigatorio: true, largo: true,
       dica: "Ex.: João Carlos da Silva Pereira" },
     { nome: "matricula", rotulo: "Matrícula *", obrigatorio: true, dica: "Ex.: 12548" },
-    { nome: "cpf", rotulo: "CPF *", obrigatorio: true, dica: "000.000.000-00" },
+    // A mascara trava em 11 digitos e desenha os pontos e o hifen enquanto a
+    // pessoa digita.
+    { nome: "cpf", rotulo: "CPF *", obrigatorio: true, mascara: "cpf",
+      dica: "000.000.000-00" },
     { nome: "data_nascimento", rotulo: "Data de nascimento *", tipo: "data", obrigatorio: true },
     { nome: "email", rotulo: "E-mail corporativo", html: "email",
       dica: "Ex.: joao.silva@cmtt.gov.br" },
-    { nome: "telefone", rotulo: "Telefone", dica: "Ex.: (61) 99999-1234" },
+    { nome: "telefone", rotulo: "Telefone", mascara: "telefone",
+      dica: "Ex.: (62) 99274-7830" },
 
     { secao: "CNH" },
     {
@@ -112,13 +120,10 @@ export const CONFIG_SERVIDOR = {
       // auxiliar administrativo.
       nome: "condutor", rotulo: "É condutor? *", tipo: "selecao", obrigatorio: true,
       padrao: "false",
-      // Rotulo curto: o texto longo era cortado dentro do campo. A explicacao
-      // fica na ajuda abaixo, onde cabe inteira.
       opcoes: [
         { valor: "true", rotulo: "Sim" },
         { valor: "false", rotulo: "Não" },
       ],
-      ajuda: "Marque \"Sim\" para quem dirige veículo da frota. Só condutores precisam de CNH cadastrada.",
     },
     {
       nome: "cnh", rotulo: "Nº da CNH / Nº de registro *", obrigatorio: true,
@@ -136,7 +141,6 @@ export const CONFIG_SERVIDOR = {
     {
       nome: "cnh_data_validade", rotulo: "Data de validade *", tipo: "data", obrigatorio: true,
       mostrarSe: ehCondutor,
-      ajuda: "Usada para avisar a gestão quando a habilitação está vencendo.",
     },
 
     { secao: "Vinculação" },
@@ -166,7 +170,6 @@ export const CONFIG_SERVIDOR = {
             valor: c.id_cargo,
             rotulo: c.id_setor ? `${c.nome} (exclusivo do setor)` : c.nome,
           })),
-      ajuda: "Cadastre novos cargos em Administração > Setores e Cargos.",
     },
     {
       nome: "status", rotulo: "Status *", tipo: "selecao", obrigatorio: true, padrao: "true",

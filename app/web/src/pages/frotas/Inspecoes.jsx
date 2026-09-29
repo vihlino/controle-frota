@@ -13,10 +13,11 @@ import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
 import Acoes from "../../components/Acoes.jsx";
 import Modal from "../../components/Modal.jsx";
+import { useConfirmacaoSenha } from "../../components/ConfirmarSenha.jsx";
 import { Texto, Selecao, Data, Area, Periodo } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
-import { data, numero, rotulo } from "../../lib/formato.js";
+import { data, hora, numero, rotulo } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
 
 const FREQUENCIAS = [
@@ -38,6 +39,15 @@ export default function Inspeções() {
   const [veículos, setVeículos] = useState([]);
   const [usuários, setUsuários] = useState([]);
   const [agendando, setAgendando] = useState(false);
+  /*
+   * A MESMA JANELA AGENDA E CORRIGE
+   *
+   * Sao os mesmos campos: o que muda e para onde vai (POST ou PUT) e o que se
+   * exige antes de gravar. Duplicar o formulario so garantiria que um dia os
+   * dois ficariam diferentes sem ninguem perceber.
+   */
+  const [editando, setEditando] = useState(null);
+  const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
   const [formulario, setFormulario] = useState({
     id_veículo: "", id_gestor: "", tipo: "MENSAL", data_realizacao: "",
     hora_inicio: "08:00", local: "", observacoes: "",
@@ -46,6 +56,81 @@ export default function Inspeções() {
   const [salvando, setSalvando] = useState(false);
 
   const podeGerenciar = podeVer("FROTAS_REALIZAR_INSPECAO");
+
+  function abrirEdicao(i) {
+    setFormulario({
+      id_veículo: i.id_veiculo ?? "",
+      id_gestor: i.id_gestor ?? "",
+      tipo: i.tipo || "MENSAL",
+      data_realizacao: (i.data_realizacao || "").slice(0, 10),
+      // O <input type="time"> recusa hora com microssegundos e esvazia o campo
+      // em silencio; o banco grava assim.
+      hora_inicio: (i.hora_inicio || "").slice(0, 5),
+      local: i.local || "",
+      observacoes: i.observacoes || "",
+    });
+    setErroForm("");
+    setEditando(i.id_inspecao);
+  }
+
+  /** Corrigir e excluir pedem senha E motivo, que vai para a auditoria. */
+  async function salvarEdicao(e) {
+    e.preventDefault();
+    setSalvando(true);
+    setErroForm("");
+    try {
+      const resposta = await pedirSenha({
+        titulo: "Salvar alterações",
+        aviso: "Confirme sua senha para alterar esta inspeção.",
+        justificativa: true,
+      });
+      if (!resposta.ok) {
+        setSalvando(false);
+        return;
+      }
+      await api(`/frotas/inspecoes/${editando}`, {
+        method: "PUT",
+        body: {
+          justificativa: resposta.justificativa,
+          id_veiculo: Number(formulario.id_veículo),
+          id_gestor: Number(formulario.id_gestor),
+          tipo: formulario.tipo,
+          data_realizacao: formulario.data_realizacao || null,
+          hora_inicio: formulario.hora_inicio || null,
+          local: formulario.local,
+          observacoes: formulario.observacoes,
+        },
+      });
+      setEditando(null);
+      lista.recarregar();
+    } catch (e) {
+      setErroForm(e.message);
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function excluir(i) {
+    const resposta = await pedirSenha({
+      titulo: "Excluir inspeção",
+      aviso:
+        `Esta ação não pode ser desfeita: a inspeção do veículo ${i.placa} sai ` +
+        `do histórico. Confirme sua senha para excluir.`,
+      perigo: true,
+      justificativa: true,
+      rotuloJustificativa: "Justificativa da exclusão *",
+    });
+    if (!resposta.ok) return;
+    try {
+      await api(`/frotas/inspecoes/${i.id_inspecao}`, {
+        method: "DELETE",
+        body: { justificativa: resposta.justificativa },
+      });
+      lista.recarregar();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
 
   useEffect(() => {
     api("/frotas/veiculos/opcoes").then(setVeículos).catch(() => {});
@@ -111,6 +196,13 @@ export default function Inspeções() {
       ),
     },
     {
+      // A hora fica junto da data, e nao em coluna propria: as duas respondem
+      // "quando", e separadas obrigavam a ler duas colunas para montar uma
+      // informacao so.
+      chave: "hora_inicio", rotulo: "Horário",
+      render: (i) => hora(i.hora_inicio),
+    },
+    {
       chave: "tipo", rotulo: "Frequência", ordenavel: true,
       render: (i) => {
         const CORES = { SEMANAL: "azul", QUINZENAL: "laranja", MENSAL: "verde", PERSONALIZADA: "amarelo" };
@@ -150,13 +242,20 @@ export default function Inspeções() {
         <Acoes
           acoes={[
             {
-              rotulo: "Visualizar detalhes",
+              rotulo: "Visualizar", icone: "visualizar",
               aoClicar: () => navegar(`/frotas/inspecoes/${i.id_inspecao}`),
             },
+            ...(podeGerenciar
+              ? [{ rotulo: "Editar", icone: "editar", aoClicar: () => abrirEdicao(i) }]
+              : []),
             {
-              rotulo: "Ver veículo",
+              rotulo: "Ver veículo", icone: "kpi-car",
               aoClicar: () => navegar(`/frotas/veiculos/${i.id_veiculo}`),
             },
+            ...(podeGerenciar
+              ? [{ rotulo: "Excluir", perigo: true, icone: "lixo",
+                   aoClicar: () => excluir(i) }]
+              : []),
           ]}
         />
       ),
@@ -205,22 +304,31 @@ export default function Inspeções() {
         </>
       }
     >
-      {agendando && (
+      {(agendando || editando) && (
         <Modal
-          titulo="Agendar inspeção"
-          legenda="A próxima inspeção e calculada automaticamente pela frequência."
-          aoFechar={() => setAgendando(false)}
+          titulo={editando ? "Editar inspeção" : "Agendar inspeção"}
+          legenda={
+            editando
+              ? "A alteração fica registrada na auditoria, com o valor anterior."
+              : "A próxima inspeção e calculada automaticamente pela frequência."
+          }
+          aoFechar={() => { setAgendando(false); setEditando(null); }}
           rodape={
             <>
-              <button className="botao" onClick={() => setAgendando(false)}>Cancelar</button>
+              <button className="botao"
+                      onClick={() => { setAgendando(false); setEditando(null); }}>
+                Cancelar
+              </button>
               <button className="botao botao--primario" form="form-inspeção" disabled={salvando}>
-                {salvando ? "Agendando..." : "Agendar inspeção"}
+                <Icone nome="salvar" tamanho={15} />
+                {salvando ? " Salvando..." : " Salvar"}
               </button>
             </>
           }
         >
           {erroForm && <div className="login__erro">{erroForm}</div>}
-          <form id="form-inspeção" className="formulario-grade" onSubmit={agendar}>
+          <form id="form-inspeção" className="formulario-grade"
+                onSubmit={editando ? salvarEdicao : agendar}>
             <Selecao rotulo="Veículo *" id="id_veículo" required vazio="Selecione"
                      opcoes={veículos.map((v) => ({
                        valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
@@ -240,6 +348,8 @@ export default function Inspeções() {
           </form>
         </Modal>
       )}
+
+      {modalSenha}
     </PaginaLista>
   );
 }

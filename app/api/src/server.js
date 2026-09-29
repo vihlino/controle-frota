@@ -25,6 +25,33 @@
  */
 
 import "dotenv/config";
+import { appendFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+/*
+ * Toda falha inesperada tambem vai para app/api/erros.log.
+ *
+ * Escrita SINCRONA de proposito: numa excecao nao capturada o processo pode
+ * morrer no instante seguinte, e uma escrita assincrona nao chegaria ao disco.
+ * Sao poucos bytes e acontece so quando algo deu errado.
+ */
+const ARQUIVO_ERROS = join(dirname(fileURLToPath(import.meta.url)), "..", "erros.log");
+
+function registrarErro(titulo, erro) {
+  try {
+    const quando = new Date().toISOString();
+    const detalhe = erro?.stack || erro?.message || String(erro);
+    const extra = erro?.code ? `\ncode: ${erro.code}` : "";
+    const restricao = erro?.constraint ? `\nconstraint: ${erro.constraint}` : "";
+    appendFileSync(
+      ARQUIVO_ERROS,
+      `\n=== ${quando} ${titulo}${extra}${restricao}\n${detalhe}\n`
+    );
+  } catch {
+    // Nao poder gravar o log nao pode ser mais um problema.
+  }
+}
 
 import express from "express";
 import cors from "cors";
@@ -256,6 +283,16 @@ async function iniciarServidor() {
     // O detalhe fica no log do servidor, onde so a equipe ve.
     console.error(`[500] ${req.method} ${req.path}`, err);
 
+    // ... e tambem em ARQUIVO.
+    //
+    // O terminal rola e se perde: quando o erro acontece, a janela da API
+    // costuma estar atras do navegador, e o que chega para analise e o log do
+    // NAVEGADOR - que sobre um 500 sabe apenas que houve um 500. Gravando em
+    // erros.log fica o motivo exato, com a pilha, para ser lido depois.
+    //
+    // O arquivo esta no .gitignore: e diagnostico local, nao codigo.
+    registrarErro(`[500] ${req.method} ${req.path}`, err);
+
     // E NAO vai para o cliente. A mensagem crua do Postgres entrega nome de
     // tabela, de coluna e de restricao - um mapa do banco entregue a quem
     // estiver sondando. Em desenvolvimento ela continua aparecendo, porque ali
@@ -312,10 +349,12 @@ async function iniciarServidor() {
  */
 process.on("unhandledRejection", (erro) => {
   console.error("[erro solto] promessa rejeitada sem tratamento:", erro);
+  registrarErro("[erro solto] promessa rejeitada sem tratamento", erro);
 });
 
 process.on("uncaughtException", (erro) => {
   console.error("[erro solto] excecao nao capturada:", erro);
+  registrarErro("[erro solto] excecao nao capturada", erro);
 });
 
 iniciarServidor().catch((erro) => {
@@ -324,6 +363,14 @@ iniciarServidor().catch((erro) => {
     "Falha ao iniciar a API do SITRA:",
     erro
   );
+
+  // Vai para o arquivo tambem.
+  //
+  // A falha de INICIALIZACAO e a mais dificil de investigar depois: a API nao
+  // chega a escutar a porta, entao o navegador so recebe "conexao recusada" -
+  // uma mensagem que nao distingue "nao subiu por causa de um erro" de "nao
+  // foi aberta". O motivo ficava so no terminal, que rola e se perde.
+  registrarErro("[inicializacao] a API nao subiu", erro);
 
   process.exit(1);
 

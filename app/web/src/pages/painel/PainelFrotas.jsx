@@ -4,7 +4,7 @@ import Icone from "../../components/Icone.jsx";
 import Kpi from "../../components/Kpi.jsx";
 import Selo from "../../components/Selo.jsx";
 import VeiculoCel from "../../components/VeiculoCel.jsx";
-import { data, hora, numero, porcentagem } from "../../lib/formato.js";
+import { dataHora, hora, numero, porcentagem } from "../../lib/formato.js";
 
 const ROTULOS_OS = {
   EM_ANALISE:    { titulo: "OS em aberto",       descricao: "Ordens de serviço abertas" },
@@ -41,22 +41,33 @@ export default function PainelFrotas({ dados }) {
                 acao={<Link className="cartao__acao" to="/frotas/checklists">Ver todos</Link>}>
           <div className="rolagem-x">
             <table className="tabela">
+              {/* As MESMAS colunas da tela de Checklists, na mesma ordem. O
+                  painel mostrava outra combinacao - hora de saida chamada de
+                  "enviado em", data do registro, percurso - e quem clicava em
+                  "Ver todos" caia numa tabela diferente da que acabara de ler.
+                  Percurso saiu: e texto longo e aqui ele espremia o resto. */}
               <thead>
                 <tr>
-                  <th>Enviado em</th><th>Data do Registro</th><th>Condutor</th>
-                  <th>Veículo</th><th>Placa</th><th>Percurso</th><th>Km Rodado</th><th>Situação</th>
+                  <th>Enviado em</th><th>Placa / Veículo</th><th>Condutor</th>
+                  <th>Fechado em</th><th>KM rodado</th><th>Situação</th>
                 </tr>
               </thead>
               <tbody>
                 {ultimosChecklists.map((c) => (
                   <tr key={c.id_checklist}>
-                    <td>{hora(c.hora_saida)}</td>
-                    <td>{data(c.data_abertura)}</td>
+                    <td><strong>{dataHora(c.criado_em)}</strong></td>
+                    <td>
+                      <span className="celula-dupla">
+                        <strong>{c.placa}</strong>
+                        <span>{`${c.marca} ${c.modelo}`}</span>
+                      </span>
+                    </td>
                     <td>{c.condutor}</td>
-                    <td><VeiculoCel marca={c.marca} modelo={c.modelo}
-                                   tipo={c.tipo_veiculo} foto={c.foto} /></td>
-                    <td>{c.placa}</td>
-                    <td className="longa">{c.percurso || "—"}</td>
+                    <td>
+                      {!c.data_finalizacao
+                        ? <span className="texto-fraco">Em aberto</span>
+                        : <strong>{dataHora(c.data_finalizacao)}</strong>}
+                    </td>
                     <td>{c.km_rodado === null ? "—" : `${numero(c.km_rodado)} km`}</td>
                     <td><Selo valor={c.status} /></td>
                   </tr>

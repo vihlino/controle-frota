@@ -26,7 +26,11 @@ async function painelFrotas() {
     query(`SELECT COUNT(*) FILTER (WHERE data_abertura = CURRENT_DATE)::int     AS hoje,
                   COUNT(*) FILTER (WHERE data_abertura = CURRENT_DATE - 1)::int AS ontem
              FROM checklist_frotas WHERE data_abertura >= CURRENT_DATE - 1`),
+    // criado_em e data_finalizacao entram aqui para o cartao do painel mostrar
+    // as MESMAS colunas da tela de Checklists: quem confere o dia olha os dois
+    // instantes - quando o registro chegou e quando foi fechado.
     query(`SELECT c.id_checklist, c.data_abertura, c.hora_saida, c.status, c.percurso,
+                  c.criado_em, c.data_finalizacao,
                   (c.odometro_chegada - c.odometro_saida) AS km_rodado,
                   s.nome AS condutor, v.placa, v.marca, v.modelo
              FROM checklist_frotas c

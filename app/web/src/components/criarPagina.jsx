@@ -30,6 +30,7 @@ import Modal from "./Modal.jsx";
 import Acoes from "./Acoes.jsx";
 import { useConfirmacaoSenha } from "./ConfirmarSenha.jsx";
 import { Texto, Selecao, Data, Area, Periodo } from "./Campos.jsx";
+import { MASCARAS } from "../lib/mascaras.js";
 import { useLista } from "./useLista.js";
 import { api } from "../lib/api.js";
 import { data as dataBr } from "../lib/formato.js";
@@ -65,6 +66,11 @@ const CAMPOS = { texto: Texto, selecao: Selecao, data: Data, area: Area };
  *                                     Use para converter tipos e acrescentar
  *                                     campos que a tela nao pergunta.
  * @param {string} [config.permissaoGerenciar]  Sem ela, o usuário so ve.
+ * @param {boolean} [config.exigeJustificativa]  Na edicao, a caixa da senha
+ *                                    tambem pede o motivo, que vai para a
+ *                                    auditoria.
+ * @param {boolean} [config.permiteCriar]   false esconde o botao de cadastrar:
+ *                                    a tela so edita o que ja existe.
  * @param {boolean} [config.permiteExcluir]
  * @returns {Function} O componente React da tela.
  */
@@ -98,6 +104,17 @@ export default function criarPagina(config) {
 
     const podeGerenciar = !config.permissaoGerenciar || podeVer(config.permissaoGerenciar);
     const temFormulario = !!config.formulario;
+    /*
+     * Tela que EDITA mas nao CRIA.
+     *
+     * O checklist e o caso que pediu isto: o registro nasce sempre da leitura
+     * do QR Code, no celular de quem esta com o veiculo. Um botao "Novo
+     * checklist" na tela da gestao ofereceria inventar uma saida que nunca
+     * aconteceu - e o valor do checklist e justamente ser prova de que
+     * aconteceu. Corrigir o que o condutor digitou errado, sim; criar do
+     * nada, nao.
+     */
+    const podeCriar = config.permiteCriar !== false;
     const [parametros, definirParametros] = useSearchParams();
 
     // Carrega as listas que alimentam os <select> declarados na configuração.
@@ -182,12 +199,12 @@ export default function criarPagina(config) {
     // URL e a janela voltaria a abrir sozinha a cada F5.
     useEffect(() => {
       if (!parametros.get("novo")) return;
-      if (!temFormulario || !podeGerenciar) return;
+      if (!temFormulario || !podeGerenciar || !podeCriar) return;
       abrir(null);
       const limpo = new URLSearchParams(parametros);
       limpo.delete("novo");
       definirParametros(limpo, { replace: true });
-    }, [parametros, definirParametros, temFormulario, podeGerenciar, abrir]);
+    }, [parametros, definirParametros, temFormulario, podeGerenciar, podeCriar, abrir]);
 
     /** Converte "dd/mm/yyyy" para "yyyy-mm-dd" se necessario. */
     function normalizarData(v) {
@@ -223,14 +240,24 @@ export default function criarPagina(config) {
           // So a EDICAO pede senha. Criar um registro novo nao destroi nada e
           // e a acao mais comum do dia - exigir senha ali seria atrito sem
           // ganho de seguranca.
-          const confirmou = await pedirSenha({
+          /*
+           * Com exigeJustificativa, a mesma caixa pede o MOTIVO da alteracao,
+           * e ele segue para a API, que o grava na auditoria (nao no
+           * registro). E o caso do checklist: um numero que muda ali precisa
+           * ter resposta para "por que mudou?" meses depois.
+           */
+          const pedeMotivo = !!config.exigeJustificativa;
+          const resposta = await pedirSenha({
             titulo: `Salvar alterações`,
             aviso: `Confirme sua senha para salvar as alterações neste ${config.singular}.`,
+            justificativa: pedeMotivo,
           });
+          const confirmou = pedeMotivo ? resposta.ok : resposta;
           if (!confirmou) {
             setSalvando(false);
             return;
           }
+          if (pedeMotivo) corpo = { ...corpo, justificativa: resposta.justificativa };
           await api(`/${config.recurso}/${editando}`, { method: "PUT", body: corpo });
         }
         setEditando(null);
@@ -279,13 +306,14 @@ export default function criarPagina(config) {
         render: (registro) => (
           <Acoes
             acoes={[
-              { rotulo: "Editar", aoClicar: () => abrir(registro) },
-              { rotulo: "Detalhes", aoClicar: () => setVendo(registro) },
+              { rotulo: "Visualizar", icone: "visualizar", aoClicar: () => setVendo(registro) },
+              { rotulo: "Editar", icone: "editar", aoClicar: () => abrir(registro) },
               // Excluir aparece por padrao; a tela declara
               // permiteExcluir: false quando o registro nao deve sumir
               // (checklist e a auditoria de uma saida, por exemplo).
               ...(config.permiteExcluir !== false
-                ? [{ rotulo: "Excluir", perigo: true, aoClicar: () => excluir(registro) }]
+                ? [{ rotulo: "Excluir", perigo: true, icone: "lixo",
+                     aoClicar: () => excluir(registro) }]
                 : []),
             ]}
           />
@@ -337,6 +365,18 @@ export default function criarPagina(config) {
             : c.opcoes
         : undefined;
 
+      /*
+       * Mascara (CPF, telefone): a pontuacao aparece enquanto se digita.
+       *
+       * A mascara e aplicada na SAIDA e na ENTRADA. E isso que impede o cursor
+       * de brigar com a pontuacao: o campo mostra sempre a forma canonica do
+       * que ja foi digitado, e apagar um digito apaga o ponto junto.
+       *
+       * Quem TIRA a pontuacao antes de gravar e a API (normalizacoes), num
+       * lugar so - valendo para qualquer tela que grave a mesma coluna.
+       */
+      const mascara = c.mascara ? MASCARAS[c.mascara] : null;
+
       return (
         <Componente
           key={c.nome}
@@ -349,8 +389,13 @@ export default function criarPagina(config) {
           ajuda={c.ajuda}
           vazio={c.tipo === "selecao" ? c.vazio ?? "Selecione" : undefined}
           opcoes={listaOpcoes}
-          value={valores[c.nome] ?? ""}
-          onChange={(e) => aoMudar(c.nome, e.target.value)}
+          // Teclado numerico no celular, para quem digita CPF nao ter que
+          // procurar os numeros.
+          inputMode={mascara ? "numeric" : undefined}
+          value={mascara ? mascara(valores[c.nome] ?? "") : valores[c.nome] ?? ""}
+          onChange={(e) =>
+            aoMudar(c.nome, mascara ? mascara(e.target.value) : e.target.value)
+          }
         />
       );
     }
@@ -362,7 +407,7 @@ export default function criarPagina(config) {
         titulo={config.titulo}
         descricao={config.descricao}
         acao={
-          temFormulario && podeGerenciar && (
+          temFormulario && podeGerenciar && podeCriar && (
             <button className="botao botao--primario" onClick={() => abrir(null)}>
               <Icone nome={config.iconeAcao || "mais"} tamanho={15} /> {config.rotuloAcao}
             </button>
@@ -391,7 +436,6 @@ export default function criarPagina(config) {
         {editando && (
           <Modal
             titulo={editando === "novo" ? config.rotuloAcao : `Editar ${config.singular}`}
-            largura={config.larguraFormulario || 640}
             aoFechar={() => setEditando(null)}
             rodape={
               <>
@@ -447,7 +491,6 @@ export default function criarPagina(config) {
           <Modal
             titulo={config.tituloDetalhes || `Detalhes do ${config.singular}`}
             aoFechar={() => setVendo(null)}
-            largura={config.larguraFormulario || 640}
             rodape={
               <>
                 <button className="botao" onClick={() => setVendo(null)}>Fechar</button>

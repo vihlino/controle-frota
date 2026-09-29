@@ -11,7 +11,11 @@ import { useCallback, useRef, useState } from "react";
 import Icone from "./Icone.jsx";
 import MenuSuspenso from "./MenuSuspenso.jsx";
 
-// acoes: [{rotulo, aoClicar, perigo}]
+// acoes: [{rotulo, aoClicar, perigo, icone}]
+//
+// O icone e opcional: a acao que nao declara nenhum continua desenhada so com
+// o texto, e o alinhamento nao quebra. O tamanho dele nao vem daqui - e o da
+// LETRA do item, definido no CSS, como no resto do sistema.
 export default function Acoes({ acoes }) {
   const [aberto, setAberto] = useState(false);
   const botao = useRef(null);
@@ -45,6 +49,7 @@ export default function Acoes({ acoes }) {
               a.aoClicar();
             }}
           >
+            {a.icone && <Icone nome={a.icone} monocromatico />}
             {a.rotulo}
           </button>
         ))}

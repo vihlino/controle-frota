@@ -155,9 +155,6 @@ export default function ChecklistDetalhe() {
           <p>Consulte as informações completas do checklist de saída e de entrada do veículo.</p>
         </div>
         <div className="cabecalho-pagina__acoes">
-          <Link className="botao" to={`/frotas/veiculos/${checklist.id_veiculo}`}>
-            Ver veículo
-          </Link>
           <button className="botao" onClick={() => navegar("/frotas/checklists")}>
             <Icone nome="seta-esquerda" tamanho={15} /> Voltar
           </button>

@@ -29,7 +29,7 @@ export const MENU = [
     permissao: "FISCALIZACAO_VISUALIZAR",
     itens: [
       { rotulo: "Serviço Diário", para: "/fiscalizacao/servico-diario", icone: "calendar" },
-      { rotulo: "Motoristas",    para: "/fiscalizacao/motoristas",    icone: "motorista" },
+      { rotulo: "Fiscais",       para: "/fiscalizacao/fiscais",       icone: "motorista" },
       { rotulo: "Equipes",       para: "/fiscalizacao/equipes",       icone: "equipe" },
       { rotulo: "Viaturas",      para: "/fiscalizacao/viaturas",      icone: "fisc-viatura" },
       { rotulo: "Ocorrências",   para: "/fiscalizacao/ocorrencias",   icone: "fisc-ocorrencias" },

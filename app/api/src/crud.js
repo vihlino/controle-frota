@@ -52,6 +52,14 @@ import { registrarAuditoria } from "./auditoria.js";
  * @param {string[]} config.campos    Colunas aceitas em POST/PUT. Campo fora
  *                                    dessa lista e ignorado, mesmo que venha no
  *                                    corpo da requisicao.
+ * @param {boolean} [config.exigeJustificativa]  Na EDICAO, obriga o motivo e
+ *                                    grava-o na auditoria. Para o registro que
+ *                                    e prova de um fato (o checklist), a
+ *                                    pergunta "por que isto mudou?" precisa ter
+ *                                    resposta guardada.
+ * @param {object} config.normalizacoes  Mapa {coluna: regra} aplicado ao
+ *                                    gravar. Regras: "primeiraMaiuscula"
+ *                                    (Chevrolet) e "maiusculas" (ABC1D23).
  * @param {string[]} config.obrigatorios  Campos exigidos no POST.
  * @param {object} config.permissoes  {ver, gerenciar} - codigos de permissao.
  * @param {string} config.entidade    Nome usado nos registros de auditoria.
@@ -77,9 +85,117 @@ import { registrarAuditoria } from "./auditoria.js";
  * @param {string} entidade Nome amigavel do registro. Ex.: "cargo".
  * @returns {string|null} A mensagem, ou null se nao for esse tipo de erro.
  */
+/*
+ * Restricoes do banco com nome tecnico, traduzidas para o que a pessoa fez.
+ *
+ * A restricao diz "chk_veiculo_vinculo"; quem esta na tela quer saber qual
+ * campo recusou o valor. Sem isto a tela mostra "o servidor falhou", que joga
+ * a culpa no servidor por um dado que so o banco sabe julgar.
+ */
+const RESTRICOES = {
+  chk_veiculo_vinculo:
+    "O vínculo informado não é aceito pelo banco. Se você acabou de escolher " +
+    "uma opção nova, a API precisa ser reiniciada para a atualização do banco " +
+    "ser aplicada.",
+  chk_veiculo_status: "A situação informada não é uma das opções aceitas.",
+  chk_os_tem_solicitante: "A ordem de serviço precisa de um solicitante.",
+  chk_inspecao_tipo:
+    "A frequência informada não é aceita pelo banco. Se você escolheu uma " +
+    "opção nova (quinzenal, personalizada ou sem periodicidade), a API precisa " +
+    "ser reiniciada para a atualização do banco ser aplicada.",
+  chk_inspecao_finalizacao:
+    "Inspeção finalizada precisa de data, hora e resultado do encerramento.",
+};
+
 function mensagemDeConflito(e, entidade) {
-  if (e.code !== "23505") return null;
-  return `Já existe outro ${entidade || "registro"} com esses dados. Confira se o nome já não está cadastrado.`;
+  if (e.code === "23505") {
+    return `Já existe outro ${entidade || "registro"} com esses dados. Confira se o nome já não está cadastrado.`;
+  }
+  // 23514 = CHECK violado: o valor nao esta na lista que a coluna aceita.
+  if (e.code === "23514") {
+    return (
+      RESTRICOES[e.constraint] ||
+      `Um dos valores enviados não é aceito para este ${entidade || "registro"} (${e.constraint}).`
+    );
+  }
+  // 23502 = NOT NULL violado: faltou preencher.
+  if (e.code === "23502") {
+    return `O campo "${e.column}" é obrigatório.`;
+  }
+  /*
+   * P0001 = RAISE EXCEPTION de um gatilho do proprio SITRA.
+   *
+   * Essas mensagens sao escritas em portugues, para quem esta na tela ("O
+   * odômetro de chegada não pode ser menor que o de saída"). Cair no 500
+   * generico desperdicava um texto que ja explicava o problema - e em producao
+   * ele era escondido, porque o tratador de erros esconde a mensagem crua do
+   * banco. Aqui ela e tratada como o que e: uma regra de negocio recusando o
+   * dado, nao uma falha do servidor.
+   */
+  if (e.code === "P0001") return e.message;
+  return null;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Normalizacao de texto digitado
+ * ---------------------------------------------------------------------------
+ * A mesma marca chegava como "CHEVROLET", "chevrolet" e "Chevrolet",
+ * dependendo de quem cadastrou. Isso nao e so feio: quebra a ordenacao da
+ * lista (maiuscula vem antes de minuscula), faz o mesmo veiculo parecer dois
+ * na conferencia e obriga cada tela a arrumar o texto na hora de mostrar.
+ *
+ * Arrumar AQUI, na gravacao, conserta de uma vez: o banco passa a guardar uma
+ * forma so, e toda tela - inclusive relatorio e exportacao - mostra igual.
+ */
+const NORMALIZADORES = {
+  // "chevrolet" e "CHEVROLET" viram "Chevrolet".
+  primeiraMaiuscula: (t) => {
+    const limpo = String(t).trim().replace(/\s+/g, " ");
+    return limpo ? limpo[0].toUpperCase() + limpo.slice(1).toLowerCase() : limpo;
+  },
+  // Placa e codigo, nao nome: sempre em caixa alta.
+  maiusculas: (t) => String(t).trim().replace(/\s+/g, " ").toUpperCase(),
+
+  /*
+   * Nome de pessoa: maiuscula em cada palavra, menos as particulas.
+   *
+   * "JOAO CARLOS DA SILVA" e "joao carlos da silva" viram "João Carlos da
+   * Silva". As particulas ficam minusculas porque e assim que se escreve nome
+   * em portugues - "Da Silva" esta tecnicamente em caixa certa e ainda assim
+   * errado.
+   */
+  palavras: (t) => {
+    const particulas = new Set(["da", "de", "do", "das", "dos", "e", "d"]);
+    return String(t)
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase()
+      .split(" ")
+      .map((palavra, i) =>
+        i > 0 && particulas.has(palavra)
+          ? palavra
+          : palavra.charAt(0).toUpperCase() + palavra.slice(1)
+      )
+      .join(" ");
+  },
+
+  /*
+   * CPF e telefone guardados SO com os digitos.
+   *
+   * A pontuacao e enfeite de leitura, e a tela sabe desenhar. Guardada, ela
+   * viraria o problema de sempre: o mesmo CPF gravado como "000.000.000-00" e
+   * "00000000000" passa pela restricao de unicidade como se fossem duas
+   * pessoas, e a busca por um dos formatos nao acha o outro.
+   */
+  digitos: (t) => String(t).replace(/\D/g, ""),
+};
+
+function normalizar(valor, regra) {
+  const fn = NORMALIZADORES[regra];
+  // So texto passa por aqui. null, numero e booleano seguem intactos.
+  if (!fn || typeof valor !== "string") return valor;
+  return fn(valor);
 }
 
 export function criarCrud(config) {
@@ -87,7 +203,8 @@ export function criarCrud(config) {
   const {
     tabela, id, select, from, busca = [], filtros = {}, ordenaveis = {},
     ordemPadrao, campos = [], obrigatorios = [], permissoes = {}, entidade,
-    somenteLeitura = false, condicaoFixa, escopo,
+    somenteLeitura = false, condicaoFixa, escopo, normalizacoes = {},
+    exigeJustificativa = false,
   } = config;
 
   // Monta os middlewares de permissao uma vez so. Se a configuracao nao pediu
@@ -289,7 +406,9 @@ export function criarCrud(config) {
       const usados = campos.filter((c) => req.body[c] !== undefined);
       // Campo em branco vira NULL: um <input> vazio manda "", e "" numa coluna
       // de data ou numero faria o banco reclamar.
-      const valores = usados.map((c) => (req.body[c] === "" ? null : req.body[c]));
+      const valores = usados.map((c) =>
+        req.body[c] === "" ? null : normalizar(req.body[c], normalizacoes[c])
+      );
       const marcadores = usados.map((_, i) => `$${i + 1}`);
 
       const { rows } = await query(
@@ -347,13 +466,29 @@ export function criarCrud(config) {
         return res.status(404).json({ erro: "Registro não encontrado" });
       }
 
+      /*
+       * A justificativa NAO e coluna da tabela - por isso nem aparece em
+       * `campos` e nao corre risco de ser gravada no registro. Ela vai para a
+       * auditoria, que e onde a pergunta "por que este numero mudou?" tem de
+       * ter resposta seis meses depois.
+       */
+      const justificativa = String(req.body.justificativa || "").trim();
+      if (exigeJustificativa && justificativa.length < 5) {
+        await cliente.query("ROLLBACK");
+        return res.status(400).json({
+          erro: "Escreva a justificativa da alteração (o motivo fica registrado na auditoria).",
+        });
+      }
+
       const usados = campos.filter((c) => req.body[c] !== undefined);
       if (!usados.length) {
         await cliente.query("ROLLBACK");
         return res.status(400).json({ erro: "Nada para alterar." });
       }
 
-      const valores = usados.map((c) => (req.body[c] === "" ? null : req.body[c]));
+      const valores = usados.map((c) =>
+        req.body[c] === "" ? null : normalizar(req.body[c], normalizacoes[c])
+      );
       const atribuicoes = usados.map((c, i) => `${c} = $${i + 1}`);
 
       const { rows } = await cliente.query(
@@ -372,6 +507,7 @@ export function criarCrud(config) {
         acao: "EDITAR",
         entidade: entidade || tabela,
         idRegistro,
+        justificativa: justificativa || null,
         dadosAnteriores: anterior.rows[0],
         dadosNovos: rows[0],
       });
@@ -399,6 +535,17 @@ export function criarCrud(config) {
   router.delete("/:id", autenticar, ...podeGerenciar, async (req, res, next) => {
     try {
       const idRegistro = Number(req.params.id);
+
+      // A exclusao pede o mesmo motivo que a edicao, e pelo mesmo motivo: o
+      // registro some, e sem justificativa a auditoria guarda o que sumiu sem
+      // guardar por que. DELETE com corpo e incomum, mas legitimo - o fetch do
+      // navegador envia, e a API le daqui.
+      const justificativa = String(req.body?.justificativa || "").trim();
+      if (exigeJustificativa && justificativa.length < 5) {
+        return res.status(400).json({
+          erro: "Escreva a justificativa da exclusão (o motivo fica registrado na auditoria).",
+        });
+      }
       // Mesmo recorte do GET e do PUT: fora do escopo, o registro simplesmente
       // nao existe para quem pediu.
       const recorte = escopo ? escopo(req) : null;
@@ -415,6 +562,7 @@ export function criarCrud(config) {
         acao: "EXCLUIR",
         entidade: entidade || tabela,
         idRegistro,
+        justificativa: justificativa || null,
         dadosAnteriores: rows[0],
       });
 

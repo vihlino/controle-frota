@@ -137,10 +137,46 @@ export const ROTULOS = {
     AR_CONDICIONADO: "Ar-condicionado", OUTRO: "Outro",
   },
   momentoChecklist: { SAIDA: "Aberto na saída", CHEGADA: "Aberto na chegada" },
+  // O banco guarda AUTOMOVEL; a tela mostra "Carro". Sao coisas diferentes de
+  // proposito: o codigo nao muda quando alguem decide que o texto fica melhor
+  // de outro jeito.
+  tipoVeiculo: {
+    AUTOMOVEL: "Carro", MOTOCICLETA: "Motocicleta",
+    CAMINHONETE: "Caminhonete", CAMINHAO: "Caminhão",
+  },
+  // O modulo vem do banco em caixa alta, como codigo. No titulo dos cartoes da
+  // tela de Perfis ele e lido por gente.
+  moduloPermissao: {
+    ADMINISTRACAO: "Administração", FROTAS: "Frotas",
+    FISCALIZACAO: "Fiscalização", RELATORIOS: "Relatórios",
+    SISTEMA: "Sistema", AUDITORIA: "Auditoria", PERFIL: "Perfis e permissões",
+  },
+  combustivel: {
+    FLEX: "Flex", GASOLINA: "Gasolina", ETANOL: "Etanol",
+    DIESEL: "Diesel", ELETRICO: "Elétrico", HIBRIDO: "Híbrido",
+  },
 };
 
 export function rotulo(grupo, valor) {
   const item = ROTULOS[grupo]?.[valor];
   if (!item) return valor || "-";
   return typeof item === "string" ? item : item.texto;
+}
+
+/**
+ * As mesmas opcoes do grupo, no formato que os campos de selecao esperam.
+ *
+ * Serve para o formulario e a tela de leitura beberem da MESMA fonte. Quando
+ * cada tela declarava a propria lista, a de veiculos mostrava "Carro" e a de
+ * detalhes mostrava "AUTOMOVEL" - dois nomes para o mesmo dado, e ninguem
+ * lembrava que existiam dois lugares para corrigir.
+ *
+ * @param {string} grupo Chave de ROTULOS. Ex.: "tipoVeiculo".
+ * @returns {Array<{valor: string, rotulo: string}>}
+ */
+export function opcoes(grupo) {
+  return Object.entries(ROTULOS[grupo] || {}).map(([valor, item]) => ({
+    valor,
+    rotulo: typeof item === "string" ? item : item.texto,
+  }));
 }

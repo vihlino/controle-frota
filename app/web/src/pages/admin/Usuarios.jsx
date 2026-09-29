@@ -147,11 +147,12 @@ export default function Usuários() {
         <Acoes
           acoes={[
             {
-              rotulo: "Trocar senha",
+              rotulo: "Trocar senha", icone: "alterar-senha",
               aoClicar: () => { setTrocandoSenha(u); setErroForm(""); },
             },
             {
               rotulo: u.status ? "Desativar acesso" : "Reativar acesso",
+              icone: u.status ? "inativos" : "check",
               perigo: u.status,
               aoClicar: () => alternarSituação(u),
             },
@@ -247,7 +248,7 @@ export default function Usuários() {
             <>
               <button className="botao" onClick={() => setTrocandoSenha(null)}>Cancelar</button>
               <button className="botao botao--primario" form="form-senha" disabled={salvando}>
-                <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Salvar nova senha"}
+                <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Salvar"}
               </button>
             </>
           }

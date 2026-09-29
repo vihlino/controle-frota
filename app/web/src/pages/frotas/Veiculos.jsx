@@ -18,7 +18,8 @@ import { useConfirmacaoSenha } from "../../components/ConfirmarSenha.jsx";
 import { Texto, Selecao, Area } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
-import { numero } from "../../lib/formato.js";
+import { numero, opcoes } from "../../lib/formato.js";
+import { VINCULOS, vinculo } from "../../lib/vinculos.js";
 import { useSessao } from "../../lib/sessao.jsx";
 
 const SITUACOES = [
@@ -27,18 +28,13 @@ const SITUACOES = [
   { valor: "EM_MANUTENCAO", rotulo: "Em manutenção" },
   { valor: "INATIVO", rotulo: "Indisponível" },
 ];
-const TIPOS = [
-  { valor: "AUTOMOVEL", rotulo: "Carro" },
-  { valor: "MOTOCICLETA", rotulo: "Motocicleta" },
-  { valor: "CAMINHONETE", rotulo: "Caminhonete" },
-  { valor: "CAMINHAO", rotulo: "Caminhão" },
-];
-const COMBUSTIVEIS = ["FLEX", "GASOLINA", "ETANOL", "DIESEL", "ELETRICO", "HIBRIDO"];
+const TIPOS = opcoes("tipoVeiculo");
+const COMBUSTIVEIS = opcoes("combustivel");
 
 const VAZIO = {
   placa: "", marca: "", modelo: "", ano_fabricacao: "", ano_modelo: "", cor: "",
   tipo_veiculo: "AUTOMOVEL", renavam: "", chassi: "", tipo_combustivel: "FLEX",
-  capacidade: "", quilometragem_atual: 0, id_setor: "", observacoes: "",
+  capacidade: "", quilometragem_atual: 0, id_setor: "", vinculo: "", observacoes: "",
   status: "DISPONIVEL",
 };
 
@@ -97,6 +93,10 @@ export default function Veículos() {
         ano_modelo: Number(formulario.ano_modelo),
         quilometragem_atual: Number(formulario.quilometragem_atual) || 0,
         id_setor: Number(formulario.id_setor),
+        // Vinculo em branco vai como null, nao como "": a coluna aceita os
+        // dois valores previstos ou NADA, e a string vazia seria barrada pelo
+        // banco com uma mensagem que a pessoa nao teria como entender.
+        vinculo: formulario.vinculo || null,
       };
       if (editando === "novo") {
         await api("/frotas/veiculos", { method: "POST", body: corpo });
@@ -151,7 +151,7 @@ export default function Veículos() {
     { chave: "chassi", rotulo: "Chassi" },
     { chave: "ano_modelo", rotulo: "Ano modelo", ordenavel: true },
     { chave: "ano_fabricacao", rotulo: "Ano fabricação" },
-    { chave: "vinculo", rotulo: "Vínculo", render: (v) => v.vinculo || "Próprio" },
+    { chave: "vinculo", rotulo: "Vínculo", render: (v) => vinculo(v.vinculo) },
     { chave: "setor", rotulo: "Setor", ordenavel: true },
     { chave: "status", rotulo: "Situação", ordenavel: true, render: (v) => <Selo valor={v.status} /> },
     {
@@ -171,13 +171,20 @@ export default function Veículos() {
       render: (v) => (
         <Acoes
           acoes={[
-            { rotulo: "Visualizar detalhes", aoClicar: () => navegar(`/frotas/veiculos/${v.id_veiculo}`) },
-            ...(podeGerenciar ? [{ rotulo: "Editar veículo", aoClicar: () => abrirEdicao(v) }] : []),
-            { rotulo: "Histórico", aoClicar: () => navegar(`/frotas/checklists?veiculo=${v.id_veiculo}`) },
-            { rotulo: "Documentos", aoClicar: () => navegar(`/frotas/documentos?veiculo=${v.id_veiculo}`) },
-            { rotulo: "Manutenções", aoClicar: () => navegar(`/frotas/manutencoes?veiculo=${v.id_veiculo}`) },
+            { rotulo: "Visualizar", icone: "visualizar",
+              aoClicar: () => navegar(`/frotas/veiculos/${v.id_veiculo}`) },
             ...(podeGerenciar
-              ? [{ rotulo: "Excluir veículo", perigo: true, aoClicar: () => excluir(v) }]
+              ? [{ rotulo: "Editar", icone: "editar", aoClicar: () => abrirEdicao(v) }]
+              : []),
+            { rotulo: "Histórico", icone: "historico",
+              aoClicar: () => navegar(`/frotas/checklists?veiculo=${v.id_veiculo}`) },
+            { rotulo: "Documentos", icone: "documento",
+              aoClicar: () => navegar(`/frotas/documentos?veiculo=${v.id_veiculo}`) },
+            { rotulo: "Manutenções", icone: "kpi-wrench",
+              aoClicar: () => navegar(`/frotas/manutencoes?veiculo=${v.id_veiculo}`) },
+            ...(podeGerenciar
+              ? [{ rotulo: "Excluir", perigo: true, icone: "lixo",
+                   aoClicar: () => excluir(v) }]
               : []),
           ]}
         />
@@ -229,13 +236,12 @@ export default function Veículos() {
         <Modal
           titulo={editando === "novo" ? "Novo veículo" : "Editar veículo"}
           legenda="Os campos marcados são obrigatórios."
-          largura={760}
           aoFechar={() => setEditando(null)}
           rodape={
             <>
               <button className="botao" onClick={() => setEditando(null)}>Cancelar</button>
               <button className="botao botao--primario" form="form-veículo" disabled={salvando}>
-                <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Salvar veículo"}
+                <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Salvar"}
               </button>
             </>
           }
@@ -244,39 +250,44 @@ export default function Veículos() {
           <form id="form-veículo" className="formulario-grade formulario-grade--colunas" onSubmit={salvar}>
             {/* Tres blocos, na ordem em que a pessoa tem a informacao na mao:
                 o que esta no documento do veiculo, depois onde ele fica dentro
-                da CMTT, e por fim o que nao cabe em campo nenhum. Os campos
-                sem "*" sao opcionais - e isso esta dito no proprio rotulo, e
-                nao so na validacao, para a pessoa saber ANTES de travar.
+                da CMTT, e por fim o que nao cabe em campo nenhum.
 
-                A LARGURA DE CADA CAMPO E DECLARADA AQUI. Antes todos tinham o
-                mesmo tamanho, e "Ano de fabricacao" - quatro digitos - ganhava
-                a mesma caixa de "Modelo". O tamanho agora acompanha o que cabe
-                dentro: ano e capacidade sao "mini", os seletores (que ninguem
-                digita) sao "curto", e so o que e texto livre e longo fica
-                "medio" ou maior. */}
+                Nenhum campo declara largura: todos ocupam o mesmo espaco, pela
+                grade. Tentar dar a cada um o tamanho do seu conteudo produzia
+                uma fileira de caixas desencontradas, que e mais dificil de ler
+                do que uma coluna regular - e "Modelo" ou "Chassi" nao ficam
+                melhores com o dobro do espaco da "Placa".
+
+                O campo obrigatorio leva "*" no rotulo; o opcional nao leva
+                nada. Escrever "(opcional)" era dizer duas vezes a mesma
+                coisa. */}
             <h3 className="formulario__secao">Dados gerais</h3>
-            <Texto rotulo="Placa *" id="placa" required maxLength={10} tamanho="curto" {...campo("placa")} placeholder="Ex.: ABC-1D23" />
-            <Texto rotulo="Marca *" id="marca" required tamanho="curto" {...campo("marca")} placeholder="Ex.: Chevrolet" />
-            <Texto rotulo="Modelo *" id="modelo" required tamanho="longo" {...campo("modelo")} placeholder="Ex.: S10 LS 2.8" />
+            {/* A placa aparece em caixa alta enquanto a pessoa digita. Quem
+                grava mesmo e a API (normalizacoes de frotas.js); isto e so
+                para a tela nao mostrar uma coisa e salvar outra. */}
+            <Texto rotulo="Placa *" id="placa" required maxLength={10}
+                   style={{ textTransform: "uppercase" }}
+                   {...campo("placa")} placeholder="Ex.: ABC-1D23" />
+            <Texto rotulo="Marca *" id="marca" required {...campo("marca")} placeholder="Ex.: Chevrolet" />
+            <Texto rotulo="Modelo *" id="modelo" required {...campo("modelo")} placeholder="Ex.: S10 LS 2.8" />
 
             <Texto rotulo="Ano fabricação *" id="ano_fabricacao" type="number"
-                   min="1900" max="2100" required tamanho="mini" {...campo("ano_fabricacao")} placeholder="2022" />
+                   min="1900" max="2100" required {...campo("ano_fabricacao")} placeholder="2022" />
             <Texto rotulo="Ano modelo *" id="ano_modelo" type="number"
-                   min="1900" max="2100" required tamanho="mini" {...campo("ano_modelo")} placeholder="2022" />
-            <Selecao rotulo="Tipo de veículo *" id="tipo_veiculo" required tamanho="curto"
+                   min="1900" max="2100" required {...campo("ano_modelo")} placeholder="2022" />
+            <Selecao rotulo="Tipo de veículo *" id="tipo_veiculo" required
                      opcoes={TIPOS} {...campo("tipo_veiculo")} />
-            <Texto rotulo="Cor (opcional)" id="cor" tamanho="curto" {...campo("cor")} placeholder="Ex.: Branco" />
+            <Texto rotulo="Cor" id="cor" {...campo("cor")} placeholder="Ex.: Branco" />
 
-            <Texto rotulo="Renavam (opcional)" id="renavam" tamanho="medio" {...campo("renavam")} placeholder="Ex.: 01234567890" />
-            <Texto rotulo="Chassi (opcional)" id="chassi" tamanho="longo" {...campo("chassi")} placeholder="Ex.: 9BG1489NK0JC123456" />
+            <Texto rotulo="Renavam" id="renavam" {...campo("renavam")} placeholder="Ex.: 01234567890" />
+            <Texto rotulo="Chassi" id="chassi" {...campo("chassi")} placeholder="Ex.: 9BG1489NK0JC123456" />
 
-            <Selecao rotulo="Combustível (opcional)" id="tipo_combustivel" tamanho="medio"
-                     opcoes={COMBUSTIVEIS.map((c) => ({ valor: c, rotulo: c }))}
-                     {...campo("tipo_combustivel")} />
-            <Texto rotulo="Capacidade (opcional)" id="capacidade" tamanho="mini"
+            <Selecao rotulo="Combustível" id="tipo_combustivel"
+                     opcoes={COMBUSTIVEIS} {...campo("tipo_combustivel")} />
+            <Texto rotulo="Capacidade" id="capacidade"
                    {...campo("capacidade")} placeholder="Ex.: 5" />
-            <Texto rotulo="Odômetro atual" id="quilometragem_atual" type="number" min="0" tamanho="curto"
-                   {...campo("quilometragem_atual")} placeholder="Ex.: 45230" />
+            <Texto rotulo="Odômetro atual *" id="quilometragem_atual" type="number" min="0"
+                   required {...campo("quilometragem_atual")} placeholder="Ex.: 45230" />
 
             <h3 className="formulario__secao">Vinculações</h3>
             {/* O SETOR e o que decide se o veiculo e viatura. Nao existe mais
@@ -284,14 +295,15 @@ export default function Veículos() {
                 aparece na tela de Viaturas, e todos aparecem em Frotas. Quem
                 cadastra responde uma pergunta so, e as duas telas concordam
                 sem ninguem ter que lembrar de marcar nada. */}
-            <Selecao rotulo="Setor *" id="id_setor" required vazio="Selecione" tamanho="medio"
+            <Selecao rotulo="Setor *" id="id_setor" required vazio="Selecione"
                      opcoes={setores.map((s) => ({ valor: s.id_setor, rotulo: s.nome }))}
-                     ajuda="Veículos vinculados à Fiscalização aparecem também na tela de Viaturas."
                      {...campo("id_setor")} />
-            <Selecao rotulo="Situação (opcional)" id="status" tamanho="curto" opcoes={SITUACOES} {...campo("status")} />
+            <Selecao rotulo="Vínculo" id="vinculo" vazio="Selecione"
+                     opcoes={VINCULOS} {...campo("vinculo")} />
+            <Selecao rotulo="Situação" id="status" opcoes={SITUACOES} {...campo("status")} />
 
             <h3 className="formulario__secao">Observações</h3>
-            <Area rotulo="Observações (opcional)" id="observacoes" largo {...campo("observacoes")}
+            <Area id="observacoes" largo aria-label="Observações" {...campo("observacoes")}
                   placeholder="Ex.: Veículo com adesivagem da CMTT" />
           </form>
         </Modal>

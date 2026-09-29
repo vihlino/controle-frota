@@ -11,21 +11,44 @@
  */
 import { useEffect } from "react";
 import Icone from "./Icone.jsx";
+import { travar, destravar } from "../lib/travarRolagem.js";
 
-export default function Modal({ titulo, legenda, largura = 640, aoFechar, rodape, children }) {
-  // Esc fecha, e a rolagem da pagina de tras trava enquanto o modal esta aberto.
+/*
+ * LARGURA UNICA PARA TODA JANELA DE FORMULARIO
+ *
+ * Cada tela vinha escolhendo a sua - 640, 680, 700, 720, 760 - e o resultado
+ * era uma janela que crescia e encolhia conforme a pessoa passava de Veiculos
+ * para Documentos e para Checklists, como se cada tela fosse de um sistema
+ * diferente. O numero certo e o que serve o formulario mais largo do sistema
+ * (o de correcao de checklist, com quatro campos por fileira); os demais
+ * sobram espaco, e sobrar e melhor do que apertar.
+ *
+ * A prop `largura` continua existindo para o que NAO e formulario: a caixa de
+ * confirmar senha e estreita de proposito, porque pede uma coisa so.
+ */
+export const LARGURA_FORMULARIO = 760;
+
+export default function Modal({
+  titulo, legenda, largura = LARGURA_FORMULARIO, aoFechar, rodape, children,
+}) {
+  // Esc fecha.
   useEffect(() => {
     function aoTeclar(e) {
       if (e.key === "Escape") aoFechar();
     }
     document.addEventListener("keydown", aoTeclar);
-    const anterior = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", aoTeclar);
-      document.body.style.overflow = anterior;
-    };
+    return () => document.removeEventListener("keydown", aoTeclar);
   }, [aoFechar]);
+
+  // A trava da rolagem fica em EFEITO SEPARADO, com lista de dependencias
+  // vazia: ela deve acontecer uma vez ao abrir e uma vez ao fechar. Junto com
+  // o Esc, ela reagia a cada troca de `aoFechar` - que muda em todo render,
+  // porque as telas passam uma funcao nova (`() => setEditando(null)`) - e
+  // destravava e travava de novo sem motivo.
+  useEffect(() => {
+    travar();
+    return destravar;
+  }, []);
 
   return (
     <div className="modal__fundo" onMouseDown={(e) => e.target === e.currentTarget && aoFechar()}>

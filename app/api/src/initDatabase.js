@@ -490,9 +490,46 @@ async function garantirGestores(cliente) {
  * etapas forem concluidas com sucesso.
  */
 
+/*
+ * Espera o banco atender, em vez de desistir na primeira tentativa.
+ *
+ * O Postgres do Render (plano gratuito) HIBERNA por inatividade. A primeira
+ * conexao depois de um tempo parado nao volta com "demorou" - ela volta com
+ * "Connection terminated unexpectedly", porque o servidor derruba a conexao
+ * enquanto acorda. Para quem esta lendo o terminal, isso e indistinguivel de
+ * um banco que nao existe mais, e foi assim que uma hibernacao normal virou
+ * meia hora procurando erro no codigo.
+ *
+ * Doze tentativas com cinco segundos de intervalo dao um minuto de espera,
+ * com margem sobre os ~50 segundos que o Render anuncia para acordar uma
+ * instancia gratuita. Se nem assim atender, o problema e outro - e a mensagem
+ * final diz isso com todas as letras, em vez do erro cru do driver.
+ */
+async function conectarComEspera(tentativas = 12, intervaloMs = 5000) {
+  for (let i = 1; i <= tentativas; i++) {
+    try {
+      return await pool.connect();
+    } catch (erro) {
+      const ultima = i === tentativas;
+      if (ultima) {
+        throw new Error(
+          `Nao foi possivel conectar ao banco depois de ${tentativas} tentativas ` +
+          `(${erro.message}). Se o banco e o do Render no plano gratuito, ele pode ` +
+          `estar hibernando ou ter expirado - confira o estado dele no painel.`
+        );
+      }
+      console.log(
+        `Banco nao respondeu (${erro.message}). Tentando de novo em ` +
+        `${intervaloMs / 1000}s... (${i}/${tentativas})`
+      );
+      await new Promise((r) => setTimeout(r, intervaloMs));
+    }
+  }
+}
+
 export async function inicializarBanco() {
 
-  const cliente = await pool.connect();
+  const cliente = await conectarComEspera();
 
   try {
 

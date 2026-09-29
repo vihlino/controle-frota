@@ -87,6 +87,14 @@ export const servidores = criarCrud({
   obrigatorios: [
     "nome", "cpf", "data_nascimento", "matricula", "id_setor",
   ],
+  // Nome com maiuscula em cada palavra; CPF e telefone so com os digitos. A
+  // pontuacao do CPF e do telefone e desenhada pela tela - guardada, ela faria
+  // o mesmo CPF passar duas vezes pela restricao de unicidade.
+  normalizacoes: {
+    nome: "palavras",
+    cpf: "digitos",
+    telefone: "digitos",
+  },
   // A BASE DE PESSOAS NAO E SO DA ADMINISTRACAO
   //
   // Esta lista alimenta a tela de Motoristas (Frotas), o campo "responsavel"

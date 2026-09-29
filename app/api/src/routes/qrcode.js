@@ -680,4 +680,174 @@ router.post("/chamado/:token", async (req, res, next) => {
   }
 });
 
+/*
+ * ===========================================================================
+ * INSPECAO PERIODICA PELO CELULAR
+ * ===========================================================================
+ *
+ * O PROBLEMA QUE ISTO RESOLVE
+ * ---------------------------
+ * A inspecao periodica era agendada no sistema e lembrada... por ninguem. Quem
+ * tem o veiculo na mao e o condutor, no patio; quem precisa lembrar da
+ * inspecao e o gestor, na frente do computador. Os dois momentos nunca se
+ * encontravam, e a inspecao vencia.
+ *
+ * Aqui eles se encontram: no dia agendado, quando a matricula digitada no
+ * checklist for a do RESPONSAVEL pela inspecao, a tela oferece faze-la ali
+ * mesmo, pelo celular, com o veiculo na frente.
+ *
+ * TRES DECISOES QUE VALE EXPLICAR
+ *
+ * 1. So para o responsavel. A inspecao tem um gestor escolhido no
+ *    agendamento; e ele quem responde por ela. Oferecer a qualquer condutor
+ *    faria o aviso virar ruido para quem nao pode resolve-lo.
+ *
+ * 2. `data_programada <= hoje`, e nao `= hoje`. Inspecao atrasada nao some -
+ *    ela continua aparecendo todo dia ate ser feita. Era esse o pedido, e e o
+ *    comportamento certo: o aviso que desaparece sozinho e o aviso que nao
+ *    serve para nada.
+ *
+ * 3. Responder "nao" nao grava nada. Nao ha o que gravar: a inspecao continua
+ *    aberta, e amanha ela aparece de novo. Guardar a recusa so criaria uma
+ *    forma de fazer o lembrete calar sem a inspecao ter acontecido.
+ */
+
+// A inspecao pendente deste veiculo para quem digitou a matricula.
+// Sem pendencia, devolve null - e a tela nao mostra nada.
+router.get("/inspecao/:token/:matricula", async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT i.id_inspecao, i.numero, i.tipo, i.data_programada, i.local,
+              i.observacoes, v.placa, v.marca, v.modelo,
+              g.nome AS responsavel
+         FROM inspecao i
+         JOIN qr_code q   ON q.id_veiculo = i.id_veiculo
+         JOIN veiculo v   ON v.id_veiculo = i.id_veiculo
+         JOIN usuario u   ON u.id_usuario = i.id_gestor
+         JOIN servidor g  ON g.id_servidor = u.id_servidor
+        WHERE q.token = $1
+          AND q.status = TRUE
+          AND i.status = 'ABERTA'
+          AND i.data_programada IS NOT NULL
+          AND i.data_programada <= CURRENT_DATE
+          -- A matricula digitada tem de ser a do responsavel pela inspecao.
+          -- A comparacao usa a mesma normalizacao do resto do fluxo, senao
+          -- "012548" e "12.548" seriam pessoas diferentes.
+          AND (g.matricula = $2 OR ${NORMALIZAR_COLUNA.replace("matricula", "g.matricula")} = ${NORMALIZAR.replace("$1", "$2")})
+        ORDER BY i.data_programada
+        LIMIT 1`,
+      [req.params.token, String(req.params.matricula || "").trim()]
+    );
+    res.json(rows[0] || null);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/*
+ * Registra a inspecao feita no patio.
+ *
+ * A inspecao ja EXISTE (foi agendada); aqui ela e preenchida e fechada. Por
+ * isso e PUT de um registro conhecido, e nao a criacao de um novo - duas
+ * inspecoes para o mesmo agendamento seria o comeco de um historico que nao
+ * fecha.
+ *
+ * Tudo em transacao: os itens e o fechamento sao a mesma coisa. Metade
+ * gravada seria uma inspecao "finalizada" sem os itens que a sustentam.
+ */
+router.put("/inspecao/:token/:idInspecao", async (req, res, next) => {
+  const cliente = await pool.connect();
+  try {
+    const { matricula, itens, observacoes, quilometragem } = req.body || {};
+    if (!matricula) return res.status(400).json({ erro: "Informe a matrícula." });
+    if (!Array.isArray(itens) || itens.length === 0) {
+      return res.status(400).json({ erro: "Nenhum item conferido." });
+    }
+
+    // Item fora do padrao exige observacao - a mesma regra do banco, conferida
+    // aqui para a mensagem ser em portugues e nao o texto cru da restricao.
+    const semMotivo = itens.find(
+      (i) => i.resultado !== "NORMAL" && !String(i.observacao || "").trim()
+    );
+    if (semMotivo) {
+      return res.status(400).json({
+        erro: `Escreva o que foi observado em "${semMotivo.item}".`,
+      });
+    }
+
+    await cliente.query("BEGIN");
+
+    // A pendencia e conferida de novo aqui, e nao so na tela: quem chega por
+    // esta rota pode nao ter passado por ela.
+    const { rows } = await cliente.query(
+      `SELECT i.id_inspecao
+         FROM inspecao i
+         JOIN qr_code q  ON q.id_veiculo = i.id_veiculo
+         JOIN usuario u  ON u.id_usuario = i.id_gestor
+         JOIN servidor g ON g.id_servidor = u.id_servidor
+        WHERE q.token = $1 AND q.status = TRUE
+          AND i.id_inspecao = $2
+          AND i.status = 'ABERTA'
+          AND (g.matricula = $3 OR ${NORMALIZAR_COLUNA.replace("matricula", "g.matricula")} = ${NORMALIZAR.replace("$1", "$3")})
+        FOR UPDATE`,
+      [req.params.token, Number(req.params.idInspecao), String(matricula).trim()]
+    );
+    if (!rows[0]) {
+      await cliente.query("ROLLBACK");
+      return res.status(404).json({
+        erro: "Esta inspeção não está pendente para você, ou já foi concluída.",
+      });
+    }
+    const idInspecao = rows[0].id_inspecao;
+
+    // Refazer os itens, e nao acrescentar: se a pessoa enviar duas vezes, a
+    // inspecao nao pode terminar com a lista duplicada.
+    await cliente.query("DELETE FROM inspecao_item WHERE id_inspecao = $1", [idInspecao]);
+    for (const item of itens) {
+      await cliente.query(
+        `INSERT INTO inspecao_item (id_inspecao, item, resultado, observacao)
+         VALUES ($1, $2, $3, $4)`,
+        [idInspecao, item.item, item.resultado, item.observacao || null]
+      );
+    }
+
+    // O resultado da inspecao vem dos ITENS, nao de uma escolha a parte: quem
+    // marcou uma ressalva nao deveria poder declarar a inspecao conforme.
+    // "Atenção" conta como ressalva: o item nao esta com defeito, mas tambem
+    // nao esta igual a um que ninguem precisa olhar de novo.
+    const conforme = itens.every((i) => i.resultado === "NORMAL");
+
+    await cliente.query(
+      `UPDATE inspecao
+          SET status = 'FINALIZADA',
+              resultado = $2,
+              data_realizacao = COALESCE(data_realizacao, CURRENT_DATE),
+              hora_finalizacao = CURRENT_TIME,
+              data_finalizacao = CURRENT_TIMESTAMP,
+              -- Os tipos vao ESCRITOS nos marcadores. Quando o valor chega
+              -- nulo (a inspecao sem KM informado), o Postgres nao tem como
+              -- adivinhar o tipo do parametro sozinho dentro de um COALESCE e
+              -- recusa a consulta inteira - um erro que so aparece no caso
+              -- nulo, que e justamente o que ninguem testa.
+              quilometragem = COALESCE($3::int, quilometragem),
+              observacoes = COALESCE(NULLIF($4::text, ''), observacoes)
+        WHERE id_inspecao = $1`,
+      [
+        idInspecao,
+        conforme ? "CONFORME" : "COM_AVARIAS",
+        quilometragem ? Number(quilometragem) : null,
+        String(observacoes || "").trim(),
+      ]
+    );
+
+    await cliente.query("COMMIT");
+    res.json({ ok: true, resultado: conforme ? "CONFORME" : "COM_AVARIAS" });
+  } catch (e) {
+    await cliente.query("ROLLBACK").catch(() => {});
+    next(e);
+  } finally {
+    cliente.release();
+  }
+});
+
 export default router;

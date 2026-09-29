@@ -19,6 +19,9 @@
  */
 import { Router } from "express";
 import { criarCrud } from "../crud.js";
+import { pool } from "../db.js";
+import { autenticar, exigePermissao } from "../auth.js";
+import { registrarAuditoria } from "../auditoria.js";
 
 const VER = "FROTAS_VISUALIZAR";
 
@@ -33,6 +36,7 @@ export const veiculos = criarCrud({
   busca: ["veiculo.placa", "veiculo.marca", "veiculo.modelo", "veiculo.renavam", "veiculo.chassi"],
   filtros: {
     setor: "veiculo.id_setor", status: "veiculo.status", tipo: "veiculo.tipo_veiculo",
+    vinculo: "veiculo.vinculo",
     // A tela de Viaturas da Fiscalizacao usa este filtro.
     viatura: "veiculo.viatura",
   },
@@ -44,7 +48,7 @@ export const veiculos = criarCrud({
   campos: [
     "placa", "marca", "modelo", "ano_fabricacao", "ano_modelo", "cor", "tipo_veiculo",
     "renavam", "chassi", "tipo_combustivel", "capacidade", "quilometragem_atual",
-    "id_setor", "observacoes", "status",
+    "id_setor", "vinculo", "observacoes", "status",
     // "viatura" NAO entra: a coluna e calculada pelo banco a partir do setor
     // (migracao 016). Aceita-la aqui deixaria a tela gravar um valor que o
     // gatilho sobrescreve no mesmo instante - o pior tipo de campo, o que
@@ -59,6 +63,19 @@ export const veiculos = criarCrud({
     "placa", "marca", "modelo", "ano_fabricacao", "ano_modelo",
     "tipo_veiculo", "id_setor",
   ],
+  // Placa e codigo: sempre em caixa alta. Marca e cor sao nomes, e ficam com a
+  // primeira letra maiuscula - assim a lista ordena certo e o mesmo veiculo
+  // nao aparece escrito de tres jeitos.
+  //
+  // MODELO fica de fora de proposito: nome de versao e cheio de sigla
+  // ("S10 LS 2.8", "ONIX 10TMT LT1"), e forcar a primeira letra maiuscula
+  // estragava justamente essas ("S10 ls 2.8"). Aqui o certo e respeitar o que
+  // a pessoa digitou, que e quem esta lendo o documento do veiculo.
+  normalizacoes: {
+    placa: "maiusculas",
+    marca: "primeiraMaiuscula",
+    cor: "primeiraMaiuscula",
+  },
   // A tela de Viaturas, na Fiscalizacao, e ESTE mesmo cadastro filtrado - uma
   // viatura e um veiculo da frota vinculado ao setor de Fiscalizacao, nao um
   // cadastro a parte. Exigindo so FROTAS_VISUALIZAR, o gestor de fiscalizacao
@@ -126,8 +143,105 @@ export const checklists = criarCrud({
     "percurso", "local_saida", "data_finalizacao", "observacoes_chegada",
   ],
   obrigatorios: ["id_veiculo", "id_servidor", "odometro_saida"],
-  permissoes: { ver: VER, gerenciar: "FROTAS_GERENCIAR_VEICULOS" },
+  // Corrigir checklist tem permissao PROPRIA (migracao 019). Quem cadastra
+  // veiculo nao ganha de brinde o poder de reescrever o historico de saidas.
+  permissoes: { ver: VER, gerenciar: "FROTAS_EDITAR_CHECKLIST" },
+  // O checklist e prova de um fato. Alterar um numero dele exige dizer por
+  // que, e o motivo fica na auditoria junto do antes e do depois.
+  exigeJustificativa: true,
 });
+
+/*
+ * PUT /checklists/:id/equipamentos  -  corrige a conferencia de equipamentos.
+ *
+ * POR QUE UMA ROTA SEPARADA
+ * -------------------------
+ * Os equipamentos nao sao colunas do checklist: sao linhas de outra tabela,
+ * uma por item e por momento (saida e chegada conferem os mesmos quatro
+ * itens). O CRUD generico sabe gravar colunas, nao filhos - e ensina-lo a
+ * fazer isso deixaria toda tela do sistema carregando um caso que so o
+ * checklist tem.
+ *
+ * A gravacao SUBSTITUI as linhas daquele momento, em transacao. Atualizar uma
+ * por uma deixaria o registro pela metade se a segunda falhasse, e o checklist
+ * mostraria macaco conferido e estepe nao - sem ninguem ter escolhido isso.
+ */
+checklists.put(
+  "/:id/equipamentos",
+  autenticar,
+  exigePermissao("FROTAS_EDITAR_CHECKLIST"),
+  async (req, res, next) => {
+    const cliente = await pool.connect();
+    try {
+      const idChecklist = Number(req.params.id);
+      const { momento, itens } = req.body || {};
+      const justificativa = String(req.body?.justificativa || "").trim();
+      if (momento !== "SAIDA" && momento !== "CHEGADA") {
+        return res.status(400).json({ erro: "Momento inválido." });
+      }
+      if (!Array.isArray(itens)) {
+        return res.status(400).json({ erro: "Informe os itens conferidos." });
+      }
+
+      await cliente.query("BEGIN");
+
+      const existe = await cliente.query(
+        "SELECT id_checklist FROM checklist_frotas WHERE id_checklist = $1",
+        [idChecklist]
+      );
+      if (!existe.rows[0]) {
+        await cliente.query("ROLLBACK");
+        return res.status(404).json({ erro: "Checklist não encontrado." });
+      }
+
+      const antes = await cliente.query(
+        `SELECT equipamento, conforme, observacao FROM checklist_frotas_equipamento
+          WHERE id_checklist = $1 AND COALESCE(momento, 'SAIDA') = $2`,
+        [idChecklist, momento]
+      );
+
+      await cliente.query(
+        `DELETE FROM checklist_frotas_equipamento
+          WHERE id_checklist = $1 AND COALESCE(momento, 'SAIDA') = $2`,
+        [idChecklist, momento]
+      );
+
+      for (const item of itens) {
+        await cliente.query(
+          `INSERT INTO checklist_frotas_equipamento
+             (id_checklist, equipamento, conforme, observacao, momento)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [
+            idChecklist,
+            item.equipamento,
+            item.conforme === true || item.conforme === "true",
+            item.observacao || null,
+            momento,
+          ]
+        );
+      }
+
+      await cliente.query("COMMIT");
+
+      await registrarAuditoria({
+        idUsuario: req.usuario.id_usuario,
+        acao: "EDITAR",
+        entidade: "checklist_equipamento",
+        idRegistro: idChecklist,
+        justificativa: justificativa || null,
+        dadosAnteriores: { momento, itens: antes.rows },
+        dadosNovos: { momento, itens },
+      });
+
+      res.json({ ok: true });
+    } catch (e) {
+      await cliente.query("ROLLBACK").catch(() => {});
+      next(e);
+    } finally {
+      cliente.release();
+    }
+  }
+);
 
 // ---------- Inspecoes ----------
 export const inspecoes = criarCrud({
@@ -163,6 +277,9 @@ export const inspecoes = criarCrud({
   ],
   obrigatorios: ["id_veiculo", "id_gestor", "tipo"],
   permissoes: { ver: VER, gerenciar: "FROTAS_REALIZAR_INSPECAO" },
+  // Inspecao tambem e prova de um fato: alterar ou apagar exige dizer por que,
+  // e o motivo fica na auditoria junto do antes e do depois.
+  exigeJustificativa: true,
 });
 
 // ---------- Manutencoes / Ordens de servico ----------

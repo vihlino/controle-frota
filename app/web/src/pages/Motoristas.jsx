@@ -24,7 +24,7 @@ export default criarPagina({
   // "+" que todos os outros cadastros usam. Era so isto que fazia o botao
   // desta tela destoar de "Novo veiculo".
   iconeAcao: "mais",
-  rotuloSalvar: "Salvar motorista",
+  rotuloSalvar: "Salvar",
 
   // Quem gerencia a frota cadastra motorista sem precisar da permissao de
   // Administracao. CONFIG_SERVIDOR exige ADMIN_GERENCIAR_SERVIDORES, o que
@@ -40,7 +40,13 @@ export default criarPagina({
   // uma pergunta da Administracao - quem ja tem login -, que nao e a pergunta
   // de quem abre esta tela para escolher o motorista de um veiculo. Continua
   // existindo em Administracao > Servidores, onde faz sentido.
-  colunas: CONFIG_SERVIDOR.colunas.filter((c) => c.chave !== "tem_usuario"),
+  // "Acesso" (tem usuario do sistema) responde uma pergunta da Administracao,
+  // e "Nascimento" e dado de cadastro: nenhuma das duas ajuda quem abre esta
+  // tela para escolher o motorista de um veiculo. As duas continuam em
+  // Administracao > Servidores.
+  colunas: CONFIG_SERVIDOR.colunas.filter(
+    (c) => c.chave !== "tem_usuario" && c.chave !== "data_nascimento"
+  ),
 
   // Quem entra por aqui ja e condutor por definicao.
   formulario: CONFIG_SERVIDOR.formulario.map((c) =>

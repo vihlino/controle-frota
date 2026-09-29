@@ -16,9 +16,9 @@ import Icone from "./Icone.jsx";
  *   nao serve para instrucao que a pessoa precisa ler enquanto preenche.
  */
 /**
- * @param {string} [tamanho]  Largura do campo dentro de um
- *   `.formulario-grade--colunas`: "mini", "curto", "medio" ou "longo".
- *   Ignorado nos formularios que nao usam essa variante da grade.
+ * @param {string} [tamanho]  Sobra de uma epoca em que cada campo declarava
+ *   a propria largura. Hoje todos ocupam o mesmo espaco na grade, e o valor
+ *   nao muda nada - use `largo` quando o campo precisar da linha inteira.
  */
 export function Campo({ rotulo, htmlFor, children, largo, ajuda, tamanho }) {
   return (
@@ -27,10 +27,31 @@ export function Campo({ rotulo, htmlFor, children, largo, ajuda, tamanho }) {
       data-largo={largo ? "sim" : undefined}
       data-tamanho={tamanho}
     >
-      {rotulo && <label htmlFor={htmlFor}>{rotulo}</label>}
+      {rotulo && <label htmlFor={htmlFor}>{Rotulo(rotulo)}</label>}
       {children}
       {ajuda && <span className="campo__ajuda">{ajuda}</span>}
     </div>
+  );
+}
+
+/*
+ * O "*" de campo obrigatorio sai do texto e vira um elemento proprio, para
+ * poder ficar vermelho.
+ *
+ * O rotulo continua sendo escrito como "Placa *" em cada tela - uma string
+ * simples, facil de ler no JSX. A separacao acontece AQUI, uma vez, e vale
+ * para o sistema inteiro: nenhuma tela precisa lembrar de marcar nada, e
+ * trocar a cor depois e mexer em uma regra de CSS, nao em 200 rotulos.
+ *
+ * "Opcional" nao se escreve: a ausencia do "*" ja diz isso.
+ */
+function Rotulo(rotulo) {
+  if (typeof rotulo !== "string" || !rotulo.trimEnd().endsWith("*")) return rotulo;
+  const texto = rotulo.trimEnd().slice(0, -1).trimEnd();
+  return (
+    <>
+      {texto} <span className="campo__obrigatorio" aria-hidden="true">*</span>
+    </>
   );
 }
 

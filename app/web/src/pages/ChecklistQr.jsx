@@ -22,6 +22,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Icone from "../components/Icone.jsx";
 import Selo from "../components/Selo.jsx";
+import Modal from "../components/Modal.jsx";
 import { api } from "../lib/api.js";
 import { numero, rotulo } from "../lib/formato.js";
 import { reduzirImagem, pesoLegivel } from "../lib/imagem.js";
@@ -33,6 +34,27 @@ const EQUIPAMENTOS = [
   { codigo: "ESTEPE", rotulo: "Estepe", icone: "eq-estepe" },
   { codigo: "TRIANGULO", rotulo: "Triângulo", icone: "eq-triangulo" },
   { codigo: "CHAVE_RODA", rotulo: "Chave de roda", icone: "eq-chave-roda" },
+];
+
+/*
+ * Os itens da inspecao periodica feita no patio.
+ *
+ * Lista fechada e igual para todos os veiculos: a inspecao so vale como
+ * comparacao no tempo se os itens forem sempre os mesmos. "Pneus conforme" em
+ * marco e "pneus ok" em abril nao se somam em relatorio nenhum.
+ *
+ * Sao os mesmos onze itens que o sistema ja usava nas inspecoes feitas pelo
+ * computador - trocar a lista aqui separaria o historico em dois.
+ */
+const ROTULO_FREQUENCIA = {
+  SEMANAL: "Semanal", QUINZENAL: "Quinzenal", MENSAL: "Mensal",
+  PERSONALIZADA: "Personalizada", SEM_PERIODICIDADE: "Sem periodicidade",
+};
+
+const ITENS_INSPECAO = [
+  "Pneus", "Freios", "Luzes e sinalização", "Nível de óleo", "Fluido de freio",
+  "Direção", "Suspensão", "Cintos de segurança", "Lataria e pintura",
+  "Limpeza do veículo",
 ];
 
 // As partes do veiculo que o chamado aceita. Lista fechada de proposito:
@@ -74,6 +96,41 @@ export default function ChecklistQr() {
   const [matricula, setMatricula] = useState("");
   const [condutor, setCondutor] = useState(null);
   const [buscando, setBuscando] = useState(false);
+
+  /*
+   * INSPECAO PERIODICA NO PATIO
+   *
+   * Quando a matricula digitada e a do RESPONSAVEL por uma inspecao vencida ou
+   * agendada para hoje, a tela oferece faze-la aqui mesmo - com o veiculo na
+   * frente, que e o unico lugar onde da para conferir pneu e farol.
+   *
+   * Dizer "agora nao" nao grava nada: a inspecao continua aberta e o convite
+   * reaparece no proximo checklist, ate ela ser feita. Um lembrete que some
+   * sozinho nao lembra ninguem de nada.
+   */
+  const [inspecao, setInspecao] = useState(null);
+  const [inspecaoAberta, setInspecaoAberta] = useState(false);
+  const [itensInspecao, setItensInspecao] = useState([]);
+  const [obsInspecao, setObsInspecao] = useState("");
+  const [salvandoInspecao, setSalvandoInspecao] = useState(false);
+  const [inspecaoFeita, setInspecaoFeita] = useState("");
+  /*
+   * ONDE CADA ERRO APARECE
+   *
+   * A tela tinha um lugar so para erro: a faixa embaixo dos dados do veiculo.
+   * Servia enquanto so o checklist falhava. Com a matricula e a inspecao
+   * entrando na mesma tela, o problema de um aparecia longe de onde ele
+   * aconteceu - um erro da inspecao surgia atras da janela aberta, e a pessoa
+   * clicava de novo sem nunca ver o motivo.
+   *
+   * Agora sao tres lugares, e cada um responde por um momento:
+   *   - `aviso`: matricula. Uma janelinha com OK, porque e um engano de
+   *     digitacao e a pessoa precisa parar e corrigir ali;
+   *   - `erroInspecao`: dentro da janela da inspecao, junto do que falhou;
+   *   - `erro`: a faixa de sempre, agora so para o checklist.
+   */
+  const [aviso, setAviso] = useState("");
+  const [erroInspecao, setErroInspecao] = useState("");
 
   const [saida, setSaida] = useState({
     data: inicio.data,
@@ -185,11 +242,68 @@ export default function ChecklistQr() {
       // invalido e o servidor responderia "nao encontrada" sem nem chegar a
       // consultar o banco.
       setCondutor(await api(`/qrcode/condutor/${encodeURIComponent(token)}/${encodeURIComponent(m)}`));
+
+      // A pendencia de inspeccao e consultada junto, e nao depois: a resposta
+      // vazia e o caso comum, e uma segunda espera so para descobrir que nao
+      // ha nada faria a tela parecer lenta para todo mundo.
+      api(`/qrcode/inspecao/${encodeURIComponent(token)}/${encodeURIComponent(m)}`)
+        .then((i) => {
+          setInspecao(i || null);
+          setItensInspecao(
+            (i ? ITENS_INSPECAO : []).map((item) => ({
+              item, resultado: "NORMAL", observacao: "",
+            }))
+          );
+        })
+        .catch(() => setInspecao(null));
     } catch (e) {
       setCondutor(null);
-      setErro(e.message);
+      // A matricula errada nao e falha do sistema: e um digito trocado. A
+      // janelinha para a pessoa naquele campo, em vez de mandar procurar o
+      // motivo numa faixa no topo da tela.
+      setAviso(
+        /não encontrada/i.test(e.message)
+          ? "Matrícula não encontrada, tente novamente."
+          : e.message
+      );
     } finally {
       setBuscando(false);
+    }
+  }
+
+  function marcarItem(indice, mudanca) {
+    setItensInspecao((atual) =>
+      atual.map((it, i) => (i === indice ? { ...it, ...mudanca } : it))
+    );
+  }
+
+  async function enviarInspecao() {
+    setSalvandoInspecao(true);
+    setErroInspecao("");
+    try {
+      const r = await api(`/qrcode/inspecao/${encodeURIComponent(token)}/${inspecao.id_inspecao}`, {
+        method: "PUT",
+        body: {
+          matricula: matricula.trim(),
+          itens: itensInspecao,
+          observacoes: obsInspecao,
+          // O KM da inspeccao e o mesmo que o condutor acabou de ler no
+          // painel: pedir duas vezes o mesmo numero so cria chance de
+          // divergirem.
+          quilometragem: saida.odometro || null,
+        },
+      });
+      setInspecaoFeita(
+        r.resultado === "CONFORME"
+          ? "Inspeção registrada: veículo conforme."
+          : "Inspeção registrada com ressalvas. A gestão vê o detalhe no sistema."
+      );
+      setInspecao(null);
+      setInspecaoAberta(false);
+    } catch (e) {
+      setErroInspecao(e.message);
+    } finally {
+      setSalvandoInspecao(false);
     }
   }
 
@@ -392,6 +506,161 @@ export default function ChecklistQr() {
       </section>
 
       {erro && <div className="qr-tela__aviso qr-tela__aviso--erro">{erro}</div>}
+
+      {inspecaoFeita && (
+        <div className="qr-tela__aviso">{inspecaoFeita}</div>
+      )}
+
+      {/* AVISO CURTO: uma frase e um OK.
+          Sem titulo de erro em vermelho e sem duas opcoes - nao ha decisao a
+          tomar, so um aviso a ler. */}
+      {aviso && (
+        <Modal
+          titulo="Atenção"
+          largura={380}
+          aoFechar={() => setAviso("")}
+          rodape={
+            <button type="button" className="botao botao--primario"
+                    onClick={() => setAviso("")}>
+              OK
+            </button>
+          }
+        >
+          <p className="qr-aviso-texto">{aviso}</p>
+        </Modal>
+      )}
+
+      {/* CONVITE DA INSPECAO PERIODICA
+          Em JANELA, e nao no meio da pagina: sao duas tarefas diferentes e a
+          pessoa faz uma de cada vez. Misturadas na mesma rolagem, o condutor
+          nao sabia onde terminava a inspecao e comecava o checklist - e os
+          dois tem botao de enviar.
+
+          A janela abre por cima do checklist assim que a matricula e
+          reconhecida como a do responsavel. Decidida a inspecao, ela fecha e o
+          checklist continua de onde estava. */}
+      {inspecao && (
+        <Modal
+          titulo={
+            inspecaoAberta
+              ? `Inspeção ${(ROTULO_FREQUENCIA[inspecao.tipo] || inspecao.tipo).toLowerCase()}`
+              : "Deseja fazer a inspeção periódica?"
+          }
+          legenda={
+            inspecaoAberta
+              ? "Confira cada item no veículo. O que não estiver conforme precisa de uma observação."
+              : `${veiculo.placa} · ${veiculo.marca} ${veiculo.modelo}`
+          }
+          largura={inspecaoAberta ? 440 : 420}
+          aoFechar={() => { setInspecao(null); setInspecaoAberta(false); }}
+          rodape={
+            inspecaoAberta ? (
+              <>
+                <button type="button" className="botao"
+                        onClick={() => setInspecaoAberta(false)}>
+                  Voltar
+                </button>
+                <button type="button" className="botao botao--primario"
+                        disabled={salvandoInspecao} onClick={enviarInspecao}>
+                  <Icone nome="concluir" />
+                  {salvandoInspecao ? " Enviando..." : " Concluir"}
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" className="botao"
+                        onClick={() => setInspecao(null)}>
+                  Não
+                </button>
+                <button type="button" className="botao botao--primario"
+                        onClick={() => setInspecaoAberta(true)}>
+                  Sim
+                </button>
+              </>
+            )
+          }
+        >
+          {erroInspecao && <div className="login__erro">{erroInspecao}</div>}
+
+          {!inspecaoAberta ? (
+            <>
+              <dl className="qr-dados qr-dados--linha">
+                <div>
+                  <dt>Frequência</dt>
+                  <dd>{ROTULO_FREQUENCIA[inspecao.tipo] || inspecao.tipo}</dd>
+                </div>
+                <div>
+                  <dt>Agendada para</dt>
+                  <dd>{dataBr(inspecao.data_programada)}</dd>
+                </div>
+                {inspecao.numero && (
+                  <div>
+                    <dt>Número</dt>
+                    <dd>{inspecao.numero}</dd>
+                  </div>
+                )}
+                {inspecao.local && (
+                  <div>
+                    <dt>Local</dt>
+                    <dd>{inspecao.local}</dd>
+                  </div>
+                )}
+              </dl>
+              <p className="qr-inspecao__nota qr-inspecao__nota--centro">
+                Se responder "Não", o aviso volta a aparecer no próximo
+                checklist deste veículo, até a inspeção ser feita.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="qr-inspecao__itens">
+                {itensInspecao.map((it, i) => (
+                  <div className="qr-inspecao__item" key={it.item}>
+                    <span className="qr-inspecao__nome">{it.item}</span>
+                    <div className="qr-inspecao__opcoes">
+                      {[
+                        { valor: "NORMAL", rotulo: "Conforme", tom: "verde" },
+                        { valor: "ATENCAO", rotulo: "Atenção", tom: "amarelo" },
+                        { valor: "AVARIA", rotulo: "Avaria", tom: "vermelho" },
+                      ].map((o) => (
+                        <button
+                          key={o.valor}
+                          type="button"
+                          className="botao botao--mini"
+                          data-ativo={it.resultado === o.valor ? "sim" : undefined}
+                          data-tom={o.tom}
+                          onClick={() => marcarItem(i, { resultado: o.valor })}
+                        >
+                          {o.rotulo}
+                        </button>
+                      ))}
+                    </div>
+                    {it.resultado !== "NORMAL" && (
+                      <input
+                        className="qr-inspecao__obs"
+                        placeholder="O que foi observado?"
+                        value={it.observacao}
+                        onChange={(e) => marcarItem(i, { observacao: e.target.value })}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="campo">
+                <label htmlFor="obs-inspecao">Observações</label>
+                <textarea
+                  id="obs-inspecao"
+                  rows={3}
+                  value={obsInspecao}
+                  placeholder="Ex.: veículo conferido no pátio, sem pendências"
+                  onChange={(e) => setObsInspecao(e.target.value)}
+                />
+              </div>
+            </>
+          )}
+        </Modal>
+      )}
 
       <form onSubmit={naChegada ? registrarChegada : registrarSaida}>
         <section className="qr-cartao">
@@ -637,7 +906,7 @@ export default function ChecklistQr() {
         <section className="qr-cartao">
           <h2 className="qr-cartao__titulo qr-cartao__titulo--icone">
             <span className="qr-cartao__simbolo"><Icone nome="kpi-wrench" tamanho={20} /></span>
-            Abrir chamado
+            Abrir OS
           </h2>
           <p className="qr-cartao__nota">
             Pneu furado, farol queimado, freio falhando, barulho no motor.
@@ -695,13 +964,13 @@ export default function ChecklistQr() {
                 </button>
                 <button type="button" className="botao botao--primario"
                         onClick={confirmarChamado}>
-                  Abrir OS de manutenção
+                  <Icone nome="mais" /> Abrir OS
                 </button>
               </div>
             </div>
           ) : (
             <button type="button" className="botao qr-chamado-abrir" onClick={novoChamado}>
-              <Icone nome="mais" tamanho={15} /> Abrir OS de manutenção
+              <Icone nome="mais" /> Abrir OS
             </button>
           )}
 
@@ -820,12 +1089,13 @@ export default function ChecklistQr() {
                 Cancelar
               </button>
             )}
-            <button className="botao botao--primario qr-botao" disabled={enviando}>
-              {enviando
-                ? "Registrando..."
-                : naChegada
-                  ? "Finalizar"
-                  : "Continuar para o retorno"}
+            {/* O texto do botao e o VERBO, so. "Continuar para o retorno"
+                explicava o fluxo dentro do botao e ocupava a largura da tela
+                por causa disso; a explicacao ja esta no aviso acima dele. */}
+            <button className="botao botao--primario qr-botao qr-botao--curto"
+                    disabled={enviando}>
+              {enviando ? "Registrando..." : naChegada ? "Finalizar" : "Continuar"}
+              {!enviando && !naChegada && <Icone nome="seta-direita" />}
             </button>
           </div>
         </div>

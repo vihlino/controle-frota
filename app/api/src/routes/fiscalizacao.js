@@ -148,7 +148,12 @@ export const checklistsFiscalizacao = criarCrud({
     "status", "data_finalizacao",
   ],
   obrigatorios: ["id_veiculo", "odometro_saida"],
-  permissoes: { ver: VER, gerenciar: "FISCALIZACAO_GERENCIAR_VIATURAS" },
+  // Corrigir checklist tem permissao PROPRIA (migracao 019): quem gerencia as
+  // viaturas nao ganha de brinde o poder de reescrever o historico delas.
+  permissoes: { ver: VER, gerenciar: "FISCALIZACAO_EDITAR_CHECKLIST" },
+  // O checklist e prova de um fato. Alterar um numero dele exige dizer por
+  // que, e o motivo fica na auditoria junto do antes e do depois.
+  exigeJustificativa: true,
 });
 
 // Pontuacao: tela restrita ao gestor da Fiscalizacao. A permissao de leitura

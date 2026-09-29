@@ -169,11 +169,13 @@ export default function Documentos() {
       render: (d) => (
         <Acoes
           acoes={[
-            { rotulo: "Ver veículo", aoClicar: () => navegar(`/frotas/veiculos/${d.id_veiculo}`) },
+            { rotulo: "Ver veículo", icone: "kpi-car",
+              aoClicar: () => navegar(`/frotas/veiculos/${d.id_veiculo}`) },
             ...(podeGerenciar
               ? [
-                  { rotulo: "Editar documento", aoClicar: () => abrirEdicao(d) },
-                  { rotulo: "Excluir documento", perigo: true, aoClicar: () => excluir(d) },
+                  { rotulo: "Editar", icone: "editar", aoClicar: () => abrirEdicao(d) },
+                  { rotulo: "Excluir", perigo: true, icone: "lixo",
+                    aoClicar: () => excluir(d) },
                 ]
               : []),
           ]}
@@ -229,13 +231,12 @@ export default function Documentos() {
       {editando && (
         <Modal
           titulo={editando === "novo" ? "Novo documento" : "Editar documento"}
-          largura={720}
           aoFechar={() => setEditando(null)}
           rodape={
             <>
               <button className="botao" onClick={() => setEditando(null)}>Cancelar</button>
               <button className="botao botao--primario" form="form-doc" disabled={salvando}>
-                <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Salvar documento"}
+                <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Salvar"}
               </button>
             </>
           }

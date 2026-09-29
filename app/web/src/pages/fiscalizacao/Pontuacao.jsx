@@ -23,7 +23,6 @@ export default criarPagina({
   permissaoGerenciar: "FISCALIZACAO_GERENCIAR_PONTUACAO",
   permiteExcluir: true,
   confirmarExclusao: (i) => `Excluir o item ${i.codigo}?`,
-  larguraFormulario: 700,
   mapaOpcoes: {},
   colunas: [
     { chave: "codigo", rotulo: "Código", ordenavel: true },

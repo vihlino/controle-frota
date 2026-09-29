@@ -151,8 +151,10 @@ export default function Sinistros() {
       render: (s) => (
         <Acoes
           acoes={[
-            { rotulo: "Visualizar detalhes", aoClicar: () => navegar(`/frotas/sinistros/${s.id_sinistro}`) },
-            { rotulo: "Ver veículo", aoClicar: () => navegar(`/frotas/veiculos/${s.id_veiculo}`) },
+            { rotulo: "Visualizar", icone: "visualizar",
+              aoClicar: () => navegar(`/frotas/sinistros/${s.id_sinistro}`) },
+            { rotulo: "Ver veículo", icone: "kpi-car",
+              aoClicar: () => navegar(`/frotas/veiculos/${s.id_veiculo}`) },
           ]}
         />
       ),
@@ -209,7 +211,6 @@ export default function Sinistros() {
         <Modal
           titulo="Registrar sinistro"
           legenda="Quando necessário, mude a situação do veículo depois do registro."
-          largura={720}
           aoFechar={() => setRegistrando(false)}
           rodape={
             <>
