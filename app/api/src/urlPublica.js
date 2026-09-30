@@ -28,11 +28,19 @@ const VIRTUAIS = /vethernet|wsl|hyper-?v|virtualbox|vmware|vbox|docker|loopback|
  * sempre e ela. 10.x vem depois (redes corporativas). 172.16-31 por ultimo,
  * porque e justamente a faixa que Hyper-V, WSL e Docker usam.
  */
-function nota(ip) {
-  if (ip.startsWith("192.168.")) return 3;
-  if (ip.startsWith("10.")) return 2;
-  if (/^172\.(1[6-9]|2\d|3[01])\./.test(ip)) return 1;
-  return 0;
+function nota(ip, placa) {
+  let n = 0;
+  // A placa chamada Wi-Fi e a que o celular alcanca, seja qual for a faixa:
+  // no roteamento pelo iPhone ela e 172.20.10.x, a faixa que sozinha teria a
+  // nota mais baixa.
+  if (/wi-?fi|wlan|wireless|sem fio/i.test(placa)) n += 10;
+  // 192.168.56.x e a rede interna padrao do VirtualBox. No Windows a placa
+  // dele costuma se chamar so "Ethernet 2", e escapa do filtro por nome.
+  if (ip.startsWith("192.168.56.")) n -= 5;
+  if (ip.startsWith("192.168.")) n += 3;
+  else if (ip.startsWith("10.")) n += 2;
+  else if (/^172\.(1[6-9]|2\d|3[01])\./.test(ip)) n += 1;
+  return n;
 }
 
 /**
@@ -49,7 +57,7 @@ export function ipsDaRedeLocal() {
       if (e.family === "IPv4" && !e.internal) candidatos.push({ ip: e.address, placa });
     }
   }
-  return candidatos.sort((a, b) => nota(b.ip) - nota(a.ip));
+  return candidatos.sort((a, b) => nota(b.ip, b.placa) - nota(a.ip, a.placa));
 }
 
 /**
