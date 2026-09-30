@@ -15,7 +15,9 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { query } from "../db.js";
-import { assinarToken, autenticar } from "../auth.js";
+import { assinarToken, autenticar, esquecerUsuario } from "../auth.js";
+import { registrarAuditoria } from "../auditoria.js";
+import { problemaNaSenha } from "../regrasSenha.js";
 
 // A coluna endereco_ip e INET: o prefixo "::ffff:" que o Node poe em IPv4
 // mapeado quebraria o INSERT.
@@ -54,11 +56,27 @@ async function carregarUsuario(idUsuario) {
   if (!rows[0]) return null;
 
   const usuario = rows[0];
+
+  // Se a senha ainda e a provisoria. Fora da view de proposito: a view junta
+  // cadastro e permissoes, e isto e estado da conta.
+  const conta = await query("SELECT trocar_senha FROM usuario WHERE id_usuario = $1", [idUsuario]);
+
   return {
     ...usuario,
     // A view devolve objetos completos; o front so precisa dos codigos.
     permissoes: (usuario.permissoes || []).map((p) => p.codigo),
+    trocarSenha: !!conta.rows[0]?.trocar_senha,
   };
+}
+
+/** O token de sessao, com os dados que o resto da API le dele. */
+function tokenPara(usuario) {
+  return assinarToken({
+    id_usuario: usuario.id_usuario,
+    login: usuario.login,
+    perfil: usuario.perfil,
+    permissoes: usuario.permissoes,
+  });
 }
 
 const router = Router();
@@ -110,14 +128,7 @@ router.post("/login", async (req, res, next) => {
     });
 
     const usuario = await carregarUsuario(encontrado.id_usuario);
-    const token = assinarToken({
-      id_usuario: usuario.id_usuario,
-      login: usuario.login,
-      perfil: usuario.perfil,
-      permissoes: usuario.permissoes,
-    });
-
-    res.json({ token, usuario });
+    res.json({ token: tokenPara(usuario), usuario });
   } catch (e) {
     next(e);
   }
@@ -174,6 +185,77 @@ router.post("/confirmar", autenticar, async (req, res, next) => {
     }
 
     res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/**
+ * A pessoa troca a PROPRIA senha.
+ *
+ * E a tela "Voce precisa alterar a sua senha", do primeiro acesso: a senha
+ * inicial foi escolhida pelo administrador, e enquanto ela vale, duas pessoas
+ * conhecem a mesma senha - e tudo o que for feito com ela fica na auditoria em
+ * nome de uma so.
+ *
+ * Pede a senha atual mesmo com a pessoa ja logada: um computador deixado
+ * aberto nao pode virar a oportunidade de alguem trocar a senha do dono e
+ * tomar a conta.
+ *
+ * Devolve um token NOVO. Trocar a senha marca senha_alterada_em, e a
+ * autenticacao recusa token emitido antes disso - o proprio token desta
+ * requisicao deixaria de valer, e a pessoa seria jogada para fora logo depois
+ * de trocar a senha com sucesso.
+ */
+router.post("/senha", autenticar, async (req, res, next) => {
+  try {
+    const senhaAtual = String(req.body?.senhaAtual || "");
+    const novaSenha = String(req.body?.novaSenha || "");
+    const id = req.usuario.id_usuario;
+
+    const { rows } = await query(
+      "SELECT login, senha_hash FROM usuario WHERE id_usuario = $1",
+      [id]
+    );
+    if (!rows[0]) return res.status(404).json({ erro: "Usuário não encontrado." });
+
+    // 400, e nao 401: para a tela, 401 significa "sessao expirada" e ela
+    // desloga a pessoa. Aqui a sessao esta boa - so a senha digitada nao.
+    if (!(await bcrypt.compare(senhaAtual, rows[0].senha_hash))) {
+      return res.status(400).json({ erro: "A senha atual não confere." });
+    }
+    if (novaSenha === senhaAtual) {
+      return res.status(400).json({ erro: "A nova senha precisa ser diferente da atual." });
+    }
+    const problema = problemaNaSenha(novaSenha, rows[0].login);
+    if (problema) return res.status(400).json({ erro: problema });
+
+    /*
+     * O instante da troca vem do relogio DESTA API, arredondado para baixo ao
+     * segundo - o mesmo relogio e o mesmo arredondamento do "emitido em" (iat)
+     * do token novo. Usando NOW() do banco, uma diferenca de um segundo entre
+     * o relogio do banco e o do servidor da API faria o token recem-emitido
+     * parecer mais velho que a troca, e ele seria recusado na hora.
+     */
+    const instante = new Date(Math.floor(Date.now() / 1000) * 1000);
+    await query(
+      `UPDATE usuario
+          SET senha_hash = $1, senha_alterada_em = $2::timestamptz, trocar_senha = FALSE
+        WHERE id_usuario = $3`,
+      [await bcrypt.hash(novaSenha, 10), instante.toISOString(), id]
+    );
+    esquecerUsuario(id);
+
+    await registrarAuditoria({
+      idUsuario: id,
+      acao: "ALTERAR_SENHA",
+      entidade: "usuario",
+      idRegistro: id,
+      justificativa: "Troca da própria senha",
+    });
+
+    const usuario = await carregarUsuario(id);
+    res.json({ token: tokenPara(usuario), usuario });
   } catch (e) {
     next(e);
   }

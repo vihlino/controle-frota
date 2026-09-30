@@ -27,7 +27,7 @@ export default criarPagina({
   iconeAcao: "fisc-servidores",
   permissaoGerenciar: "FISCALIZACAO_GERENCIAR_EQUIPES",
   permiteExcluir: true,
-  confirmarExclusao: (e) => `Excluir a equipe ${e.numero}?`,
+  descreverExclusao: (e) => `a equipe ${e.numero}`,
   mapaOpcoes: {},
   colunas: [
     { chave: "numero", rotulo: "Número", ordenavel: true },

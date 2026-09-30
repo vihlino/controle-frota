@@ -52,6 +52,10 @@ import { registrarAuditoria } from "./auditoria.js";
  * @param {string[]} config.campos    Colunas aceitas em POST/PUT. Campo fora
  *                                    dessa lista e ignorado, mesmo que venha no
  *                                    corpo da requisicao.
+ * @param {Array<{tabela: string, chave: string}>} [config.filhos]  Linhas que
+ *   PERTENCEM ao registro e nao existem sem ele (os itens de uma inspecao, os
+ *   equipamentos conferidos num checklist). Sao apagadas junto, na mesma
+ *   transacao, e guardadas na auditoria dentro do registro excluido.
  * @param {boolean} [config.exigeJustificativa]  Na EDICAO, obriga o motivo e
  *                                    grava-o na auditoria. Para o registro que
  *                                    e prova de um fato (o checklist), a
@@ -204,7 +208,7 @@ export function criarCrud(config) {
     tabela, id, select, from, busca = [], filtros = {}, ordenaveis = {},
     ordemPadrao, campos = [], obrigatorios = [], permissoes = {}, entidade,
     somenteLeitura = false, condicaoFixa, escopo, normalizacoes = {},
-    exigeJustificativa = false,
+    exigeJustificativa = false, filhos = [], bloquearEdicao,
   } = config;
 
   // Monta os middlewares de permissao uma vez so. Se a configuracao nao pediu
@@ -500,6 +504,17 @@ export function criarCrud(config) {
       }
 
       /*
+       * Regra da tabela sobre QUANDO o registro ainda pode ser editado (ex.: a
+       * inspecao so muda veiculo, data e hora enquanto esta pendente). Devolve
+       * a mensagem para o usuario, ou nada se pode.
+       */
+      const bloqueio = bloquearEdicao ? bloquearEdicao(anterior.rows[0], req.body) : null;
+      if (bloqueio) {
+        await cliente.query("ROLLBACK");
+        return res.status(409).json({ erro: bloqueio });
+      }
+
+      /*
        * A justificativa NAO e coluna da tabela - por isso nem aparece em
        * `campos` e nao corre risco de ser gravada no registro. Ela vai para a
        * auditoria, que e onde a pergunta "por que este numero mudou?" tem de
@@ -566,41 +581,74 @@ export function criarCrud(config) {
    * ela existia (se nao veio nada, era 404) e guardar o conteudo na auditoria.
    */
   router.delete("/:id", autenticar, ...podeGerenciar, async (req, res, next) => {
-    try {
-      const idRegistro = Number(req.params.id);
+    const idRegistro = Number(req.params.id);
 
-      // A exclusao pede o mesmo motivo que a edicao, e pelo mesmo motivo: o
-      // registro some, e sem justificativa a auditoria guarda o que sumiu sem
-      // guardar por que. DELETE com corpo e incomum, mas legitimo - o fetch do
-      // navegador envia, e a API le daqui.
-      const justificativa = String(req.body?.justificativa || "").trim();
-      if (exigeJustificativa && justificativa.length < 5) {
-        return res.status(400).json({
-          erro: "Escreva a justificativa da exclusão (o motivo fica registrado na auditoria).",
-        });
-      }
+    /*
+     * TODA exclusao pede o motivo - nao so as telas que ja pediam na edicao.
+     *
+     * O registro some das telas, e a auditoria e o unico lugar onde ele
+     * continua existindo: guarda o registro inteiro (dados_anteriores) e o POR
+     * QUE (justificativa). Sem o motivo, daqui a um ano ninguem sabe se o
+     * veiculo excluido saiu da frota, foi cadastrado em dobro ou foi apagado
+     * por engano. DELETE com corpo e incomum, mas legitimo - o fetch do
+     * navegador envia, e a API le daqui.
+     */
+    const justificativa = String(req.body?.justificativa || "").trim();
+    if (justificativa.length < 5) {
+      return res.status(400).json({
+        erro: "Escreva a justificativa da exclusão (o motivo fica registrado na auditoria).",
+      });
+    }
+
+    const cliente = await pool.connect();
+    try {
+      await cliente.query("BEGIN");
+
       // Mesmo recorte do GET e do PUT: fora do escopo, o registro simplesmente
       // nao existe para quem pediu.
       const recorte = escopo ? escopo(req) : null;
-      const { rows } = await query(
-        `DELETE FROM ${tabela}
+      const alvo = await cliente.query(
+        `SELECT * FROM ${tabela}
           WHERE ${id} = $1${recorte ? ` AND ${recorte.coluna} = $2` : ""}
-          RETURNING *`,
+          FOR UPDATE`,
         recorte ? [idRegistro, recorte.valor] : [idRegistro]
       );
-      if (!rows[0]) return res.status(404).json({ erro: "Registro não encontrado." });
+      if (!alvo.rows[0]) {
+        await cliente.query("ROLLBACK");
+        return res.status(404).json({ erro: "Registro não encontrado." });
+      }
+
+      /*
+       * As linhas que pertencem ao registro saem junto, e vao para a
+       * auditoria DENTRO dele. Antes a exclusao de uma inspecao ja feita (que
+       * tem itens) ou de um checklist (que tem os equipamentos conferidos)
+       * esbarrava na chave estrangeira e respondia "vinculado a outros" - o
+       * botao Excluir existia, mas so funcionava em registro vazio.
+       */
+      const guardados = {};
+      for (const f of filhos) {
+        const { rows } = await cliente.query(
+          `DELETE FROM ${f.tabela} WHERE ${f.chave} = $1 RETURNING *`,
+          [idRegistro]
+        );
+        if (rows.length) guardados[f.tabela] = rows;
+      }
+
+      await cliente.query(`DELETE FROM ${tabela} WHERE ${id} = $1`, [idRegistro]);
 
       await registrarAuditoria({
         idUsuario: req.usuario.id_usuario,
         acao: "EXCLUIR",
         entidade: entidade || tabela,
         idRegistro,
-        justificativa: justificativa || null,
-        dadosAnteriores: rows[0],
+        justificativa,
+        dadosAnteriores: { ...alvo.rows[0], ...guardados },
       });
 
+      await cliente.query("COMMIT");
       res.status(204).end(); // 204 = deu certo e nao ha corpo para devolver
     } catch (e) {
+      await cliente.query("ROLLBACK").catch(() => {});
       // 23503 e o codigo do Postgres para violacao de chave estrangeira:
       // alguem tentou excluir um setor que ainda tem veiculos, por exemplo.
       // Sem esse tratamento, a tela mostraria "erro interno", que nao ajuda.
@@ -610,6 +658,8 @@ export function criarCrud(config) {
         });
       }
       next(e);
+    } finally {
+      cliente.release();
     }
   });
 

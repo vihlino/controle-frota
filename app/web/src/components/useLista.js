@@ -94,6 +94,33 @@ export function useLista(recurso, filtrosIniciais = {}, fixos = {}) {
     return () => clearTimeout(temporizador);
   }, [recurso, filtros, ordem, pagina, porPagina, recarga]);
 
+  /*
+   * Filtros vindos do ENDERECO: /frotas/motoristas?busca=Maria abre a lista ja
+   * pesquisada por "Maria".
+   *
+   * E o que faz o alerta do sininho servir para alguma coisa: ele leva para a
+   * lista certa ja filtrada pelo que esta vencendo. Vale para toda tela de
+   * lista, para qualquer filtro que ela tenha - a busca, a situacao, o
+   * veiculo.
+   *
+   * Roda tambem quando so a pesquisa do endereco muda, sem trocar de tela:
+   * com a lista de motoristas aberta, clicar num segundo alerta de CNH troca a
+   * pesquisa pelo nome novo. Filtro FIXO fica de fora - ele e trava da tela,
+   * nao escolha de quem navega.
+   */
+  useEffect(() => {
+    const url = new URLSearchParams(location.search);
+    const daUrl = {};
+    for (const campo of Object.keys(iniciais.current)) {
+      if (campo in fixosRef.current) continue;
+      if (url.has(campo)) daUrl[campo] = url.get(campo);
+    }
+    if (Object.keys(daUrl).length) {
+      setFiltros((f) => ({ ...f, ...daUrl }));
+      setPagina(1);
+    }
+  }, [location.search]);
+
   /**
    * Muda um filtro e volta para a primeira pagina.
    * (Sem esse reset, filtrar estando na pagina 5 poderia mostrar uma lista

@@ -70,6 +70,29 @@ export function useConfirmacaoSenha() {
     });
   }, []);
 
+  /**
+   * A exclusao padronizada do sistema inteiro.
+   *
+   * Todas as telas diziam a mesma coisa de jeitos diferentes ("Esta acao nao
+   * pode ser desfeita. Confirme sua senha para excluir este registro", "Excluir
+   * o documento X?"), e so algumas pediam o motivo. Agora toda exclusao passa
+   * por aqui: a mesma frase, mudando so O QUE sai, e sempre com senha e
+   * justificativa - a API tambem recusa exclusao sem motivo (crud.js).
+   *
+   * @param {object} p
+   * @param {string} p.titulo  Ex.: "Excluir inspeção".
+   * @param {string} p.oQue    Ex.: "a inspeção do veículo GSQ1E87".
+   * @returns {Promise<{ok: boolean, justificativa: string}>}
+   */
+  const pedirExclusao = useCallback(({ titulo, oQue }) => pedirSenha({
+    titulo: titulo || "Excluir",
+    aviso: `Esta ação não pode ser desfeita: ${oQue} não irá constar do histórico.`,
+    perigo: true,
+    justificativa: true,
+    rotuloJustificativa: "Justificativa da exclusão *",
+    dicaJustificativa: "Ex.: cadastrado em duplicidade; o correto é o registro de 12/09",
+  }), [pedirSenha]);
+
   /*
    * O formato da resposta acompanha o que foi PEDIDO.
    *
@@ -97,7 +120,7 @@ export function useConfirmacaoSenha() {
     // A mesma regra da API (5 caracteres), conferida aqui para a pessoa nao
     // descobrir depois de digitar a senha.
     if (pedido.justificativa && justificativa.trim().length < 5) {
-      setErro("Escreva a justificativa da alteração.");
+      setErro(pedido.perigo ? "Escreva a justificativa da exclusão." : "Escreva a justificativa da alteração.");
       return;
     }
     setVerificando(true);
@@ -118,7 +141,10 @@ export function useConfirmacaoSenha() {
     <Modal
       titulo={pedido.titulo}
       aoFechar={() => responder(false)}
-      largura={pedido.justificativa ? 520 : 420}
+      // Editar e Excluir do MESMO tamanho: sao a mesma pergunta (quem e voce e
+      // por que), e janelas de larguras diferentes pareciam coisas diferentes.
+      largura={480}
+      compacto
       rodape={
         <>
           <button type="button" className="botao" onClick={() => responder(false)}>
@@ -132,14 +158,17 @@ export function useConfirmacaoSenha() {
               (pedido.justificativa && justificativa.trim().length < 5)
             }
           >
-            <Icone nome="salvar" tamanho={15} monocromatico />{" "}
+            <Icone nome={pedido.perigo ? "lixo" : "salvar"} tamanho={15} monocromatico />{" "}
             {verificando ? "Conferindo..." : "Confirmar"}
           </button>
         </>
       }
     >
       <form id="form-confirmar-senha" onSubmit={conferir} className="confirmar-senha">
-        <p className="confirmar-senha__texto">
+        {/* A frase e uma OBSERVACAO sobre o que vai acontecer - menor e no
+            centro, para nao competir com os campos, que sao o que a pessoa
+            precisa preencher. */}
+        <p className="confirmar-senha__texto confirmar-senha__texto--nota">
           {pedido.aviso || "Digite sua senha para confirmar esta ação."}
         </p>
         {erro && <div className="login__erro">{erro}</div>}
@@ -181,5 +210,5 @@ export function useConfirmacaoSenha() {
     </Modal>
   ) : null;
 
-  return { pedirSenha, elemento };
+  return { pedirSenha, pedirExclusao, elemento };
 }

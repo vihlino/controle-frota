@@ -100,7 +100,7 @@ export default function criarPagina(config) {
     const [erroForm, setErroForm] = useState("");
     const [salvando, setSalvando] = useState(false);
     const [vendo, setVendo] = useState(null);   // registro aberto em "Detalhes"
-    const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
+    const { pedirSenha, pedirExclusao, elemento: modalSenha } = useConfirmacaoSenha();
 
     const podeGerenciar = !config.permissaoGerenciar || podeVer(config.permissaoGerenciar);
     const temFormulario = !!config.formulario;
@@ -277,17 +277,26 @@ export default function criarPagina(config) {
      * ninguem le aquela caixinha.
      */
     async function excluir(registro) {
-      const confirmou = await pedirSenha({
-        titulo: "Excluir registro",
-        aviso:
-          config.confirmarExclusao?.(registro) ||
-          `Esta ação não pode ser desfeita. Confirme sua senha para excluir este ${config.singular}.`,
-        perigo: true,
-      });
-      if (!confirmou) return;
+      /*
+       * "O que sai": a tela pode descrever do jeito dela (descreverExclusao);
+       * senao sai artigo + nome do cadastro + o primeiro identificador que o
+       * registro tiver - "o servidor Maria Souza", "a equipe EQ-01".
+       */
+      const identificador =
+        registro.nome ?? registro.placa ?? registro.protocolo ??
+        registro.numero ?? registro.codigo ?? "";
+      const oQue =
+        config.descreverExclusao?.(registro) ||
+        `${config.artigo || "o"} ${config.singular} ${identificador}`.trim();
+
+      const resposta = await pedirExclusao({ titulo: `Excluir ${config.singular}`, oQue });
+      if (!resposta.ok) return;
 
       try {
-        await api(`/${config.recurso}/${registro[config.id]}`, { method: "DELETE" });
+        await api(`/${config.recurso}/${registro[config.id]}`, {
+          method: "DELETE",
+          body: { justificativa: resposta.justificativa },
+        });
         lista.recarregar();
       } catch (e) {
         // Cobre o caso de registro vinculado a outros, que a API devolve com

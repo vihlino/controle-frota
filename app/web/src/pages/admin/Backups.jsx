@@ -20,6 +20,7 @@ import Cartao from "../../components/Cartao.jsx";
 import Icone from "../../components/Icone.jsx";
 import { api } from "../../lib/api.js";
 import { numero } from "../../lib/formato.js";
+import AjudaTela from "../../components/AjudaTela.jsx";
 
 export default function Backups() {
   const { definirCabecalho } = useOutletContext();
@@ -43,8 +44,7 @@ export default function Backups() {
     <>
       <div className="cabecalho-pagina">
         <div>
-          <h1>Backups e dados</h1>
-          <p>Situação do banco de dados e da guarda das informações.</p>
+          <h1>Backups e dados<AjudaTela /></h1>
         </div>
       </div>
 

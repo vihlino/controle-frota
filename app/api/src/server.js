@@ -25,7 +25,8 @@
  */
 
 import "dotenv/config";
-import { appendFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
+import dotenv from "dotenv";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { urlPublica, ipsDaRedeLocal } from "./urlPublica.js";
@@ -188,6 +189,14 @@ async function iniciarServidor() {
     message: { erro: "Muitas tentativas. Tente novamente em 15 minutos." },
   }));
 
+  // A troca da propria senha tambem confere a senha atual - sem limite, um
+  // computador deixado logado viraria um lugar para testar senhas a vontade.
+  app.use("/api/sessao/senha", rateLimit({
+    windowMs: 15 * 60_000, max: 10, standardHeaders: true, legacyHeaders: false,
+    skipSuccessfulRequests: true,
+    message: { erro: "Muitas tentativas. Tente novamente em 15 minutos." },
+  }));
+
   app.use(express.json({ limit: "1mb" }));
 
   /*
@@ -322,6 +331,31 @@ async function iniciarServidor() {
   app.listen(porta, () => {
 
     console.log(`SITRA API em http://localhost:${porta}`);
+
+    /*
+     * Diz em QUAL banco a API entrou. O .env nao manda sozinho: uma variavel
+     * definida na propria janela (ex.: `set PGHOST=...` usado para o backup
+     * do principal) vale MAIS que o .env, e a API sobe em outro banco sem
+     * avisar - o login passa a recusar a senha "certa", porque o usuario e a
+     * senha sao os daquele outro banco.
+     */
+    const host = process.env.PGHOST || "localhost";
+    console.log(`Banco: ${process.env.PGDATABASE || "sitra"} em ${host}`);
+    try {
+      const arquivoEnv = join(process.cwd(), ".env");
+      const doArquivo = existsSync(arquivoEnv) ? dotenv.parse(readFileSync(arquivoEnv)) : {};
+      const trocadas = ["PGHOST", "PGDATABASE", "PGUSER", "PGPORT"].filter(
+        (v) => doArquivo[v] !== undefined && process.env[v] !== doArquivo[v]
+      );
+      if (trocadas.length) {
+        console.log(
+          `  ATENCAO: ${trocadas.join(", ")} desta janela e diferente do .env - a API esta ` +
+          "usando OUTRO banco. Feche esta janela e abra um cmd novo para usar o do .env."
+        );
+      }
+    } catch {
+      // So um aviso: sem ele a API funciona igual.
+    }
 
     /*
      * Diz, na subida, qual endereco vai gravado dentro dos QR Codes.

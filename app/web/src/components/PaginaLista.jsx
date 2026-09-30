@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import Icone from "./Icone.jsx";
 import Trilha from "./Trilha.jsx";
+import AjudaTela from "./AjudaTela.jsx";
 import Kpi from "./Kpi.jsx";
 import { Tabela, Paginacao } from "./Tabela.jsx";
 import { numero } from "../lib/formato.js";
@@ -56,8 +57,9 @@ export default function PaginaLista({
       <div className="cabecalho-pagina">
         <div>
           {trilha && <Trilha itens={trilha} />}
-          <h1>{titulo}</h1>
-          {descricao && <p>{descricao}</p>}
+          {/* A descricao nao fica mais escrita embaixo do titulo: vai para o
+              (?) ao lado dele, e abre ao passar o mouse. */}
+          <h1>{titulo}<AjudaTela texto={descricao} /></h1>
         </div>
         {acao}
       </div>

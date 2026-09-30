@@ -22,8 +22,7 @@ import Documentos from "./pages/frotas/Documentos.jsx";
 import Sinistros from "./pages/frotas/Sinistros.jsx";
 import Relatorios from "./pages/frotas/Relatorios.jsx";
 import RelatorioVer from "./pages/frotas/RelatorioVer.jsx";
-import NovaInspecao from "./pages/frotas/NovaInspecao.jsx";
-import AgendarManutencao from "./pages/frotas/AgendarManutencao.jsx";
+import ManutencaoDetalhe from "./pages/frotas/ManutencaoDetalhe.jsx";
 import NovoDocumento from "./pages/frotas/NovoDocumento.jsx";
 import NovoSinistro from "./pages/frotas/NovoSinistro.jsx";
 
@@ -39,6 +38,7 @@ import Usuarios from "./pages/admin/Usuarios.jsx";
 import Servidores from "./pages/admin/Servidores.jsx";
 import Motoristas from "./pages/Motoristas.jsx";
 import Fiscais from "./pages/Fiscais.jsx";
+import TrocarSenha from "./pages/TrocarSenha.jsx";
 import Perfis from "./pages/admin/Perfis.jsx";
 import Setores from "./pages/admin/Setores.jsx";
 import Parametros from "./pages/admin/Parametros.jsx";
@@ -53,6 +53,9 @@ function Protegido({ children }) {
   const { usuario, carregando } = useSessao();
   if (carregando) return <div className="carregando">Carregando...</div>;
   if (!usuario) return <Navigate to="/entrar" replace />;
+  // Senha provisoria: nenhuma tela do sistema antes da troca. A API tambem
+  // recusa (auth.js) - aqui e so para a pessoa cair direto no lugar certo.
+  if (usuario.trocarSenha) return <Navigate to="/trocar-senha" replace />;
   return children;
 }
 
@@ -82,6 +85,7 @@ export default function App() {
     <Routes>
       <Route path="/entrar" element={usuario ? <Navigate to="/dashboard" replace /> : <Login />} />
       <Route path="/checklist/:token" element={<ChecklistQr />} />
+      <Route path="/trocar-senha" element={usuario ? <TrocarSenha /> : <Navigate to="/entrar" replace />} />
 
       <Route element={<Protegido><Layout /></Protegido>}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -93,10 +97,12 @@ export default function App() {
         <Route path="/frotas/checklists" element={<ComPermissao codigo={FROTAS}><Checklists /></ComPermissao>} />
         <Route path="/frotas/checklists/:id" element={<ComPermissao codigo={FROTAS}><ChecklistDetalhe /></ComPermissao>} />
         <Route path="/frotas/inspecoes" element={<ComPermissao codigo={FROTAS}><Inspecoes /></ComPermissao>} />
-        <Route path="/frotas/inspecoes/nova" element={<ComPermissao codigo={FROTAS}><NovaInspecao /></ComPermissao>} />
+        {/* Agendar virou pop-up na propria lista; o endereco antigo leva ate ele. */}
+        <Route path="/frotas/inspecoes/nova" element={<Navigate to="/frotas/inspecoes?agendar=1" replace />} />
         <Route path="/frotas/inspecoes/:id" element={<ComPermissao codigo={FROTAS}><InspecaoDetalhe /></ComPermissao>} />
         <Route path="/frotas/manutencoes" element={<ComPermissao codigo={FROTAS}><Manutencoes /></ComPermissao>} />
-        <Route path="/frotas/manutencoes/agendar" element={<ComPermissao codigo={FROTAS}><AgendarManutencao /></ComPermissao>} />
+        <Route path="/frotas/manutencoes/agendar" element={<Navigate to="/frotas/manutencoes?registrar=1" replace />} />
+        <Route path="/frotas/manutencoes/:id" element={<ComPermissao codigo={FROTAS}><ManutencaoDetalhe /></ComPermissao>} />
         <Route path="/frotas/documentos" element={<ComPermissao codigo={FROTAS}><Documentos /></ComPermissao>} />
         <Route path="/frotas/documentos/novo" element={<ComPermissao codigo={FROTAS}><NovoDocumento /></ComPermissao>} />
         <Route path="/frotas/sinistros" element={<ComPermissao codigo={FROTAS}><Sinistros /></ComPermissao>} />

@@ -10,8 +10,35 @@ import Cartao from "../../components/Cartao.jsx";
 import Icone from "../../components/Icone.jsx";
 import Trilha from "../../components/Trilha.jsx";
 import Selo from "../../components/Selo.jsx";
+import Modal from "../../components/Modal.jsx";
+import EditarInspecao from "../../components/EditarInspecao.jsx";
+import { Selecao } from "../../components/Campos.jsx";
 import { api } from "../../lib/api.js";
-import { data, hora, numero, rotulo, ROTULOS } from "../../lib/formato.js";
+import { data, dataHora, hora, numero, numeroOs, rotulo, ROTULOS } from "../../lib/formato.js";
+import { useSessao } from "../../lib/sessao.jsx";
+
+const PRIORIDADES = [
+  { valor: "BAIXA", rotulo: "Baixa" },
+  { valor: "MEDIA", rotulo: "Média" },
+  { valor: "ALTA", rotulo: "Alta" },
+];
+const TIPOS_OS = [
+  { valor: "CORRETIVA", rotulo: "Corretiva" },
+  { valor: "PREVENTIVA", rotulo: "Preventiva" },
+];
+const NOME_RESULTADO = { ATENCAO: "Atenção", AVARIA: "Avaria" };
+
+/*
+ * O texto inicial da OS: cada item com ressalva, com o que o condutor
+ * escreveu. A gestao so ajusta - nao precisa copiar a inspecao a mao para
+ * dentro da OS, que era justamente o trabalho que fazia a OS nao ser aberta.
+ */
+function descricaoDaOs(itens) {
+  return itens
+    .filter((i) => i.resultado !== "NORMAL")
+    .map((i) => `${i.item} (${NOME_RESULTADO[i.resultado] || i.resultado}): ${i.observacao || "sem observação"}`)
+    .join("\n");
+}
 
 // Marcador das tres colunas de resultado: Conforme, Atencao e Nao conforme.
 function Marca({ ativo, tom }) {
@@ -26,6 +53,15 @@ export default function InspeçãoDetalhe() {
   const [inspeção, setInspeção] = useState(null);
   const [itens, setItens] = useState([]);
   const [erro, setErro] = useState("");
+  const [recarga, setRecarga] = useState(0);
+  const { podeVer } = useSessao();
+
+  // As tres janelas desta tela: corrigir itens, abrir OS, concluir analise.
+  const [corrigindo, setCorrigindo] = useState(false);
+  const [abrindoOs, setAbrindoOs] = useState(null);      // formulario da OS ou null
+  const [analisando, setAnalisando] = useState(null);    // texto da decisao ou null
+  const [erroJanela, setErroJanela] = useState("");
+  const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
     definirCabecalho({ titulo: "", legenda: "" });
@@ -34,7 +70,49 @@ export default function InspeçãoDetalhe() {
   useEffect(() => {
     api(`/frotas/inspecoes/${id}`).then(setInspeção).catch((e) => setErro(e.message));
     api(`/frotas/inspecoes/${id}/itens`).then((r) => setItens(Array.isArray(r) ? r : [])).catch(() => {});
-  }, [id]);
+  }, [id, recarga]);
+
+  const recarregar = () => setRecarga((n) => n + 1);
+
+  function abrirOs() {
+    setErroJanela("");
+    setAbrindoOs({
+      tipo: "CORRETIVA",
+      // Avaria pede mais pressa que Atencao.
+      gravidade: itens.some((i) => i.resultado === "AVARIA") ? "ALTA" : "MEDIA",
+      descricao: descricaoDaOs(itens),
+    });
+  }
+
+  async function enviarOs(e) {
+    e.preventDefault();
+    setEnviando(true);
+    setErroJanela("");
+    try {
+      await api(`/frotas/inspecoes/${id}/os`, { method: "POST", body: abrindoOs });
+      setAbrindoOs(null);
+      recarregar();
+    } catch (err) {
+      setErroJanela(err.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function enviarAnalise(e) {
+    e.preventDefault();
+    setEnviando(true);
+    setErroJanela("");
+    try {
+      await api(`/frotas/inspecoes/${id}/analise`, { method: "POST", body: { observacao: analisando } });
+      setAnalisando(null);
+      recarregar();
+    } catch (err) {
+      setErroJanela(err.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
 
   if (erro) return <Cartao><div className="vazio">{erro}</div></Cartao>;
   if (!inspeção) return <div className="carregando">Carregando a inspeção...</div>;
@@ -54,9 +132,7 @@ export default function InspeçãoDetalhe() {
     },
     {
       rotulo: "Resultado",
-      valor: !inspeção.resultado
-        ? "-"
-        : inspeção.resultado === "CONFORME" ? "Aprovado" : "Reprovado",
+      valor: ROTULOS.analiseInspecao[inspeção.analise]?.texto || "-",
       icone: "chart-line",
     },
   ];
@@ -87,6 +163,14 @@ export default function InspeçãoDetalhe() {
           <button className="botao" onClick={() => navegar("/frotas/inspecoes")}>
             <Icone nome="seta-esquerda" tamanho={15} /> Voltar
           </button>
+          {podeVer("FROTAS_REALIZAR_INSPECAO") && (
+            <button className="botao"
+                    onClick={() => (inspeção.status === "ABERTA"
+                      ? navegar(`/frotas/inspecoes?editar=${inspeção.id_inspecao}`)
+                      : setCorrigindo(true))}>
+              <Icone nome="editar" tamanho={15} /> Editar
+            </button>
+          )}
         </div>
       </div>
 
@@ -102,6 +186,71 @@ export default function InspeçãoDetalhe() {
           </div>
         ))}
       </div>
+
+      {inspeção.status === "FINALIZADA" && (
+        <Cartao
+          titulo="Análise da gestão"
+          className="cartao--analise"
+          acao={
+            <>
+              {inspeção.analise === "EM_ANALISE" && (
+                <div className="analise-aviso">
+                  <Icone nome="alert-triangle" tamanho={14} />
+                  <span>
+                    <strong>
+                      {inspeção.itens_com_ressalva}{" "}
+                      {inspeção.itens_com_ressalva === 1 ? "item com ressalva" : "itens com ressalva"}:
+                    </strong>{" "}
+                    abra uma OS ou conclua a análise. Até lá, aparece como "Em análise" na lista.
+                  </span>
+                </div>
+              )}
+              {inspeção.analise !== "APROVADO" && (
+                <div className="analise-botoes">
+                  {podeVer("FROTAS_GERENCIAR_OS") && (
+                    <button className="botao botao--primario botao--pequeno" onClick={abrirOs}>
+                      <Icone nome="kpi-wrench" tamanho={14} monocromatico /> Abrir OS
+                    </button>
+                  )}
+                  {inspeção.analise === "EM_ANALISE" && podeVer("FROTAS_REALIZAR_INSPECAO") && (
+                    <button className="botao botao--pequeno"
+                            onClick={() => { setErroJanela(""); setAnalisando(""); }}>
+                      <Icone nome="check" tamanho={14} /> Concluir sem OS
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
+          }
+        >
+          {inspeção.analise === "APROVADO" && (
+            <p className="texto-corrido">Nenhum item com ressalva: não há o que analisar.</p>
+          )}
+
+          {inspeção.analise === "ANALISADO" && (
+            <p className="texto-corrido">
+              Analisada por <strong>{inspeção.analisada_por_nome || "-"}</strong> em{" "}
+              {dataHora(inspeção.analisada_em)}.
+              {inspeção.analise_observacao && <> Decisão: {inspeção.analise_observacao}</>}
+            </p>
+          )}
+
+          {inspeção.ordens_servico?.length > 0 && (
+            <ul className="os-ligadas">
+              {inspeção.ordens_servico.map((os) => (
+                <li key={os.id_os}>
+                  <button type="button" className="os-ligadas__link"
+                          onClick={() => navegar(`/frotas/manutencoes/${os.id_os}`)}>
+                    {numeroOs(os.numero)}
+                  </button>
+                  <Selo valor={os.status} />
+                  <span className="os-ligadas__descricao">{os.descricao}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Cartao>
+      )}
 
       <Cartao titulo="Informações complementares">
         <dl className="lista-dados lista-dados--grade">
@@ -206,6 +355,73 @@ export default function InspeçãoDetalhe() {
           </ol>
         </Cartao>
       </div>
+
+      {corrigindo && (
+        <EditarInspecao inspecao={inspeção} aoFechar={() => setCorrigindo(false)} aoSalvar={recarregar} />
+      )}
+
+      {abrindoOs && (
+        <Modal
+          titulo="Abrir OS de manutenção"
+          largura={560}
+          aoFechar={() => setAbrindoOs(null)}
+          rodape={
+            <>
+              <button className="botao" onClick={() => setAbrindoOs(null)}>Cancelar</button>
+              <button className="botao botao--primario" form="form-os-inspecao" disabled={enviando}>
+                {enviando ? "Abrindo..." : "Abrir OS"}
+              </button>
+            </>
+          }
+        >
+          {erroJanela && <div className="login__erro">{erroJanela}</div>}
+          <form id="form-os-inspecao" className="formulario-grade" onSubmit={enviarOs}>
+            <Selecao rotulo="Tipo de manutenção *" id="os-tipo" opcoes={TIPOS_OS}
+                     value={abrindoOs.tipo}
+                     onChange={(e) => setAbrindoOs((f) => ({ ...f, tipo: e.target.value }))} />
+            <Selecao rotulo="Prioridade *" id="os-gravidade" opcoes={PRIORIDADES}
+                     value={abrindoOs.gravidade}
+                     onChange={(e) => setAbrindoOs((f) => ({ ...f, gravidade: e.target.value }))} />
+            <div className="campo" data-largo="sim">
+              <label htmlFor="os-descricao">O que precisa ser resolvido *</label>
+              <textarea id="os-descricao" rows={6} required minLength={5}
+                        value={abrindoOs.descricao}
+                        onChange={(e) => setAbrindoOs((f) => ({ ...f, descricao: e.target.value }))} />
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {analisando !== null && (
+        <Modal
+          titulo="Concluir análise"
+          largura={480}
+          compacto
+          aoFechar={() => setAnalisando(null)}
+          rodape={
+            <>
+              <button className="botao" onClick={() => setAnalisando(null)}>Cancelar</button>
+              <button className="botao botao--primario" form="form-analise" disabled={enviando}>
+                {enviando ? "Salvando..." : "Concluir análise"}
+              </button>
+            </>
+          }
+        >
+          <form id="form-analise" className="confirmar-senha" onSubmit={enviarAnalise}>
+            <p className="confirmar-senha__texto confirmar-senha__texto--nota">
+              A inspeção passa para "Analisado", com o seu nome e o que foi decidido.
+            </p>
+            {erroJanela && <div className="login__erro">{erroJanela}</div>}
+            <div className="campo">
+              <label htmlFor="analise-texto">O que foi decidido *</label>
+              <textarea id="analise-texto" rows={3} required minLength={5} autoFocus
+                        placeholder="Ex.: óleo completado na garagem; não precisa de OS"
+                        value={analisando}
+                        onChange={(e) => setAnalisando(e.target.value)} />
+            </div>
+          </form>
+        </Modal>
+      )}
     </>
   );
 }

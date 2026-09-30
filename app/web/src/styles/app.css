@@ -477,7 +477,8 @@ button { font: inherit; cursor: pointer; }
 
 .grade-2 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+  /* min(..., 100%): no celular a coluna nao pode exigir 440px numa tela de 390. */
+  grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr));
   gap: 16px;
   margin-bottom: 18px;
 }
@@ -997,14 +998,53 @@ button { font: inherit; cursor: pointer; }
   padding: var(--e-3) var(--e-4);
   margin-bottom: var(--e-4);
 }
-/* LARGURA FIXA, e nao proporcional.
-   Com `flex: 1 1` cada tela distribuia a sobra entre os campos que tinha: a
-   Buscar de Veiculos (3 campos) saia com o dobro da de Inspecoes (5 campos), e
-   nada ficava alinhado entre uma tela e outra. Agora o campo tem o tamanho que
-   o CONTEUDO dele pede, igual em todo lugar, e a sobra fica para a direita. */
-.filtros > .campo { flex: 0 1 190px; min-width: 150px; }
-.filtros > .campo:first-child { flex: 0 1 290px; min-width: 200px; }
-.filtros > .campo:has(.campo-periodo) { flex: 0 1 250px; }
+/* LARGURA QUE ACOMPANHA A TELA, com piso e teto.
+
+   Antes cada campo tinha largura fixa (Buscar 290px, os outros 190px). No
+   monitor grande sobrava espaco a direita; no notebook, telas com mais filtros
+   (Inspecoes, Manutencoes) nao cabiam e o "Limpar" caia sozinho para a linha
+   de baixo - a quebra de linha do flex decide pelo tamanho BASE do campo, e
+   290 + 190 + 190 + ... ja passava da largura antes de qualquer campo encolher.
+
+   Agora a base e o MINIMO que o campo aceita, e o que sobra da linha e
+   dividido entre eles:
+
+     - o piso (flex-basis = min-width) e o que decide se cabe na linha. Com
+       ele baixo, as seis caixas de Manutencoes + Limpar cabem num notebook;
+     - o crescimento (flex-grow) reparte a sobra na proporcao de sempre: a
+       Buscar recebe o dobro, o Periodo um pouco mais que os seletores;
+     - o teto (max-width) impede que num monitor largo uma caixa de "Situacao"
+       vire uma faixa de 600px. Passado o teto, a sobra fica a direita, como
+       antes.
+
+   Assim as proporcoes entre os campos se mantem em qualquer tela; o que muda
+   e so o quanto cada um estica. */
+.filtros > .campo { flex: 1 1 140px; min-width: 140px; max-width: 240px; }
+.filtros > .campo:first-child { flex: 2 1 200px; min-width: 200px; max-width: 420px; }
+/* O Periodo nao desce de 240px: sao duas datas "dd/mm/aaaa" lado a lado, e
+   abaixo disso o ano das duas comeca a ser cortado. */
+.filtros > .campo:has(.campo-periodo) { flex: 1.2 1 240px; min-width: 240px; max-width: 300px; }
+
+/* Notebook de tela menor (1366px): piso mais baixo e espaco entre caixas um
+   pouco menor, para a tela mais cheia (Manutencoes) ainda caber numa linha -
+   contando a barra de rolagem do Windows, que come uns 17px da largura. */
+@media (max-width: 1450px) {
+  .filtros { gap: var(--e-2); }
+  .filtros > .campo { flex-basis: 115px; min-width: 115px; }
+  .filtros > .campo:first-child { flex-basis: 150px; min-width: 150px; }
+}
+
+/* Celular: um filtro por linha, na largura toda. O teto dos campos era para
+   tela larga; aqui ele so deixaria uma faixa vazia ao lado de cada caixa. */
+@media (max-width: 720px) {
+  .filtros > .campo,
+  .filtros > .campo:first-child,
+  .filtros > .campo:has(.campo-periodo) {
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: none;
+  }
+}
 .filtros .campo label {
   font-size: var(--t-sm);
   color: var(--texto-2);
@@ -1167,6 +1207,18 @@ button { font: inherit; cursor: pointer; }
 }
 .login__botao { height: 48px; font-size: 15px; }
 .login__rodape { font-size: 12.5px; color: var(--texto-3); text-align: center; }
+/* "Sair" da tela de troca de senha: um botao com cara de link, discreto -
+   e a saida de emergencia, nao a acao da tela. */
+.login__link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--texto-2);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.login__link:hover { color: var(--texto); }
 
 /* ---------- utilitarios ---------- */
 
@@ -1341,6 +1393,15 @@ button { font: inherit; cursor: pointer; }
 }
 .modal__fechar:hover { background: var(--superficie-2); color: var(--texto); }
 .modal__corpo { padding: 20px 22px; overflow-y: auto; }
+
+/* Caixa curta (Editar / Excluir com senha): pede duas coisas, nao precisa do
+   respiro de um formulario. Titulo menor, linha do titulo mais perto dele e
+   menos espaco em volta de tudo. */
+.modal--compacto .modal__topo { padding: 14px 20px 10px; align-items: center; }
+.modal--compacto .modal__titulo { font-size: 17px; }
+.modal--compacto .modal__corpo { padding: 14px 20px; }
+.modal--compacto .modal__rodape { padding: 12px 20px; }
+.modal--compacto .confirmar-senha { gap: var(--e-3); }
 
 /* Cabecalho de secao dentro do formulario ("Dados pessoais", "CNH",
    "Vinculacao"). Ocupa a linha inteira da grade e separa os blocos. */
@@ -2558,6 +2619,54 @@ button { font: inherit; cursor: pointer; }
   color: var(--texto-2);
   line-height: 1.5;
 }
+.confirmar-senha__texto--centro { text-align: center; }
+/* A frase de observacao da caixa de senha: o que vai acontecer, dito uma vez,
+   pequeno e no centro. */
+.confirmar-senha__texto--nota {
+  text-align: center;
+  font-size: var(--t-sm);
+  line-height: 1.45;
+}
+
+/* Resumo do usuario recem-criado ("Novo usuario SITRA"): rotulo pequeno em
+   cima, valor embaixo, uma linha por dado - e uma ficha para ser lida em voz
+   alta ou copiada, nao um formulario. */
+.resumo-usuario { margin: 0; display: grid; gap: var(--e-3); }
+.resumo-usuario dt {
+  font-size: var(--t-sm);
+  color: var(--texto-2);
+  margin-bottom: 2px;
+}
+.resumo-usuario dd { margin: 0; font-size: var(--t-md); font-weight: var(--peso-semi); }
+.resumo-usuario dd.resumo-usuario__nota {
+  margin-top: 2px;
+  font-size: var(--t-sm);
+  font-weight: normal;
+  color: var(--texto-2);
+}
+
+/* Regras da senha, conferidas enquanto se digita. Cinza enquanto falta,
+   verde com o sinal de conferido quando cumprida - a pessoa ve o que falta
+   antes de clicar em salvar, em vez de descobrir pela mensagem de erro. */
+.regras-senha {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--e-1);
+  font-size: var(--t-sm);
+  color: var(--texto-2);
+}
+.regras-senha li { display: flex; align-items: center; gap: var(--e-2); }
+.regras-senha li[data-ok] { color: var(--verde-texto); }
+.regras-senha__marca {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin: 0 3px;
+  border-radius: 50%;
+  background: var(--texto-3);
+}
 
 .botao--perigo {
   background: var(--vermelho);
@@ -2985,3 +3094,248 @@ button { font: inherit; cursor: pointer; }
   letter-spacing: 0.04em;
   text-align: left;
 }
+
+/* Analise da gestao (detalhe da inspecao): OS abertas a partir da inspecao e
+   os botoes de decisao. Nome proprio para nao herdar o .lista-os do painel. */
+.os-ligadas {
+  list-style: none;
+  margin: var(--e-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+.os-ligadas li {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--superficie-3);
+  border-radius: var(--raio-sm);
+}
+.os-ligadas__link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: var(--peso-semi);
+  color: var(--texto);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.os-ligadas__descricao {
+  flex: 1 1 220px;
+  font-size: var(--t-sm);
+  color: var(--texto-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cartao__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2);
+  margin-top: var(--e-4);
+}
+
+/* Cartao "Analise da gestao": o aviso e os botoes moram na linha do titulo.
+   Titulo a esquerda, aviso logo depois, botoes encostados na direita. Em tela
+   estreita tudo quebra de linha, e os botoes continuam a direita. */
+.cartao--analise .cartao__topo { flex-wrap: wrap; row-gap: var(--e-2); }
+.cartao--analise .cartao__titulo { flex: none; }
+.cartao--analise .cartao__corpo:empty { display: none; }
+.cartao--analise .cartao__topo:has(+ .cartao__corpo:empty) { padding-bottom: 18px; }
+.analise-aviso {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 5px 10px;
+  background: var(--ambar-suave);
+  border: 1px solid var(--ambar);
+  border-radius: var(--raio-sm);
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--texto-2);
+}
+.analise-aviso .icone { flex: none; }
+.analise-aviso strong { color: var(--texto); }
+.analise-botoes {
+  display: flex;
+  gap: var(--e-2);
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Titulo de secao dentro de um pop-up de formulario (Registrar / Fechar OS):
+   ocupa a linha inteira da grade e separa o obrigatorio do opcional. */
+.modal-secao {
+  grid-column: 1 / -1;
+  margin: var(--e-2) 0 0;
+  padding-top: var(--e-3);
+  border-top: 1px solid var(--borda);
+  font-size: var(--t-sm);
+  font-weight: var(--peso-semi);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-2);
+}
+.itens-os__linha { grid-template-columns: 28px 1fr 1fr 36px; }
+.itens-os__adicionar { margin-top: var(--e-3); }
+@media (max-width: 640px) {
+  .itens-os__linha { grid-template-columns: 28px 1fr 36px; }
+  .itens-os__linha input:nth-of-type(2) { grid-column: 2 / 3; }
+}
+
+/* Ficha da OS: textos longos (descricao, pecas, observacoes) mantem as
+   quebras de linha digitadas. */
+.texto-quebra { white-space: pre-line; }
+.ficha-textos { margin-top: var(--e-4); }
+/* Mesmo tamanho e cor dos rotulos das linhas de dados logo acima ("Data de
+   fechamento", "Custo final"...): e o rotulo do texto, nao um titulo. */
+.ficha-textos__titulo {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--texto-2);
+}
+.ficha-textos .texto-corrido { color: var(--texto); }
+.fechamento-pendente {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-3);
+  flex-wrap: wrap;
+}
+
+/* (?) de ajuda no fim do titulo da tela, no alto, como um expoente. O balao
+   abre para baixo, alinhado ao icone, por cima do conteudo. */
+.cabecalho-pagina h1 { display: inline-flex; align-items: flex-start; gap: 6px; }
+.ajuda-tela { position: relative; display: inline-flex; margin-top: 2px; }
+.ajuda-tela__botao {
+  display: inline-flex;
+  padding: 2px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--texto-3);
+  cursor: help;
+  opacity: 0.75;
+  transition: opacity 0.15s;
+}
+.ajuda-tela__botao:hover,
+.ajuda-tela__botao:focus-visible,
+.ajuda-tela[data-aberto="true"] .ajuda-tela__botao { opacity: 1; }
+.ajuda-tela__balao {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: -12px;
+  z-index: 50;
+  width: max-content;
+  max-width: min(340px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border-radius: var(--raio-sm);
+  background: var(--texto);
+  color: var(--superficie);
+  font-size: var(--t-sm);
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+  box-shadow: var(--sombra);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.15s, transform 0.15s, visibility 0.15s;
+  pointer-events: none;
+}
+.ajuda-tela__balao::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 17px;
+  width: 10px;
+  height: 10px;
+  background: inherit;
+  transform: rotate(45deg);
+}
+.ajuda-tela[data-aberto="true"] .ajuda-tela__balao {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+.topo__titulo { display: inline-flex; align-items: flex-start; gap: 6px; }
+
+/* ---------- celular / tablet estreito ----------
+   No desktop o topo (sino + usuario) fica EMPILHADO por cima do inicio da
+   pagina, a direita, dividindo a faixa com a trilha e o titulo. No celular
+   nao ha largura para dividir: o bloco do usuario caia em cima do titulo e
+   do botao de acao, e tocar no (?) abria o menu do usuario. Aqui o topo vira
+   uma faixa propria, acima da pagina. */
+@media (max-width: 900px) {
+  .conteudo { grid-template-rows: auto 1fr; }
+  .conteudo > .topo { grid-area: 1 / 1; }
+  .conteudo > .pagina { grid-area: 2 / 1; }
+  .topo {
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--fundo);
+    border-bottom: 1px solid var(--borda);
+    pointer-events: auto;
+  }
+  /* O topo ja tem a faixa dele: o respiro extra do painel nao e mais preciso. */
+  .conteudo[data-cabecalho="sim"] .pagina { padding-top: 18px; }
+  .topo__titulo { font-size: 15px; }
+  .topo__legenda { font-size: 12px; }
+}
+
+@media (max-width: 600px) {
+  /* So as iniciais: o nome completo e o perfil nao cabem ao lado do sino. O
+     menu que abre ao tocar continua mostrando os dois. */
+  .topo__usuario-texto { display: none; }
+  .topo__usuario { padding: 4px; }
+
+  /* Titulo na linha dele, acoes embaixo, encostadas a direita. */
+  .cabecalho-pagina { align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+  .cabecalho-pagina > div:first-child { flex: 1 1 100%; min-width: 0; position: relative; }
+  .cabecalho-pagina h1 { font-size: 24px; }
+  .cabecalho-pagina__acoes { justify-content: flex-end; }
+
+  /* O balao da ajuda ocupa a largura do cabecalho, em vez de nascer no icone
+     e vazar pela direita da tela. */
+  .ajuda-tela { position: static; }
+  .ajuda-tela__balao { left: 0; right: 0; width: auto; max-width: none; }
+  .ajuda-tela__balao::before { display: none; }
+  .topo > div:not(.topo__vazio):not(.topo__alertas):not(.relativo) { position: relative; min-width: 0; }
+
+  /* Paginacao quebra de linha e fica menor, em vez de passar da borda. */
+  .paginacao { flex-wrap: wrap; margin-left: 0; gap: 4px; }
+  .paginacao button { min-width: 34px; height: 34px; font-size: 13px; }
+  .rodape-tabela { padding: 12px 14px; }
+}
+
+/* Campo de valor em reais: "R$" fixo dentro da caixa, a esquerda. */
+.campo-dinheiro { position: relative; display: flex; }
+.campo-dinheiro input { flex: 1; min-width: 0; padding-left: 38px; }
+.campo-dinheiro__moeda {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--t-base);
+  color: var(--texto-2);
+  pointer-events: none;
+}
+
+/* Historico compacto (ficha da OS, coluna lateral): letra e respiro menores
+   que a linha do tempo das outras fichas - e apoio, nao o assunto da tela. */
+.linha-tempo--compacta li { gap: 9px; padding: 5px 0; }
+.linha-tempo--compacta strong { font-size: 12.5px; line-height: 1.3; }
+.linha-tempo--compacta span:not(.linha-tempo__ponto) { font-size: 11.5px; line-height: 1.3; }
+.linha-tempo--compacta .linha-tempo__ponto { width: 7px; height: 7px; margin-top: 4px; }
+.fechamento-pendente span { flex: 1 1 260px; }
+.fechamento-pendente .botao { flex: none; white-space: nowrap; }

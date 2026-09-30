@@ -102,7 +102,7 @@ export default function Checklists() {
    */
   const { podeVer } = useSessao();
   const podeEditar = podeVer("FROTAS_EDITAR_CHECKLIST");
-  const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
+  const { pedirSenha, pedirExclusao, elemento: modalSenha } = useConfirmacaoSenha();
   const [editando, setEditando] = useState(null);
   const [formulario, setFormulario] = useState({});
   const [abaForm, setAbaForm] = useState("SAIDA");
@@ -268,16 +268,16 @@ export default function Checklists() {
 
   /** Excluir exige senha e nao tem volta - por isso o aviso nomeia a placa. */
   async function excluir(c) {
-    const confirmou = await pedirSenha({
+    const resposta = await pedirExclusao({
       titulo: "Excluir checklist",
-      aviso:
-        `Esta ação não pode ser desfeita: o registro de saída do veículo ${c.placa} ` +
-        `sai do histórico. Confirme sua senha para excluir.`,
-      perigo: true,
+      oQue: `o checklist do veículo ${c.placa}`,
     });
-    if (!confirmou) return;
+    if (!resposta.ok) return;
     try {
-      await api(`/frotas/checklists/${c.id_checklist}`, { method: "DELETE" });
+      await api(`/frotas/checklists/${c.id_checklist}`, {
+        method: "DELETE",
+        body: { justificativa: resposta.justificativa },
+      });
       lista.recarregar();
     } catch (e) {
       alert(e.message);

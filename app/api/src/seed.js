@@ -67,8 +67,9 @@ try {
   if (!perfil[0]) throw new Error("Perfil 'Administrador' nao existe. O SQL do banco foi aplicado?");
 
   await cliente.query(
-    `INSERT INTO usuario (id_servidor, id_perfil, login, senha_hash)
-     VALUES ($1, $2, $3, $4)`,
+    // trocar_senha: a senha veio do .env; no primeiro acesso o dono cria a dele.
+    `INSERT INTO usuario (id_servidor, id_perfil, login, senha_hash, trocar_senha)
+     VALUES ($1, $2, $3, $4, TRUE)`,
     [servidor[0].id_servidor, perfil[0].id_perfil, LOGIN, await bcrypt.hash(SENHA, 10)]
   );
 

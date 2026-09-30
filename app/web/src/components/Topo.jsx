@@ -9,6 +9,7 @@
  * removidos na limpeza do useEffect para nao acumular.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import AjudaTela from "./AjudaTela.jsx";
 import Icone from "./Icone.jsx";
 import MenuSuspenso from "./MenuSuspenso.jsx";
 import { useNavigate } from "react-router-dom";
@@ -39,9 +40,14 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
 
   // Cada alerta aponta para o cadastro que precisa de atencao. Sem isso o
   // aviso obriga a pessoa a procurar na mao o servidor ou o veiculo citado.
+  //
+  // O endereco vem PRONTO da API (item.link), ja com a pesquisa: o nome do
+  // motorista, a placa do veiculo. Quem monta o alerta sabe o que ele aponta;
+  // a tela so segue.
   function abrirAlerta(item) {
     setAlertasAberto(false);
-    if (item.entidade === "servidor") navegar("/frotas/motoristas");
+    if (item.link) navegar(item.link);
+    else if (item.entidade === "servidor") navegar("/frotas/motoristas");
     else if (item.entidade === "documento_veiculo") navegar("/frotas/documentos");
   }
 
@@ -64,7 +70,7 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
           painel, com a saudacao - publica o titulo e ele aparece aqui. */}
       {titulo ? (
         <div>
-          <div className="topo__titulo">{titulo}</div>
+          <div className="topo__titulo">{titulo}<AjudaTela /></div>
           {legenda && <div className="topo__legenda">{legenda}</div>}
         </div>
       ) : (

@@ -180,11 +180,11 @@ export default function PainelFrotas({ dados }) {
           <Link className="acao-rapida" to="/frotas/veiculos?novo=1">
             + Cadastrar veículo
           </Link>
-          <Link className="acao-rapida" to="/frotas/inspecoes/nova">
+          <Link className="acao-rapida" to="/frotas/inspecoes?agendar=1">
             + Nova inspeção
           </Link>
-          <Link className="acao-rapida" to="/frotas/manutencoes/agendar">
-            + Nova OS
+          <Link className="acao-rapida" to="/frotas/manutencoes?registrar=1">
+            + Registrar OS
           </Link>
           <Link className="acao-rapida" to="/frotas/documentos/novo">
             + Adicionar documento

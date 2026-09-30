@@ -14,10 +14,11 @@ import Selo from "../../components/Selo.jsx";
 import Acoes from "../../components/Acoes.jsx";
 import Modal from "../../components/Modal.jsx";
 import { useConfirmacaoSenha } from "../../components/ConfirmarSenha.jsx";
+import EditarInspecao from "../../components/EditarInspecao.jsx";
 import { Texto, Selecao, Data, Area, Periodo } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
-import { data, hora, numero, rotulo } from "../../lib/formato.js";
+import { data, hora, numero, rotulo, ROTULOS, opcoes } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
 
 const FREQUENCIAS = [
@@ -34,20 +35,25 @@ export default function Inspeções() {
   const { podeVer } = useSessao();
   const [parametros] = useSearchParams();
   const lista = useLista("frotas/inspecoes", {
-    busca: "", veiculo: parametros.get("veiculo") || "", tipo: "", status: "", dataDe: "", dataAte: "",
+    busca: "", veiculo: parametros.get("veiculo") || "", tipo: "", status: "", analise: "",
+    dataDe: "", dataAte: "",
   });
   const [veículos, setVeículos] = useState([]);
   const [usuários, setUsuários] = useState([]);
   const [agendando, setAgendando] = useState(false);
   /*
-   * A MESMA JANELA AGENDA E CORRIGE
+   * EDITAR TEM DOIS SENTIDOS, CONFORME A SITUACAO
    *
-   * Sao os mesmos campos: o que muda e para onde vai (POST ou PUT) e o que se
-   * exige antes de gravar. Duplicar o formulario so garantiria que um dia os
-   * dois ficariam diferentes sem ninguem perceber.
+   * - PENDENTE: a inspecao ainda nao aconteceu. Editar reabre a janela de
+   *   agendar com tudo preenchido (veiculo, responsavel, frequencia, data,
+   *   hora) - e reagendar. `editandoId` guarda qual.
+   * - CONCLUIDA: a data e o veiculo viraram fato. Editar abre os ITENS que o
+   *   condutor marcou (EditarInspecao) - `corrigindo`. A API recusa trocar
+   *   veiculo/data de inspecao ja feita.
    */
-  const [editando, setEditando] = useState(null);
-  const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
+  const [editandoId, setEditandoId] = useState(null);
+  const [corrigindo, setCorrigindo] = useState(null);
+  const { pedirSenha, pedirExclusao, elemento: modalSenha } = useConfirmacaoSenha();
   const [formulario, setFormulario] = useState({
     id_veículo: "", id_gestor: "", tipo: "MENSAL", data_realizacao: "",
     hora_inicio: "08:00", observacoes: "",
@@ -57,66 +63,57 @@ export default function Inspeções() {
 
   const podeGerenciar = podeVer("FROTAS_REALIZAR_INSPECAO");
 
+  function abrirAgendamento(idVeiculo = "") {
+    setFormulario({
+      id_veículo: idVeiculo, id_gestor: "", tipo: "MENSAL", data_realizacao: "",
+      hora_inicio: "08:00", observacoes: "",
+    });
+    setEditandoId(null);
+    setErroForm("");
+    setAgendando(true);
+  }
+
+  /** Reabre a janela de agendar com a inspecao PENDENTE ja preenchida. */
   function abrirEdicao(i) {
     setFormulario({
-      id_veículo: i.id_veiculo ?? "",
-      id_gestor: i.id_gestor ?? "",
+      id_veículo: String(i.id_veiculo ?? ""),
+      id_gestor: String(i.id_gestor ?? ""),
       tipo: i.tipo || "MENSAL",
-      data_realizacao: (i.data_realizacao || "").slice(0, 10),
-      // O <input type="time"> recusa hora com microssegundos e esvazia o campo
-      // em silencio; o banco grava assim.
-      hora_inicio: (i.hora_inicio || "").slice(0, 5),
+      data_realizacao: i.data_realizacao ? String(i.data_realizacao).slice(0, 10) : "",
+      hora_inicio: i.hora_inicio ? String(i.hora_inicio).slice(0, 5) : "",
       observacoes: i.observacoes || "",
     });
+    setEditandoId(i.id_inspecao);
     setErroForm("");
-    setEditando(i.id_inspecao);
+    setAgendando(true);
   }
 
-  /** Corrigir e excluir pedem senha E motivo, que vai para a auditoria. */
-  async function salvarEdicao(e) {
-    e.preventDefault();
-    setSalvando(true);
-    setErroForm("");
-    try {
-      const resposta = await pedirSenha({
-        titulo: "Salvar alterações",
-        aviso: "Confirme sua senha para alterar esta inspeção.",
-        justificativa: true,
-      });
-      if (!resposta.ok) {
-        setSalvando(false);
-        return;
-      }
-      await api(`/frotas/inspecoes/${editando}`, {
-        method: "PUT",
-        body: {
-          justificativa: resposta.justificativa,
-          id_veiculo: Number(formulario.id_veículo),
-          id_gestor: Number(formulario.id_gestor),
-          tipo: formulario.tipo,
-          data_realizacao: formulario.data_realizacao || null,
-          hora_inicio: formulario.hora_inicio || null,
-          observacoes: formulario.observacoes,
-        },
-      });
-      setEditando(null);
-      lista.recarregar();
-    } catch (e) {
-      setErroForm(e.message);
-    } finally {
-      setSalvando(false);
+  /*
+   * /frotas/inspecoes?agendar=1 abre a janela de agendar. E o que o atalho
+   * "Agendar inspecao" do painel usa - antes ele levava a uma pagina separada,
+   * com outro desenho. O parametro sai do endereco depois de usado, senao um
+   * F5 abriria a janela de novo.
+   */
+  useEffect(() => {
+    if (parametros.get("agendar")) {
+      abrirAgendamento(parametros.get("veiculo") || "");
+      navegar("/frotas/inspecoes", { replace: true });
     }
-  }
+    // ?editar=ID vem do botao Editar da ficha de uma inspecao pendente.
+    const idEditar = parametros.get("editar");
+    if (idEditar) {
+      navegar("/frotas/inspecoes", { replace: true });
+      api(`/frotas/inspecoes/${idEditar}`)
+        .then((i) => (i.status === "ABERTA" ? abrirEdicao(i) : setCorrigindo(i)))
+        .catch((e) => alert(e.message));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function excluir(i) {
-    const resposta = await pedirSenha({
+    const resposta = await pedirExclusao({
       titulo: "Excluir inspeção",
-      aviso:
-        `Esta ação não pode ser desfeita: a inspeção do veículo ${i.placa} sai ` +
-        `do histórico. Confirme sua senha para excluir.`,
-      perigo: true,
-      justificativa: true,
-      rotuloJustificativa: "Justificativa da exclusão *",
+      oQue: `a inspeção do veículo ${i.placa}`,
     });
     if (!resposta.ok) return;
     try {
@@ -135,31 +132,52 @@ export default function Inspeções() {
     api("/usuarios?porPagina=200").then((r) => setUsuários(r.itens)).catch(() => {});
   }, []);
 
+  /** A proxima inspecao, pela frequencia e pela data escolhidas. */
+  function proximaCalculada() {
+    const dias = DIAS_POR_FREQUENCIA[formulario.tipo];
+    if (!dias || !formulario.data_realizacao) return null;
+    const d = new Date(`${formulario.data_realizacao}T12:00:00`);
+    d.setDate(d.getDate() + dias);
+    return d.toISOString().slice(0, 10);
+  }
+
   async function agendar(e) {
     e.preventDefault();
     setSalvando(true);
     setErroForm("");
     try {
       // A proxima inspeção ja sai calculada pela frequencia escolhida.
-      const dias = DIAS_POR_FREQUENCIA[formulario.tipo];
-      let proxima = null;
-      if (dias && formulario.data_realizacao) {
-        const d = new Date(`${formulario.data_realizacao}T12:00:00`);
-        d.setDate(d.getDate() + dias);
-        proxima = d.toISOString().slice(0, 10);
-      }
+      const proxima = proximaCalculada();
+      const dados = {
+        id_veiculo: Number(formulario.id_veículo),
+        id_gestor: Number(formulario.id_gestor),
+        tipo: formulario.tipo,
+        data_realizacao: formulario.data_realizacao || null,
+        data_programada: formulario.data_realizacao || null,
+        hora_inicio: formulario.hora_inicio || null,
+        observacoes: formulario.observacoes,
+        proxima_inspecao: proxima,
+      };
 
-      await api("/frotas/inspecoes", {
-        method: "POST",
-        body: {
-          ...formulario,
-          id_veiculo: Number(formulario.id_veículo),
-          id_gestor: Number(formulario.id_gestor),
-          data_programada: formulario.data_realizacao || null,
-          proxima_inspecao: proxima,
-          status: "ABERTA",
-        },
-      });
+      if (editandoId) {
+        // Reagendar tambem fica na auditoria, com o motivo: e o mesmo pedido
+        // de senha e justificativa das outras alteracoes.
+        const resposta = await pedirSenha({
+          titulo: "Salvar alterações",
+          aviso: "A alteração do agendamento fica registrada na auditoria, com o que estava antes.",
+          justificativa: true,
+        });
+        if (!resposta.ok) return;
+        await api(`/frotas/inspecoes/${editandoId}`, {
+          method: "PUT",
+          body: { ...dados, justificativa: resposta.justificativa },
+        });
+      } else {
+        await api("/frotas/inspecoes", {
+          method: "POST",
+          body: { ...dados, status: "ABERTA" },
+        });
+      }
       setAgendando(false);
       lista.recarregar();
     } catch (e) {
@@ -223,16 +241,17 @@ export default function Inspeções() {
       ),
     },
     {
-      chave: "resultado", rotulo: "Resultado",
-      render: (i) =>
-        !i.resultado ? (
-          "-"
-        ) : (
-          <Selo
-            texto={i.resultado === "CONFORME" ? "Aprovado" : "Reprovado"}
-            tom={i.resultado === "CONFORME" ? "verde" : "vermelho"}
-          />
-        ),
+      /*
+       * Nao e mais "Aprovado / Reprovado": uma inspecao com ressalva que
+       * ninguem olhou ainda e "Em analise" - e e ela que a gestao precisa
+       * abrir. Depois de alguem decidir (abrir OS ou registrar que nao
+       * precisa), vira "Analisado".
+       */
+      chave: "analise", rotulo: "Resultado", ordenavel: true,
+      render: (i) => {
+        const r = ROTULOS.analiseInspecao[i.analise];
+        return r ? <Selo texto={r.texto} tom={r.tom} /> : "-";
+      },
     },
     {
       chave: "ações", rotulo: "Ações",
@@ -243,8 +262,10 @@ export default function Inspeções() {
               rotulo: "Visualizar", icone: "visualizar",
               aoClicar: () => navegar(`/frotas/inspecoes/${i.id_inspecao}`),
             },
+            // Pendente: reagendar. Concluida: corrigir o que foi marcado.
             ...(podeGerenciar
-              ? [{ rotulo: "Editar", icone: "editar", aoClicar: () => abrirEdicao(i) }]
+              ? [{ rotulo: "Editar", icone: "editar",
+                   aoClicar: () => (i.status === "ABERTA" ? abrirEdicao(i) : setCorrigindo(i)) }]
               : []),
             {
               rotulo: "Ver veículo", icone: "kpi-car",
@@ -267,7 +288,7 @@ export default function Inspeções() {
       descricao="Acompanhe as inspeções periodicas agendadas para os veículos da frota."
       acao={
         podeGerenciar && (
-          <button className="botao botao--primario" onClick={() => navegar("/frotas/inspecoes/nova")}>
+          <button className="botao botao--primario" onClick={() => abrirAgendamento()}>
             <Icone nome="calendar" tamanho={15} /> Agendar inspeção
           </button>
         )
@@ -296,25 +317,24 @@ export default function Inspeções() {
                    ]}
                    value={lista.filtros.status}
                    onChange={(e) => lista.alterarFiltro("status", e.target.value)} />
+          <Selecao rotulo="Resultado" id="analise" vazio="Todos"
+                   opcoes={opcoes("analiseInspecao")}
+                   value={lista.filtros.analise}
+                   onChange={(e) => lista.alterarFiltro("analise", e.target.value)} />
           <Periodo id="periodo" de={lista.filtros.dataDe} ate={lista.filtros.dataAte}
                    aoMudarDe={(v) => lista.alterarFiltro("dataDe", v)}
                    aoMudarAte={(v) => lista.alterarFiltro("dataAte", v)} />
         </>
       }
     >
-      {(agendando || editando) && (
+      {agendando && (
         <Modal
-          titulo={editando ? "Editar inspeção" : "Agendar inspeção"}
-          legenda={
-            editando
-              ? "A alteração fica registrada na auditoria, com o valor anterior."
-              : "A próxima inspeção e calculada automaticamente pela frequência."
-          }
-          aoFechar={() => { setAgendando(false); setEditando(null); }}
+          titulo={editandoId ? "Editar inspeção" : "Agendar inspeção"}
+          legenda="A próxima inspeção é calculada automaticamente pela frequência."
+          aoFechar={() => setAgendando(false)}
           rodape={
             <>
-              <button className="botao"
-                      onClick={() => { setAgendando(false); setEditando(null); }}>
+              <button className="botao" onClick={() => setAgendando(false)}>
                 Cancelar
               </button>
               <button className="botao botao--primario" form="form-inspeção" disabled={salvando}>
@@ -325,8 +345,7 @@ export default function Inspeções() {
           }
         >
           {erroForm && <div className="login__erro">{erroForm}</div>}
-          <form id="form-inspeção" className="formulario-grade"
-                onSubmit={editando ? salvarEdicao : agendar}>
+          <form id="form-inspeção" className="formulario-grade" onSubmit={agendar}>
             <Selecao rotulo="Veículo *" id="id_veículo" required vazio="Selecione"
                      opcoes={veículos.map((v) => ({
                        valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
@@ -340,9 +359,25 @@ export default function Inspeções() {
             <Data rotulo="Data da inspeção *" id="data_realizacao" required
                   {...campo("data_realizacao")} />
             <Texto rotulo="Hora" id="hora_inicio" type="time" {...campo("hora_inicio")}  placeholder="Ex.: 08:30"/>
+            {/* Calculada, nao digitada: mostra na hora o que a frequencia
+                escolhida vai gerar, ao lado da hora - que ficava sozinha na
+                linha depois que o campo Local saiu. */}
+            <Texto rotulo="Próxima inspeção" id="proxima_calculada" disabled
+                   value={
+                     !DIAS_POR_FREQUENCIA[formulario.tipo] ? "Não calculada nesta frequência"
+                       : proximaCalculada() ? data(proximaCalculada()) : "Escolha a data"
+                   } />
             <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")}  placeholder="Ex.: Veículo em boas condições gerais"/>
           </form>
         </Modal>
+      )}
+
+      {corrigindo && (
+        <EditarInspecao
+          inspecao={corrigindo}
+          aoFechar={() => setCorrigindo(null)}
+          aoSalvar={lista.recarregar}
+        />
       )}
 
       {modalSenha}

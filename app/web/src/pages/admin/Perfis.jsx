@@ -13,6 +13,7 @@ import Selo from "../../components/Selo.jsx";
 import { api } from "../../lib/api.js";
 import { numero, rotulo } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
+import AjudaTela from "../../components/AjudaTela.jsx";
 
 // Acesso por módulo, tela e acao: o perfil recebe permissões e o usuário herda
 // as permissões do perfil dele.
@@ -106,8 +107,7 @@ export default function Perfis() {
       <div className="cabecalho-pagina">
         <div>
           <Trilha itens={[{ rotulo: "Administração" }, { rotulo: "Perfis e Permissões" }]} />
-          <h1>Perfis e Permissões</h1>
-          <p>O usuário herda as permissões do perfil. Marque o que cada perfil pode fazer.</p>
+          <h1>Perfis e Permissões<AjudaTela /></h1>
         </div>
         {podeEditar && escolhido && (
           <button className="botao botao--primario" onClick={salvar} disabled={salvando}>

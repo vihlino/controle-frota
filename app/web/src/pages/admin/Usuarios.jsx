@@ -9,22 +9,27 @@ import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
 import Acoes from "../../components/Acoes.jsx";
 import Modal from "../../components/Modal.jsx";
+import RegrasSenha from "../../components/RegrasSenha.jsx";
 import { Texto, Selecao } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
 import { dataHora } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
+import { senhaAceita, TAMANHO_MINIMO } from "../../lib/regrasSenha.js";
+import { cpf as mascaraCpf } from "../../lib/mascaras.js";
 
 // Usuários tem tela propria porque a senha nunca trafega junto com o resto do
 // cadastro: criar acesso e trocar senha sao ações separadas.
 export default function Usuários() {
-  const { podeVer } = useSessao();
+  const { podeVer, usuario } = useSessao();
   const lista = useLista("usuarios", { busca: "", perfil: "", status: "" });
   const [perfis, setPerfis] = useState([]);
   const [servidores, setServidores] = useState([]);
   const [criando, setCriando] = useState(false);
   const [trocandoSenha, setTrocandoSenha] = useState(null);
-  const [formulario, setFormulario] = useState({ id_servidor: "", id_perfil: "", login: "", senha: "" });
+  const [formulario, setFormulario] = useState({ id_servidor: "", id_perfil: "", login: "" });
+  // O usuario que acabou de ser criado, para o resumo "Novo usuario SITRA".
+  const [criado, setCriado] = useState(null);
   const [novaSenha, setNovaSenha] = useState("");
   const [erroForm, setErroForm] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -46,7 +51,7 @@ export default function Usuários() {
     setSalvando(true);
     setErroForm("");
     try {
-      await api("/usuarios", {
+      const novo = await api("/usuarios", {
         method: "POST",
         body: {
           ...formulario,
@@ -55,7 +60,8 @@ export default function Usuários() {
         },
       });
       setCriando(false);
-      setFormulario({ id_servidor: "", id_perfil: "", login: "", senha: "" });
+      setFormulario({ id_servidor: "", id_perfil: "", login: "" });
+      setCriado(novo);
       lista.recarregar();
     } catch (e) {
       setErroForm(e.message);
@@ -148,7 +154,7 @@ export default function Usuários() {
           acoes={[
             {
               rotulo: "Trocar senha", icone: "alterar-senha",
-              aoClicar: () => { setTrocandoSenha(u); setErroForm(""); },
+              aoClicar: () => { setTrocandoSenha(u); setNovaSenha(""); setErroForm(""); },
             },
             {
               rotulo: u.status ? "Desativar acesso" : "Reativar acesso",
@@ -201,7 +207,7 @@ export default function Usuários() {
       {criando && (
         <Modal
           titulo="Novo usuário"
-          legenda="O acesso e criado a partir de um servidor já cadastrado."
+          legenda="O acesso é criado a partir de um servidor já cadastrado."
           aoFechar={() => setCriando(false)}
           rodape={
             <>
@@ -228,35 +234,90 @@ export default function Usuários() {
                        setFormulario((f) => ({ ...f, id_perfil: e.target.value }))} />
             <Texto rotulo="Login *" id="login" required value={formulario.login}
                    placeholder="Ex.: joao.silva" onChange={(e) => setFormulario((f) => ({ ...f, login: e.target.value }))} />
-            <Texto rotulo="Senha inicial *" id="senha" type="password" required minLength={8}
-                   value={formulario.senha}
-                   placeholder="Mínimo de 8 caracteres" onChange={(e) => setFormulario((f) => ({ ...f, senha: e.target.value }))} />
+            {/* Sem campo de senha: a inicial e sempre o CPF do servidor
+                (usuarios.js). O administrador nao inventa nem combina senha. */}
             <p className="modal__aviso campo--largo">
-              A senha precisa ter ao menos 8 caracteres e deve ser trocada pelo
-              usuário no primeiro acesso.
+              A senha inicial será o CPF do servidor, só os números. No primeiro
+              acesso, o sistema pede para a pessoa criar a própria senha.
             </p>
           </form>
         </Modal>
       )}
 
+      {criado && (
+        /*
+         * O resumo do acesso recem-criado: tudo o que o administrador precisa
+         * passar para a pessoa, numa tela so. Do tamanho da confirmacao de
+         * senha - e uma ficha curta, nao um formulario.
+         */
+        <Modal
+          titulo="Novo usuário SITRA"
+          largura={420}
+          aoFechar={() => setCriado(null)}
+          rodape={
+            <button className="botao botao--primario" onClick={() => setCriado(null)}>
+              Fechar
+            </button>
+          }
+        >
+          <dl className="resumo-usuario">
+            <div><dt>Nome completo</dt><dd>{criado.nome}</dd></div>
+            <div><dt>CPF</dt><dd>{mascaraCpf(criado.cpf)}</dd></div>
+            <div><dt>Matrícula</dt><dd>{criado.matricula || "-"}</dd></div>
+            <div><dt>Login</dt><dd>{criado.login}</dd></div>
+            <div>
+              <dt>Senha inicial</dt>
+              <dd>{criado.cpf}</dd>
+              <dd className="resumo-usuario__nota">
+                O CPF, só os números. No primeiro acesso a pessoa cria a própria senha.
+              </dd>
+            </div>
+          </dl>
+        </Modal>
+      )}
+
       {trocandoSenha && (
+        /*
+         * Do tamanho da confirmacao de senha ("Salvar alteracoes"), e nao do
+         * formulario de cadastro: e um campo so. Na largura de formulario
+         * (760px) a janela ficava quase toda vazia em volta de uma caixa de
+         * senha.
+         */
         <Modal
           titulo="Trocar senha"
-          legenda={`Definindo nova senha para ${trocandoSenha.nome}.`}
+          largura={420}
           aoFechar={() => setTrocandoSenha(null)}
           rodape={
             <>
               <button className="botao" onClick={() => setTrocandoSenha(null)}>Cancelar</button>
-              <button className="botao botao--primario" form="form-senha" disabled={salvando}>
+              <button className="botao botao--primario" form="form-senha"
+                      disabled={salvando || !senhaAceita(novaSenha, trocandoSenha.login)}>
                 <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Salvar"}
               </button>
             </>
           }
         >
-          {erroForm && <div className="login__erro">{erroForm}</div>}
-          <form id="form-senha" onSubmit={trocarSenha}>
-            <Texto rotulo="Nova senha *" id="nova_senha" type="password" required minLength={8}
-                   value={novaSenha} placeholder="Mínimo de 8 caracteres" onChange={(e) => setNovaSenha(e.target.value)} />
+          <form id="form-senha" onSubmit={trocarSenha} className="confirmar-senha">
+            {/* A mesma montagem da confirmacao de senha: a frase no corpo, e
+                nao como legenda do titulo, e o campo com a largura de uma senha. */}
+            <p className="confirmar-senha__texto confirmar-senha__texto--centro">
+              Definindo nova senha para <strong>{trocandoSenha.nome}</strong>.
+            </p>
+            {erroForm && <div className="login__erro">{erroForm}</div>}
+            <div className="campo--senha">
+              <Texto rotulo="Nova senha *" id="nova_senha" type="password" required minLength={TAMANHO_MINIMO}
+                     autoFocus value={novaSenha} placeholder={`Mínimo de ${TAMANHO_MINIMO} caracteres`}
+                     onChange={(e) => setNovaSenha(e.target.value)} />
+            </div>
+            <RegrasSenha senha={novaSenha} login={trocandoSenha.login} />
+            {/* O aviso so vale para a senha de OUTRA pessoa: quem troca a
+                propria senha aqui nao e obrigado a trocar de novo (usuarios.js). */}
+            {trocandoSenha.id_usuario !== usuario?.id_usuario && (
+              <p className="confirmar-senha__texto confirmar-senha__texto--centro">
+                No próximo acesso, {trocandoSenha.nome} vai precisar criar uma
+                senha própria.
+              </p>
+            )}
           </form>
         </Modal>
       )}

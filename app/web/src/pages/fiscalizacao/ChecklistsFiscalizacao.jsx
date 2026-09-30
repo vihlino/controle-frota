@@ -9,6 +9,7 @@ export default criarPagina({
   recurso: "fiscalizacao/checklists",
   id: "id_checklist",
   singular: "checklist",
+  descreverExclusao: (c) => `o checklist da viatura ${c.placa}`,
   titulo: "Checklists da Fiscalização",
   descricao: "Checklists das viaturas usadas em serviço.",
   trilha: [{ rotulo: "Fiscalização" }, { rotulo: "Checklists" }],

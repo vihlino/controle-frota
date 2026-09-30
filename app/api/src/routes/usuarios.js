@@ -16,28 +16,11 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 
-/**
- * Confere se a senha e aceitavel. Devolve a mensagem do problema, ou null.
- *
- * Antes so o comprimento era exigido, e 8 caracteres deixavam passar "12345678"
- * e o proprio login. Num sistema de orgao publico o ataque comum nao e o
- * sofisticado - e tentar o obvio na tela de login.
- */
-function problemaNaSenha(senha, login) {
-  const s = String(senha);
-  if (s.length < 10) return "A senha precisa ter ao menos 10 caracteres.";
-  if (/^\d+$/.test(s)) return "A senha não pode ser só números.";
-  if (login && s.toLowerCase() === String(login).toLowerCase()) {
-    return "A senha não pode ser igual ao login.";
-  }
-  const obvias = ["sitra", "senha", "123456", "admin", "cmtt", "mudar123", "trocar123"];
-  if (obvias.some((o) => s.toLowerCase().includes(o))) {
-    return "A senha é fácil demais de adivinhar. Escolha outra.";
-  }
-  return null;
-}
+// As regras de senha moram em ../regrasSenha.js: o primeiro acesso (sessao.js)
+// usa as mesmas.
 import { query } from "../db.js";
 import { autenticar, exigePermissao, esquecerUsuario } from "../auth.js";
+import { problemaNaSenha } from "../regrasSenha.js";
 import { registrarAuditoria } from "../auditoria.js";
 
 const router = Router();
@@ -109,20 +92,45 @@ router.get("/", autenticar, exigePermissao("ADMIN_VISUALIZAR"), async (req, res,
   }
 });
 
+/**
+ * Cria o acesso de um servidor.
+ *
+ * A SENHA INICIAL E O CPF do servidor, so os numeros. Nao vem da tela: quem
+ * cria o usuario nao escolhe nem digita senha nenhuma - e a pessoa sabe o
+ * proprio CPF, entao o administrador nao precisa combinar senha com ninguem.
+ *
+ * Por ser um dado que outras pessoas tambem conhecem, ela vale so ate o
+ * primeiro acesso: o usuario nasce com trocar_senha = TRUE, e o sistema nao
+ * libera nada antes de a pessoa criar a propria senha (auth.js).
+ *
+ * As regras de senha (regrasSenha.js) nao se aplicam ao CPF - ele e so
+ * numeros, e seria recusado. Elas valem para a senha que a pessoa cria.
+ */
 router.post("/", autenticar, gerenciar, async (req, res, next) => {
   try {
-    const { id_servidor, id_perfil, login, senha } = req.body;
-    if (!id_servidor || !id_perfil || !login || !senha) {
-      return res.status(400).json({ erro: "Informe servidor, perfil, login e senha." });
+    const { id_servidor, id_perfil, login } = req.body;
+    if (!id_servidor || !id_perfil || !login) {
+      return res.status(400).json({ erro: "Informe servidor, perfil e login." });
     }
-    const problema = problemaNaSenha(senha, login);
-    if (problema) return res.status(400).json({ erro: problema });
+
+    const serv = await query(
+      "SELECT nome, cpf, matricula FROM servidor WHERE id_servidor = $1",
+      [Number(id_servidor)]
+    );
+    if (!serv.rows[0]) return res.status(404).json({ erro: "Servidor não encontrado." });
+    const cpf = String(serv.rows[0].cpf || "").replace(/\D/g, "");
+    if (cpf.length !== 11) {
+      return res.status(400).json({
+        erro: "Este servidor não tem CPF completo no cadastro, e a senha inicial é o CPF. " +
+              "Corrija o CPF em Administração → Servidores e tente de novo.",
+      });
+    }
 
     const { rows } = await query(
-      `INSERT INTO usuario (id_servidor, id_perfil, login, senha_hash)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO usuario (id_servidor, id_perfil, login, senha_hash, trocar_senha)
+       VALUES ($1, $2, $3, $4, TRUE)
        RETURNING id_usuario, login, status`,
-      [id_servidor, id_perfil, String(login).trim(), await bcrypt.hash(String(senha), 10)]
+      [id_servidor, id_perfil, String(login).trim(), await bcrypt.hash(cpf, 10)]
     );
 
     await registrarAuditoria({
@@ -134,7 +142,15 @@ router.post("/", autenticar, gerenciar, async (req, res, next) => {
       dadosNovos: { login: rows[0].login, id_servidor, id_perfil },
     });
 
-    res.status(201).json(rows[0]);
+    // Devolve o que a tela mostra no resumo "Novo usuario SITRA". O CPF volta
+    // aqui porque e a senha inicial que o administrador vai informar - so para
+    // quem acabou de criar o acesso, e nunca na listagem.
+    res.status(201).json({
+      ...rows[0],
+      nome: serv.rows[0].nome,
+      cpf,
+      matricula: serv.rows[0].matricula,
+    });
   } catch (e) {
     if (e.code === "23505") {
       return res.status(409).json({ erro: "Já existe usuário com esse login ou servidor." });
@@ -146,6 +162,7 @@ router.post("/", autenticar, gerenciar, async (req, res, next) => {
 router.put("/:id", autenticar, gerenciar, async (req, res, next) => {
   try {
     const idUsuario = Number(req.params.id);
+    if (!Number.isInteger(idUsuario)) return res.status(400).json({ erro: "Usuário inválido." });
     const { id_perfil, status, senha } = req.body;
 
     const atribuicoes = [];
@@ -159,13 +176,24 @@ router.put("/:id", autenticar, gerenciar, async (req, res, next) => {
       atribuicoes.push(`status = $${valores.length}`);
     }
     if (senha) {
-      const problema = problemaNaSenha(senha, null);
+      // O login entra na conferencia tambem na TROCA de senha. Antes so o
+      // cadastro olhava isso, e trocar a senha para o proprio login passava.
+      const dono = await query("SELECT login FROM usuario WHERE id_usuario = $1", [idUsuario]);
+      const problema = problemaNaSenha(senha, dono.rows[0]?.login);
       if (problema) return res.status(400).json({ erro: problema });
       valores.push(await bcrypt.hash(String(senha), 10));
       atribuicoes.push(`senha_hash = $${valores.length}`);
       // Marca a troca: a autenticacao recusa token emitido antes disto, entao
       // trocar a senha derruba as sessoes que estavam abertas.
       atribuicoes.push("senha_alterada_em = NOW()");
+      /*
+       * Senha definida pelo administrador PARA OUTRA PESSOA vale so ate o
+       * proximo acesso dela: e uma senha que duas pessoas conhecem. Quando o
+       * administrador troca a PROPRIA senha por esta tela, nao faz sentido
+       * obriga-lo a trocar de novo.
+       */
+      valores.push(idUsuario !== Number(req.usuario.id_usuario));
+      atribuicoes.push(`trocar_senha = $${valores.length}`);
     }
     if (!atribuicoes.length) return res.status(400).json({ erro: "Nada para alterar." });
 

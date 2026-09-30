@@ -30,6 +30,7 @@ export const LARGURA_FORMULARIO = 760;
 
 export default function Modal({
   titulo, legenda, largura = LARGURA_FORMULARIO, aoFechar, rodape, children,
+  compacto = false,
 }) {
   // Esc fecha.
   useEffect(() => {
@@ -52,7 +53,8 @@ export default function Modal({
 
   return (
     <div className="modal__fundo" onMouseDown={(e) => e.target === e.currentTarget && aoFechar()}>
-      <div className="modal" style={{ maxWidth: largura }} role="dialog" aria-modal="true">
+      <div className={`modal${compacto ? " modal--compacto" : ""}`}
+           style={{ maxWidth: largura }} role="dialog" aria-modal="true">
         <header className="modal__topo">
           <div>
             <h2 className="modal__titulo">{titulo}</h2>

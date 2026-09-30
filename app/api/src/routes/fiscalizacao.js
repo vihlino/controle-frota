@@ -120,6 +120,11 @@ export const ocorrencias = criarCrud({
 
 export const checklistsFiscalizacao = criarCrud({
   tabela: "checklist_fiscalizacao",
+  // Equipamentos e os dois fiscais que assinaram saem junto com o checklist.
+  filhos: [
+    { tabela: "checklist_fiscal_equipamento", chave: "id_checklist" },
+    { tabela: "checklist_fiscal_servidor", chave: "id_checklist" },
+  ],
   id: "id_checklist",
   entidade: "checklist_fiscalizacao",
   select: `checklist_fiscalizacao.*,

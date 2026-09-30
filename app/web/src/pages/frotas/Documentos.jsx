@@ -15,6 +15,7 @@ import Acoes from "../../components/Acoes.jsx";
 import Modal from "../../components/Modal.jsx";
 import { Texto, Selecao, Data, Area } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
+import { useConfirmacaoSenha } from "../../components/ConfirmarSenha.jsx";
 import { api } from "../../lib/api.js";
 import { data, numero } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
@@ -73,6 +74,7 @@ export default function Documentos() {
   const [servidores, setServidores] = useState([]);
   const [resumo, setResumo] = useState(null);
   const [editando, setEditando] = useState(null);
+  const { pedirExclusao, elemento: modalSenha } = useConfirmacaoSenha();
   const [formulario, setFormulario] = useState(VAZIO);
   const [erroForm, setErroForm] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -138,10 +140,18 @@ export default function Documentos() {
     }
   }
 
+  // Era a unica exclusao com o confirm() do navegador: sem senha e sem motivo.
   async function excluir(d) {
-    if (!confirm(`Excluir o documento ${d.tipo_documento} do veículo ${d.placa}?`)) return;
+    const resposta = await pedirExclusao({
+      titulo: "Excluir documento",
+      oQue: `o documento ${d.tipo_documento} do veículo ${d.placa}`,
+    });
+    if (!resposta.ok) return;
     try {
-      await api(`/frotas/documentos/${d.id_documento}`, { method: "DELETE" });
+      await api(`/frotas/documentos/${d.id_documento}`, {
+        method: "DELETE",
+        body: { justificativa: resposta.justificativa },
+      });
       lista.recarregar();
     } catch (e) {
       alert(e.message);
@@ -284,6 +294,7 @@ export default function Documentos() {
           </form>
         </Modal>
       )}
+      {modalSenha}
     </PaginaLista>
   );
 }

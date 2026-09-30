@@ -375,9 +375,12 @@ async function garantirAdministrador(cliente) {
          id_servidor,
          id_perfil,
          login,
-         senha_hash
+         senha_hash,
+         trocar_senha
        )
-     VALUES ($1, $2, $3, $4)`,
+       -- trocar_senha: a senha veio do .env (SEED_SENHA), que mais gente ve.
+       -- No primeiro acesso o sistema pede uma senha que so o dono conheca.
+     VALUES ($1, $2, $3, $4, TRUE)`,
     [
       servidor[0].id_servidor,
       perfil[0].id_perfil,
@@ -478,8 +481,9 @@ async function garantirGestores(cliente) {
 
     const senhaHash = await bcrypt.hash(SENHA, 10);
     await cliente.query(
-      `INSERT INTO usuario (id_servidor, id_perfil, login, senha_hash)
-       VALUES ($1, $2, $3, $4)`,
+      // Mesma senha do admin, vinda do .env: troca obrigatoria no primeiro acesso.
+      `INSERT INTO usuario (id_servidor, id_perfil, login, senha_hash, trocar_senha)
+       VALUES ($1, $2, $3, $4, TRUE)`,
       [servidor[0].id_servidor, perfil[0].id_perfil, g.login, senhaHash]
     );
     console.log(`Usuario "${g.login}" criado com sucesso.`);

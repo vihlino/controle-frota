@@ -109,6 +109,13 @@ export const ROTULOS = {
     SEMANAL: "Semanal", QUINZENAL: "Quinzenal", MENSAL: "Mensal",
     PERSONALIZADA: "Personalizada", SEM_PERIODICIDADE: "Sem periodicidade",
   },
+  // O resultado da inspecao para a GESTAO (migracao 029): o amarelo e o que
+  // pede decisao, e por isso e a unica cor que chama atencao na lista.
+  analiseInspecao: {
+    EM_ANALISE: { texto: "Em análise", tom: "amarelo" },
+    ANALISADO: { texto: "Analisado", tom: "azul" },
+    APROVADO: { texto: "Aprovado", tom: "verde" },
+  },
   resultadoItem: {
     NORMAL: { texto: "Conforme", tom: "verde" },
     ATENCAO: { texto: "Atenção", tom: "amarelo" },
@@ -179,4 +186,15 @@ export function opcoes(grupo) {
     valor,
     rotulo: typeof item === "string" ? item : item.texto,
   }));
+}
+
+/**
+ * Numero da OS sempre no padrao "OS-2026-00031" (o mesmo da inspecao,
+ * INS-2026-00003). Numero antigo sem o prefixo ("2026-0031") ganha o "OS-"
+ * na tela; a migracao 030 ja converte os que estao no banco.
+ */
+export function numeroOs(numero) {
+  if (!numero) return "";
+  const n = String(numero).trim();
+  return /^OS-/i.test(n) ? n.toUpperCase() : `OS-${n}`;
 }

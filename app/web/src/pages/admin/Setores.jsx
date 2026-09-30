@@ -29,7 +29,7 @@ const PaginaSetores = criarPagina({
   iconeAcao: "nav-gestao",
   permissaoGerenciar: "ADMIN_GERENCIAR_SETORES",
   permiteExcluir: true,
-  confirmarExclusao: (s) => `Excluir o setor ${s.nome}?`,
+  descreverExclusao: (s) => `o setor ${s.nome}`,
   mapaOpcoes: {},
   colunas: [
     { chave: "nome", rotulo: "Setor", ordenavel: true },
@@ -73,7 +73,7 @@ const PaginaCargos = criarPagina({
   rotuloSalvar: "Salvar",
   permissaoGerenciar: "ADMIN_GERENCIAR_SETORES",
   permiteExcluir: true,
-  confirmarExclusao: (c) => `Excluir o cargo ${c.nome}?`,
+  descreverExclusao: (c) => `o cargo ${c.nome}`,
   mapaOpcoes: {
     setores: (s) => ({ valor: s.id_setor, rotulo: s.nome }),
   },

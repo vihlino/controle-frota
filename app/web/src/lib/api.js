@@ -137,6 +137,12 @@ export async function api(caminho, opcoes = {}) {
     if (resposta.status === 401 && !senhaErrada) {
       gravarToken(null);
     }
+    // O administrador redefiniu a senha desta pessoa com ela usando o sistema:
+    // a API passou a recusar tudo ate a troca. Leva direto para a tela da
+    // troca, em vez de deixar cada tela mostrar o mesmo erro.
+    if (resposta.status === 403 && dados?.trocarSenha && location.pathname !== "/trocar-senha") {
+      location.assign("/trocar-senha");
+    }
     // O rate limit responde em TEXTO puro, sem o campo "erro" - caia no
     // generico e a pessoa nao fazia ideia de que so precisava esperar.
     const generica =

@@ -25,7 +25,7 @@ import Icone from "../../components/Icone.jsx";
 import Trilha from "../../components/Trilha.jsx";
 import Selo from "../../components/Selo.jsx";
 import { api, apiArquivo } from "../../lib/api.js";
-import { data, dataHora, hora, numero, rotulo } from "../../lib/formato.js";
+import { data, dataHora, hora, numero, numeroOs, rotulo } from "../../lib/formato.js";
 
 const EQUIPAMENTOS_ORDEM = ["MACACO", "ESTEPE", "TRIANGULO", "CHAVE_RODA"];
 
@@ -298,7 +298,7 @@ export default function ChecklistDetalhe() {
                       <p className="chamado__descricao">{c.descricao}</p>
                       <footer className="chamado__meta">
                         <span className="chamado__numero">
-                          {c.numero ? `OS ${c.numero}` : `OS ${c.id_os}`}
+                          {c.numero ? numeroOs(c.numero) : `OS ${c.id_os}`}
                         </span>
                         <span>Aberto em {dataHora(c.data_abertura)}</span>
                         <span>{rotulo("momentoChecklist", c.momento)}</span>

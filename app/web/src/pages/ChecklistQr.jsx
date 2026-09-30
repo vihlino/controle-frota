@@ -18,14 +18,15 @@
  *     fechado no momento exato da devolucao.
  *   - o PERCURSO so aparece na chegada: quem sabe onde foi e quem voltou.
  */
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Icone from "../components/Icone.jsx";
 import Selo from "../components/Selo.jsx";
 import Modal from "../components/Modal.jsx";
+import ItensInspecao from "../components/ItensInspecao.jsx";
 import { api } from "../lib/api.js";
 import { itensDaInspecao } from "../lib/itensInspecao.js";
-import { numero, rotulo } from "../lib/formato.js";
+import { numero, numeroOs, rotulo } from "../lib/formato.js";
 import { reduzirImagem, pesoLegivel } from "../lib/imagem.js";
 
 // Os quatro itens que o condutor confere. O icone e so apoio visual - quem
@@ -607,55 +608,9 @@ export default function ChecklistQr() {
             </>
           ) : (
             <>
-              <div className="qr-inspecao__itens">
-                {itensInspecao.map((it, i) => (
-                  /*
-                   * O titulo do grupo entra quando o grupo MUDA em relacao ao
-                   * item anterior, como IRMAO do cartao do item - dentro dele
-                   * ficaria cercado pela borda, parecendo parte da conferencia.
-                   *
-                   * O Fragment deixa os dois como filhos diretos da grade, cada
-                   * um na sua linha, e mantem a lista sendo um array simples: o
-                   * indice `i` que marcarItem usa continua valendo. Agrupar de
-                   * verdade obrigaria a traduzir indice de grupo + indice de
-                   * item em indice da lista a cada clique.
-                   */
-                  <Fragment key={`${it.grupo}-${it.item}`}>
-                    {it.grupo && it.grupo !== itensInspecao[i - 1]?.grupo && (
-                      <h4 className="qr-inspecao__grupo">{it.grupo}</h4>
-                    )}
-                  <div className="qr-inspecao__item">
-                    <span className="qr-inspecao__nome">{it.item}</span>
-                    <div className="qr-inspecao__opcoes">
-                      {[
-                        { valor: "NORMAL", rotulo: "Conforme", tom: "verde" },
-                        { valor: "ATENCAO", rotulo: "Atenção", tom: "amarelo" },
-                        { valor: "AVARIA", rotulo: "Avaria", tom: "vermelho" },
-                      ].map((o) => (
-                        <button
-                          key={o.valor}
-                          type="button"
-                          className="botao botao--mini"
-                          data-ativo={it.resultado === o.valor ? "sim" : undefined}
-                          data-tom={o.tom}
-                          onClick={() => marcarItem(i, { resultado: o.valor })}
-                        >
-                          {o.rotulo}
-                        </button>
-                      ))}
-                    </div>
-                    {it.resultado !== "NORMAL" && (
-                      <input
-                        className="qr-inspecao__obs"
-                        placeholder="O que foi observado?"
-                        value={it.observacao}
-                        onChange={(e) => marcarItem(i, { observacao: e.target.value })}
-                      />
-                    )}
-                  </div>
-                  </Fragment>
-                ))}
-              </div>
+              {/* A mesma lista que a gestao usa para corrigir a inspecao
+                  (components/ItensInspecao.jsx). */}
+              <ItensInspecao itens={itensInspecao} aoMudar={marcarItem} />
 
               <div className="campo">
                 <label htmlFor="obs-inspecao">Observações</label>
@@ -994,7 +949,7 @@ export default function ChecklistQr() {
                     <strong>{rotulo("parteVeiculo", c.parte_veiculo)}</strong>
                     <p>{c.descricao}</p>
                     <span className="qr-chamado__meta">
-                      {c.numero ? `OS ${c.numero} · ` : ""}
+                      {c.numero ? `${numeroOs(c.numero)} · ` : ""}
                       {rotulo("momentoChecklist", c.momento)}
                     </span>
                   </div>

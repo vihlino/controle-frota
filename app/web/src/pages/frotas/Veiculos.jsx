@@ -47,7 +47,7 @@ export default function Veículos() {
   const [formulario, setFormulario] = useState(VAZIO);
   const [erroForm, setErroForm] = useState("");
   const [salvando, setSalvando] = useState(false);
-  const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
+  const { pedirSenha, pedirExclusao, elemento: modalSenha } = useConfirmacaoSenha();
 
   const podeGerenciar = podeVer("FROTAS_GERENCIAR_VEICULOS");
   const [parametros, definirParametros] = useSearchParams();
@@ -124,14 +124,16 @@ export default function Veículos() {
   }
 
   async function excluir(v) {
-    const confirmou = await pedirSenha({
+    const resposta = await pedirExclusao({
       titulo: "Excluir veículo",
-      aviso: `Esta ação não pode ser desfeita. Confirme sua senha para excluir o veículo ${v.placa}.`,
-      perigo: true,
+      oQue: `o veículo ${v.placa}`,
     });
-    if (!confirmou) return;
+    if (!resposta.ok) return;
     try {
-      await api(`/frotas/veiculos/${v.id_veiculo}`, { method: "DELETE" });
+      await api(`/frotas/veiculos/${v.id_veiculo}`, {
+        method: "DELETE",
+        body: { justificativa: resposta.justificativa },
+      });
       lista.recarregar();
     } catch (e) {
       alert(e.message);

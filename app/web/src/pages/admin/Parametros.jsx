@@ -13,6 +13,7 @@ import Selo from "../../components/Selo.jsx";
 import { api } from "../../lib/api.js";
 import { dataHora } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
+import AjudaTela from "../../components/AjudaTela.jsx";
 
 // As quatro abas pedidas na estrutura: Configurações Gerais, Sistema de
 // Alertas, E-mail / Notificações e Backup. Cada aba mostra os parâmetros do
@@ -94,8 +95,7 @@ export default function Parâmetros() {
       <div className="cabecalho-pagina">
         <div>
           <Trilha itens={[{ rotulo: "Administração" }, { rotulo: "Parâmetros do Sistema" }]} />
-          <h1>Parâmetros do Sistema</h1>
-          <p>Configurações que mudam o comportamento do sistema sem mexer no código.</p>
+          <h1>Parâmetros do Sistema<AjudaTela /></h1>
         </div>
       </div>
 

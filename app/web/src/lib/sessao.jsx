@@ -46,6 +46,16 @@ export function ProvedorSessao({ children }) {
     return r.usuario;
   }
 
+  /**
+   * Troca a sessao pela que o servidor devolveu - usada depois de a pessoa
+   * trocar a propria senha. O token antigo deixou de valer no instante da
+   * troca; sem guardar o novo, a proxima tela a derrubaria para o login.
+   */
+  function atualizarSessao(token, novoUsuario) {
+    gravarToken(token);
+    setUsuario(novoUsuario);
+  }
+
   async function sair() {
     await api("/sessao/logout", { method: "POST" }).catch(() => {});
     gravarToken(null);
@@ -63,7 +73,7 @@ export function ProvedorSessao({ children }) {
   }
 
   return (
-    <ContextoSessao.Provider value={{ usuario, carregando, erroConexao, entrar, sair, podeVer }}>
+    <ContextoSessao.Provider value={{ usuario, carregando, erroConexao, entrar, sair, podeVer, atualizarSessao }}>
       {children}
     </ContextoSessao.Provider>
   );

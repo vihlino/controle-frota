@@ -654,22 +654,19 @@ router.post("/chamado/:token", async (req, res, next) => {
       return res.status(404).json({ erro: "Checklist não encontrado para este QR Code." });
     }
 
-    // O numero da OS e do ANO, sequencial: 2026-0001. Contamos as do ano
-    // corrente e somamos um. Duas aberturas no mesmo segundo podem disputar o
-    // mesmo numero; e um rotulo de leitura, nao a chave do registro, entao
-    // repetir e menos grave que travar a abertura do chamado no patio.
-    const { rows: seq } = await query(
-      `SELECT COUNT(*)::int + 1 AS proximo
-         FROM ordem_servico
-        WHERE EXTRACT(YEAR FROM data_abertura) = EXTRACT(YEAR FROM CURRENT_DATE)`
-    );
-    const numeroOs = `${new Date().getFullYear()}-${String(seq[0].proximo).padStart(4, "0")}`;
+    // O numero da OS e do ANO, sequencial: OS-2026-00001, pelo maior numero ja
+    // usado (migracao 030) - contando, apagar uma OS repetia o numero.
+    const { rows: seq } = await query("SELECT proximo_numero_os() AS numero");
+    const numeroOs = seq[0].numero;
 
     const { rows } = await query(
       `INSERT INTO ordem_servico
          (id_veiculo, origem, id_registro_origem, gravidade, id_servidor_solicitante,
-          parte_veiculo, momento, tipo, status, descricao, numero)
-       VALUES ($1, 'CHECKLIST_FROTAS', $2, $3, $4, $5, $6, 'CORRETIVA', 'EM_ANALISE', $7, $8)
+          parte_veiculo, momento, tipo, status, descricao, numero, quilometragem)
+       VALUES ($1, 'CHECKLIST_FROTAS', $2, $3, $4, $5, $6, 'CORRETIVA', 'EM_ANALISE', $7, $8,
+               (SELECT CASE WHEN $6 = 'CHEGADA' THEN COALESCE(c.odometro_chegada, c.odometro_saida)
+                            ELSE c.odometro_saida END
+                  FROM checklist_frotas c WHERE c.id_checklist = $2))
        RETURNING id_os, numero, parte_veiculo, gravidade, descricao, status,
                  momento, data_abertura`,
       [

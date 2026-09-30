@@ -14,11 +14,13 @@ const ACOES = [
   { valor: "GERAR_QRCODE", rotulo: "Geracao de QR Code" },
   { valor: "EDITAR_PERMISSOES", rotulo: "Alteração de permissões" },
   { valor: "ALTERAR_SENHA", rotulo: "Troca de senha" },
+  { valor: "FECHAR_OS", rotulo: "Fechamento de OS" },
 ];
 const TOM = {
   CRIAR: "verde", EDITAR: "azul", EXCLUIR: "vermelho",
   GERAR_RELATORIO: "amarelo", ATESTAR_RELATORIO: "verde",
   GERAR_QRCODE: "amarelo", EDITAR_PERMISSOES: "laranja", ALTERAR_SENHA: "laranja",
+  FECHAR_OS: "verde",
 };
 
 export default criarPagina({

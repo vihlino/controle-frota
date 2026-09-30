@@ -23,6 +23,7 @@ export default criarPagina({
   recurso: "fiscalizacao/ocorrencias",
   id: "id_ocorrencia",
   singular: "ocorrência",
+  artigo: "a",
   titulo: "Ocorrências",
   descricao: "Ocorrências registradas pela fiscalização.",
   trilha: [{ rotulo: "Fiscalização" }, { rotulo: "Ocorrências" }],

@@ -91,6 +91,10 @@ async function alertasCalculados() {
         : `A CNH de ${s.nome} (matricula ${s.matricula}) vence em ${s.dias} dia(s).`,
       entidade: "servidor",
       id_registro: s.id_servidor,
+      // Para onde o clique leva: a lista de motoristas JA PESQUISADA pelo
+      // nome. Sem isso o alerta dizia quem era, mas abria a lista inteira e a
+      // pessoa tinha de procurar de novo o que o proprio alerta acabou de dizer.
+      link: `/frotas/motoristas?busca=${encodeURIComponent(s.nome)}`,
       status: "PENDENTE",
       data_criacao: new Date().toISOString(),
     });
@@ -122,6 +126,9 @@ async function alertasCalculados() {
         : `${d.tipo_documento} do veiculo ${d.placa} vence em ${d.dias} dia(s).`,
       entidade: "documento_veiculo",
       id_registro: d.id_documento,
+      // A lista de documentos pesquisada pela placa: aparecem os documentos
+      // daquele veiculo, com o que vence destacado pela situacao.
+      link: `/frotas/documentos?busca=${encodeURIComponent(d.placa)}`,
       status: "PENDENTE",
       data_criacao: new Date().toISOString(),
     });

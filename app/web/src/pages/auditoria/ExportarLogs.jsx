@@ -11,6 +11,7 @@ import Trilha from "../../components/Trilha.jsx";
 import { Data, Selecao } from "../../components/Campos.jsx";
 import { api } from "../../lib/api.js";
 import { dataHora, numero } from "../../lib/formato.js";
+import AjudaTela from "../../components/AjudaTela.jsx";
 
 const ORIGENS = [
   { valor: "acessos", rotulo: "Logs de Acesso" },
@@ -89,8 +90,7 @@ export default function ExportarLogs() {
       <div className="cabecalho-pagina">
         <div>
           <Trilha itens={[{ rotulo: "Auditoria" }, { rotulo: "Exportar Logs" }]} />
-          <h1>Exportar Logs</h1>
-          <p>Escolha a origem e o período. O arquivo sai em CSV, pronto para o Excel.</p>
+          <h1>Exportar Logs<AjudaTela /></h1>
         </div>
       </div>
 

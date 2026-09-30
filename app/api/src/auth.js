@@ -106,6 +106,7 @@ async function estadoDoUsuario(id) {
   // nenhuma, porque esta consulta ja acontecia a cada requisicao.
   const { rows } = await query(
     `SELECT u.status,
+            u.trocar_senha,
             s.id_setor,
             FLOOR(EXTRACT(EPOCH FROM u.senha_alterada_em
                           AT TIME ZONE current_setting('TimeZone')))::bigint
@@ -157,6 +158,25 @@ export async function autenticar(req, res, next) {
     // qualquer pessoa espera ao trocar a senha por suspeita.
     if (estado.senha_alterada_epoch && dados.iat < estado.senha_alterada_epoch) {
       return res.status(401).json({ erro: "A senha foi alterada. Entre novamente." });
+    }
+
+    /*
+     * Senha provisoria: so a troca de senha passa.
+     *
+     * A tela manda a pessoa direto para "Voce precisa alterar a sua senha",
+     * mas a tela e conveniencia - quem chamasse a API direto, ou digitasse
+     * outro endereco no navegador, usaria o sistema com a senha que o
+     * administrador tambem conhece. Aqui e a trava de verdade: com a troca
+     * pendente, qualquer rota fora de /api/sessao responde 403.
+     *
+     * /api/sessao fica liberada porque e nela que estao a propria troca, o
+     * "quem sou eu" que a tela usa ao recarregar, e o sair.
+     */
+    if (estado.trocar_senha && !req.originalUrl.startsWith("/api/sessao/")) {
+      return res.status(403).json({
+        erro: "Você precisa alterar a sua senha antes de continuar.",
+        trocarSenha: true,
+      });
     }
   } catch (e) {
     // Falha ao consultar o banco NAO pode virar porta aberta.
