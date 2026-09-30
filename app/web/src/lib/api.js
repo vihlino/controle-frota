@@ -105,7 +105,24 @@ export async function api(caminho, opcoes = {}) {
 
   // O .catch aqui cobre o caso de o servidor devolver algo que nao e JSON
   // (uma pagina de erro do proxy, por exemplo).
-  const dados = await resposta.json().catch(() => ({}));
+  const dados = await resposta.json().catch(() => null);
+
+  /*
+   * 5xx SEM corpo JSON nao veio da API: veio do caminho ate ela.
+   *
+   * A API responde todo erro com {"erro": "..."}. Quando ela esta desligada
+   * (reiniciando, ou o terminal dela foi fechado), quem responde e o proxy do
+   * Vite em desenvolvimento - ou o Render acordando, em producao - com um 500
+   * vazio. A tela dizia "o servidor falhou ao responder", e a procura ia para o
+   * lugar errado: o codigo da rota, o banco, a tela. O problema era so que a
+   * API nao estava rodando.
+   */
+  if (resposta.status >= 500 && !dados) {
+    throw new ErroApi(
+      "Não foi possível falar com o servidor. Verifique se a API está no ar e tente de novo.",
+      0
+    );
+  }
 
   if (!resposta.ok) {
     // 401 fora da tela de login significa sessao expirada: limpamos o token
@@ -128,10 +145,10 @@ export async function api(caminho, opcoes = {}) {
         : resposta.status >= 500
           ? "O servidor falhou ao responder. Tente de novo em instantes."
           : "Não foi possível completar a operação.";
-    throw new ErroApi(dados.erro || generica, resposta.status);
+    throw new ErroApi(dados?.erro || generica, resposta.status);
   }
 
-  return dados;
+  return dados ?? {};
 }
 
 /**
@@ -153,6 +170,6 @@ export async function apiArquivo(caminho) {
   const resposta = await fetch(`${BASE}/api${caminho}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
-  if (!resposta.ok) throw new ErroApi("Não foi possivel carregar o arquivo.", resposta.status);
+  if (!resposta.ok) throw new ErroApi("Não foi possível carregar o arquivo.", resposta.status);
   return URL.createObjectURL(await resposta.blob());
 }

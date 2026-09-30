@@ -89,7 +89,7 @@ router.post("/login", async (req, res, next) => {
         sucesso: false,
         req,
       });
-      return res.status(401).json({ erro: "Login ou senha invalidos." });
+      return res.status(401).json({ erro: "Login ou senha inválidos." });
     }
     if (!encontrado.status) {
       return res
@@ -126,7 +126,7 @@ router.post("/login", async (req, res, next) => {
 router.get("/eu", autenticar, async (req, res, next) => {
   try {
     const usuario = await carregarUsuario(req.usuario.id_usuario);
-    if (!usuario) return res.status(401).json({ erro: "Usuário não encontrado" });
+    if (!usuario) return res.status(401).json({ erro: "Usuário não encontrado." });
     res.json({ usuario });
   } catch (e) {
     next(e);

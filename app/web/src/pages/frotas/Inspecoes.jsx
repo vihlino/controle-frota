@@ -50,7 +50,7 @@ export default function Inspeções() {
   const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
   const [formulario, setFormulario] = useState({
     id_veículo: "", id_gestor: "", tipo: "MENSAL", data_realizacao: "",
-    hora_inicio: "08:00", local: "", observacoes: "",
+    hora_inicio: "08:00", observacoes: "",
   });
   const [erroForm, setErroForm] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -66,7 +66,6 @@ export default function Inspeções() {
       // O <input type="time"> recusa hora com microssegundos e esvazia o campo
       // em silencio; o banco grava assim.
       hora_inicio: (i.hora_inicio || "").slice(0, 5),
-      local: i.local || "",
       observacoes: i.observacoes || "",
     });
     setErroForm("");
@@ -97,7 +96,6 @@ export default function Inspeções() {
           tipo: formulario.tipo,
           data_realizacao: formulario.data_realizacao || null,
           hora_inicio: formulario.hora_inicio || null,
-          local: formulario.local,
           observacoes: formulario.observacoes,
         },
       });
@@ -219,7 +217,7 @@ export default function Inspeções() {
       chave: "status", rotulo: "Situação", ordenavel: true,
       render: (i) => (
         <Selo
-          texto={i.status === "ABERTA" ? "Pendente" : "Concluida"}
+          texto={i.status === "ABERTA" ? "Pendente" : "Concluída"}
           tom={i.status === "ABERTA" ? "amarelo" : "verde"}
         />
       ),
@@ -294,7 +292,7 @@ export default function Inspeções() {
           <Selecao rotulo="Situação" id="status" vazio="Todas"
                    opcoes={[
                      { valor: "ABERTA", rotulo: "Pendente" },
-                     { valor: "FINALIZADA", rotulo: "Concluida" },
+                     { valor: "FINALIZADA", rotulo: "Concluída" },
                    ]}
                    value={lista.filtros.status}
                    onChange={(e) => lista.alterarFiltro("status", e.target.value)} />
@@ -342,8 +340,6 @@ export default function Inspeções() {
             <Data rotulo="Data da inspeção *" id="data_realizacao" required
                   {...campo("data_realizacao")} />
             <Texto rotulo="Hora" id="hora_inicio" type="time" {...campo("hora_inicio")}  placeholder="Ex.: 08:30"/>
-            <Texto rotulo="Local" id="local" placeholder="Ex.: Garagem Central"
-                   {...campo("local")} />
             <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")}  placeholder="Ex.: Veículo em boas condições gerais"/>
           </form>
         </Modal>

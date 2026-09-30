@@ -42,7 +42,7 @@ INSERT INTO perfil_permissao (id_perfil, id_permissao)
 SELECT p.id_perfil, pe.id_permissao
   FROM perfil p
   JOIN permissao pe ON pe.codigo = 'FISCALIZACAO_GERENCIAR_VIATURAS'
- WHERE p.nome = 'Gestor Fiscalizacao'
+ WHERE unaccent_simples(p.nome) = 'GESTOR FISCALIZACAO'
 ON CONFLICT DO NOTHING;
 
 COMMIT;

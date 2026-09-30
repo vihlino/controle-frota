@@ -100,7 +100,7 @@ export function dinheiro(valor) {
 
 export function simNao(valor) {
   if (valor === null || valor === undefined) return "-";
-  return valor ? "Sim" : "Nao";
+  return valor ? "Sim" : "Não";
 }
 
 // Rotulos legiveis para os códigos gravados no banco.
@@ -111,22 +111,22 @@ export const ROTULOS = {
   },
   resultadoItem: {
     NORMAL: { texto: "Conforme", tom: "verde" },
-    ATENCAO: { texto: "Atencao", tom: "amarelo" },
-    AVARIA: { texto: "Nao conforme", tom: "vermelho" },
+    ATENCAO: { texto: "Atenção", tom: "amarelo" },
+    AVARIA: { texto: "Não conforme", tom: "vermelho" },
   },
   tipoOs: { PREVENTIVA: "Preventiva", CORRETIVA: "Corretiva" },
   gravidade: {
     BAIXA: { texto: "Baixa", tom: "verde" },
-    MEDIA: { texto: "Media", tom: "amarelo" },
+    MEDIA: { texto: "Média", tom: "amarelo" },
     ALTA: { texto: "Alta", tom: "vermelho" },
   },
   tipoSinistro: {
-    COLISAO: "Colisao", DANO_MATERIAL: "Dano material",
-    ROUBO_FURTO: "Roubo / Furto", INCENDIO: "Incendio", OUTRO: "Outro",
+    COLISAO: "Colisão", DANO_MATERIAL: "Dano material",
+    ROUBO_FURTO: "Roubo / Furto", INCENDIO: "Incêndio", OUTRO: "Outro",
   },
   equipamento: {
     MACACO: "Macaco", ESTEPE: "Estepe",
-    TRIANGULO: "Triangulo", CHAVE_RODA: "Chave de roda",
+    TRIANGULO: "Triângulo", CHAVE_RODA: "Chave de roda",
   },
   // As partes do veiculo que o condutor escolhe ao abrir um chamado pelo
   // checklist. E lista fechada de proposito: "farol queimado" digitado de

@@ -25,10 +25,25 @@ const SITUACOES = [
   { valor: "VENCIDO", rotulo: "Vencido" },
   { valor: "INATIVO", rotulo: "Inativo" },
 ];
+/*
+ * No FORMULARIO a situacao nao e escolhida - ela e calculada pela data de
+ * vencimento (funcao situacao_documento no banco). Escolher "Vencendo" num
+ * documento que vence em 2027 nao teria efeito nenhum: o banco reescreve na
+ * hora de salvar, e a pessoa via sua escolha ser ignorada sem entender por que.
+ *
+ * A unica situacao que e decisao de uma pessoa e INATIVO - o documento
+ * arquivado, que sai dos avisos de vencimento. Entao o campo oferece so as
+ * duas opcoes que existem de verdade.
+ */
+const ARQUIVAMENTO = [
+  { valor: "VALIDO", rotulo: "Ativo" },
+  { valor: "INATIVO", rotulo: "Inativo (arquivado)" },
+];
+
 const CATEGORIAS = ["Licenciamento", "Seguro", "Imposto", "Inspeção", "Manual", "Outro"];
 
 const VAZIO = {
-  id_veículo: "", tipo_documento: "", numero_documento: "", categoria: "Licenciamento",
+  id_veiculo: "", tipo_documento: "", numero_documento: "", categoria: "Licenciamento",
   data_emissao: "", data_validade: "", status: "VALIDO", id_responsavel: "",
   observacoes: "",
 };
@@ -92,7 +107,12 @@ export default function Documentos() {
     setEditando("novo");
   }
   function abrirEdicao(d) {
-    setFormulario({ ...VAZIO, ...d });
+    setFormulario({
+      ...VAZIO, ...d,
+      // VENCENDO e VENCIDO nao existem na lista do formulario (sao calculados);
+      // sem esta traducao o campo Situacao abriria em branco.
+      status: d.status === "INATIVO" ? "INATIVO" : "VALIDO",
+    });
     setErroForm("");
     setEditando(d.id_documento);
   }
@@ -104,7 +124,7 @@ export default function Documentos() {
     try {
       const corpo = {
         ...formulario,
-        id_veiculo: Number(formulario.id_veículo),
+        id_veiculo: Number(formulario.id_veiculo),
         id_responsavel: formulario.id_responsavel ? Number(formulario.id_responsavel) : null,
       };
       if (editando === "novo") await api("/frotas/documentos", { method: "POST", body: corpo });
@@ -243,11 +263,11 @@ export default function Documentos() {
         >
           {erroForm && <div className="login__erro">{erroForm}</div>}
           <form id="form-doc" className="formulario-grade" onSubmit={salvar}>
-            <Selecao rotulo="Veículo *" id="id_veículo" required vazio="Selecione"
+            <Selecao rotulo="Veículo *" id="id_veiculo" required vazio="Selecione"
                      opcoes={veículos.map((v) => ({
                        valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
                      }))}
-                     {...campo("id_veículo")} />
+                     {...campo("id_veiculo")} />
             <Texto rotulo="Tipo de documento *" id="tipo_documento" required
                    placeholder="Ex.: CRLV" {...campo("tipo_documento")} />
             <Selecao rotulo="Categoria" id="form-categoria"
@@ -259,7 +279,7 @@ export default function Documentos() {
             <Selecao rotulo="Responsável" id="id_responsavel" vazio="Sem responsável"
                      opcoes={servidores.map((s) => ({ valor: s.id_servidor, rotulo: s.nome }))}
                      {...campo("id_responsavel")} />
-            <Selecao rotulo="Situação" id="form-status" opcoes={SITUACOES} {...campo("status")} />
+            <Selecao rotulo="Situação" id="form-status" opcoes={ARQUIVAMENTO} {...campo("status")} />
             <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")}  placeholder="Ex.: Renovação anual do licenciamento"/>
           </form>
         </Modal>

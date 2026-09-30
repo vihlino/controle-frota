@@ -117,7 +117,7 @@ router.post("/", autenticar, exigePermissao("RELATORIOS_GERAR"), async (req, res
       return res.status(400).json({ erro: "Informe o período inicial e final." });
     }
     if (periodo_fim < periodo_inicio) {
-      return res.status(400).json({ erro: "A data final não pode ser anterior a inicial." });
+      return res.status(400).json({ erro: "A data final não pode ser anterior à inicial." });
     }
 
     // A consulta do modelo roda isolada: se ela falhar (uma coluna renomeada
@@ -181,7 +181,7 @@ router.get("/:id", autenticar, exigePermissao("RELATORIOS_VISUALIZAR"), async (r
       [Number(req.params.id)]
     );
     const relatorio = rows[0];
-    if (!relatorio) return res.status(404).json({ erro: "Relatório não encontrado" });
+    if (!relatorio) return res.status(404).json({ erro: "Relatório não encontrado." });
 
     const atestacoes = await query(
       `SELECT a.ordem, a.id_usuario, a.status, a.data_solicitacao, a.data_atestacao,
@@ -220,7 +220,7 @@ router.post("/:id/atestar", autenticar, exigePermissao("RELATORIOS_ATESTAR"),
       );
       if (!relatorio.rows[0]) {
         await cliente.query("ROLLBACK");
-        return res.status(404).json({ erro: "Relatório não encontrado" });
+        return res.status(404).json({ erro: "Relatório não encontrado." });
       }
       if (relatorio.rows[0].status === "CANCELADO") {
         await cliente.query("ROLLBACK");
@@ -243,12 +243,12 @@ router.post("/:id/atestar", autenticar, exigePermissao("RELATORIOS_ATESTAR"),
 
       if (meus > 0) {
         await cliente.query("ROLLBACK");
-        return res.status(409).json({ erro: "Voce ja atestou este relatório." });
+        return res.status(409).json({ erro: "Você já atestou este relatório." });
       }
       if (total >= 3) {
         await cliente.query("ROLLBACK");
         return res.status(409).json({
-          erro: "Este relatório ja tem os tres atestos permitidos.",
+          erro: "Este relatório já tem os três atestos permitidos.",
         });
       }
 

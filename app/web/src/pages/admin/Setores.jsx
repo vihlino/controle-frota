@@ -111,9 +111,8 @@ const PaginaCargos = criarPagina({
       // qualquer setor - e o caso da maioria (gestor, assistente, motorista
       // existem em varios setores ao mesmo tempo). Preenchido, o cargo passa a
       // existir so naquele setor, como Fiscal de Transito na Fiscalizacao.
-      nome: "id_setor", rotulo: "Exclusivo de um setor", tipo: "selecao",
-      opcoes: "setores", vazio: "Vale para todos os setores",
-      ajuda: "Deixe em branco para um cargo que existe em vários setores. Escolha um setor só quando o cargo existir apenas nele.",
+      nome: "id_setor", rotulo: "Setor", tipo: "selecao",
+      opcoes: "setores", vazio: "Todos os setores",
     },
     { nome: "descricao", rotulo: "Descrição", tipo: "area", largo: true,
       dica: "Ex.: Responsável pela fiscalização de trânsito em via pública" },

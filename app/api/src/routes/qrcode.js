@@ -30,6 +30,7 @@ import QRCode from "qrcode";
 import { query, pool } from "../db.js";
 import { autenticar, exigePermissao } from "../auth.js";
 import { registrarAuditoria } from "../auditoria.js";
+import { urlPublica } from "../urlPublica.js";
 
 // O banco valida a saida contra o MAIOR odometro ja registrado do veiculo
 // (quilometragem_atual ou qualquer odometro de checklist). A tela precisa
@@ -70,7 +71,7 @@ router.post("/veiculo/:id", autenticar, exigePermissao("FROTAS_GERENCIAR_VEICULO
       if (existente.rows[0]) return res.json(existente.rows[0]);
 
       const veiculo = await query("SELECT placa FROM veiculo WHERE id_veiculo = $1", [idVeiculo]);
-      if (!veiculo.rows[0]) return res.status(404).json({ erro: "Veículo não encontrado" });
+      if (!veiculo.rows[0]) return res.status(404).json({ erro: "Veículo não encontrado." });
 
       const codigo = `SITRA-${veiculo.rows[0].placa.replace(/[^A-Z0-9]/gi, "").toUpperCase()}`;
       const token = crypto.randomBytes(24).toString("hex");
@@ -238,7 +239,7 @@ router.post("/saida/:token", async (req, res, next) => {
     const { matricula, odometro_saida, percurso, local_saida, observacoes, equipamentos } = req.body;
 
     if (!matricula || odometro_saida === undefined) {
-      return res.status(400).json({ erro: "Informe a matrícula e o KM de saida." });
+      return res.status(400).json({ erro: "Informe a matrícula e o KM de saída." });
     }
 
     await cliente.query("BEGIN");
@@ -422,7 +423,10 @@ router.get("/imagem/:idVeiculo", autenticar, async (req, res, next) => {
     );
     if (!rows[0]) return res.status(404).json({ erro: "Este veículo ainda não tem QR Code." });
 
-    const base = process.env.URL_PUBLICA || "http://localhost:5173";
+    // Em desenvolvimento isto devolve o IP desta maquina na rede local, e nao
+    // "localhost": localhost no celular aponta para o proprio celular, e o QR
+    // Code abriria uma tela de erro. Em producao vem de URL_PUBLICA.
+    const base = urlPublica();
     const url = `${base}/checklist/${rows[0].token}`;
 
     const imagem = await QRCode.toDataURL(url, {
@@ -641,7 +645,7 @@ router.post("/chamado/:token", async (req, res, next) => {
       return res.status(400).json({ erro: "Escolha a parte do veículo." });
     }
     if (!GRAVIDADES_CHAMADO.includes(gravidade)) {
-      return res.status(400).json({ erro: "Escolha a urgencia do chamado." });
+      return res.status(400).json({ erro: "Escolha a urgência do chamado." });
     }
     const quando = momento === "CHEGADA" ? "CHEGADA" : "SAIDA";
 
@@ -805,9 +809,12 @@ router.put("/inspecao/:token/:idInspecao", async (req, res, next) => {
     await cliente.query("DELETE FROM inspecao_item WHERE id_inspecao = $1", [idInspecao]);
     for (const item of itens) {
       await cliente.query(
-        `INSERT INTO inspecao_item (id_inspecao, item, resultado, observacao)
-         VALUES ($1, $2, $3, $4)`,
-        [idInspecao, item.item, item.resultado, item.observacao || null]
+        `INSERT INTO inspecao_item (id_inspecao, item, grupo, resultado, observacao)
+         VALUES ($1, $2, $3, $4, $5)`,
+        // O grupo vem da tela junto do item e e GRAVADO, nao deduzido: a lista
+        // de itens muda com o tempo, e a ficha de uma inspecao antiga precisa
+        // continuar mostrando como ela foi feita. Nulo quando a tela nao mandar.
+        [idInspecao, item.item, item.grupo || null, item.resultado, item.observacao || null]
       );
     }
 

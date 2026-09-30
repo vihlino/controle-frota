@@ -129,7 +129,7 @@ export async function autenticar(req, res, next) {
   const header = req.headers.authorization || "";
   // O formato combinado e "Bearer <token>"; separamos o prefixo.
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
-  if (!token) return res.status(401).json({ erro: "Não autenticado" });
+  if (!token) return res.status(401).json({ erro: "Não autenticado." });
 
   let dados;
   try {
@@ -196,6 +196,6 @@ export function exigePermissao(...codigos) {
     if (aceitos.some((c) => permissoes.includes(c))) return next();
     // 403 (proibido) e diferente de 401 (nao autenticado): aqui o sistema sabe
     // quem e a pessoa, ela simplesmente nao tem direito a esta acao.
-    res.status(403).json({ erro: "Sem permissão para esta ação" });
+    res.status(403).json({ erro: "Sem permissão para esta ação." });
   };
 }

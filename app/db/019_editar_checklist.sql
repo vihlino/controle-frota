@@ -33,14 +33,14 @@ INSERT INTO perfil_permissao (id_perfil, id_permissao)
 SELECT p.id_perfil, pe.id_permissao
   FROM perfil p
   JOIN permissao pe ON pe.codigo = 'FROTAS_EDITAR_CHECKLIST'
- WHERE p.nome IN ('Administrador', 'Gestor Frotas')
+ WHERE unaccent_simples(p.nome) IN ('ADMINISTRADOR', 'GESTOR FROTAS')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO perfil_permissao (id_perfil, id_permissao)
 SELECT p.id_perfil, pe.id_permissao
   FROM perfil p
   JOIN permissao pe ON pe.codigo = 'FISCALIZACAO_EDITAR_CHECKLIST'
- WHERE p.nome IN ('Administrador', 'Gestor Fiscalizacao')
+ WHERE unaccent_simples(p.nome) IN ('ADMINISTRADOR', 'GESTOR FISCALIZACAO')
 ON CONFLICT DO NOTHING;
 
 COMMIT;

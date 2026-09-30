@@ -71,6 +71,20 @@ export const servidores = criarCrud({
     status: "servidor.status",
     condutor: "servidor.condutor",
     cargo: "servidor.id_cargo",
+    /*
+     * Filtro por NOME do cargo, nao por id.
+     *
+     * A tela de Fiscais precisa de "so os fiscais de transito" sem conhecer o
+     * id daquele cargo, que muda de instalacao para instalacao. Pelo nome ela
+     * conhece: o cargo se chama "Fiscal de Transito" em qualquer banco.
+     *
+     * O valor esperado e a grafia SEM acento e em caixa alta
+     * ("FISCAL DE TRANSITO"), porque e o que unaccent_simples() devolve. Assim
+     * o filtro acha o cargo esteja ele gravado "Fiscal de Transito",
+     * "Fiscal de Trânsito" ou "FISCAL DE TRÂNSITO" - e continua achando depois
+     * de a migracao 024 acentuar os cadastros.
+     */
+    cargo_nome: "unaccent_simples(cargo.nome)",
   },
   ordenaveis: {
     nome: "servidor.nome", matricula: "servidor.matricula",

@@ -21,7 +21,7 @@ const verFrotas = exigePermissao("FROTAS_VISUALIZAR");
 router.get("/inspecoes/:id/itens", autenticar, verFrotas, async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT id_inspecao_item, item, resultado, observacao
+      `SELECT id_inspecao_item, item, grupo, resultado, observacao
          FROM inspecao_item
         WHERE id_inspecao = $1
         ORDER BY id_inspecao_item`,
@@ -94,8 +94,13 @@ router.get("/veiculos/:id/resumo", autenticar, verFrotas, async (req, res, next)
          (SELECT COUNT(*)::int FROM sinistro WHERE id_veiculo = $1) AS sinistros,
          (SELECT COUNT(*)::int FROM documento_veiculo
            WHERE id_veiculo = $1) AS documentos,
+         -- Pela DATA, nao pela coluna status: ela e escrita por gatilho e
+         -- congela no dia do cadastro, entao documento que venceu depois disso
+         -- continuava contado como valido na Ficha do Veiculo.
          (SELECT COUNT(*)::int FROM documento_veiculo
-           WHERE id_veiculo = $1 AND status = 'VENCIDO') AS documentos_vencidos,
+           WHERE id_veiculo = $1 AND status <> 'INATIVO'
+             AND data_validade IS NOT NULL
+             AND data_validade < CURRENT_DATE) AS documentos_vencidos,
          (SELECT COALESCE(SUM(custo), 0) FROM ordem_servico WHERE id_veiculo = $1) AS custo_manutencao`,
       [id]
     );

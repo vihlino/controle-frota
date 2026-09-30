@@ -176,7 +176,7 @@ router.put("/:id", autenticar, gerenciar, async (req, res, next) => {
         RETURNING id_usuario, login, status, id_perfil`,
       valores
     );
-    if (!rows[0]) return res.status(404).json({ erro: "Usuário não encontrado" });
+    if (!rows[0]) return res.status(404).json({ erro: "Usuário não encontrado." });
 
     // O estado deste usuario esta guardado por 30s na autenticacao; sem isto,
     // desativar alguem so faria efeito no fim desse prazo.

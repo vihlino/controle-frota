@@ -129,7 +129,7 @@ export default function Perfis() {
               onClick={() => escolher(p)}
             >
               <strong>{p.nome}</strong>
-              <span>{p.descricao || "Sem descricao"}</span>
+              <span>{p.descricao || "Sem descrição"}</span>
               <small>
                 {numero(p.permissoes)} permissões - {numero(p.usuarios)} usuários
               </small>

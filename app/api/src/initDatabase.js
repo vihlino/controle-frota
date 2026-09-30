@@ -273,8 +273,8 @@ async function garantirAdministrador(cliente) {
   const { rows: setor } = await cliente.query(
     `INSERT INTO setor (nome, descricao)
      VALUES (
-       'Tecnologia da Informacao',
-       'Setor responsavel pelo SITRA'
+       'Tecnologia da Informação',
+       'Setor responsável pelo SITRA'
      )
      ON CONFLICT (nome)
      DO UPDATE SET nome = EXCLUDED.nome
@@ -337,7 +337,8 @@ async function garantirAdministrador(cliente) {
    */
 
   const { rows: perfil } = await cliente.query(
-    "SELECT id_perfil FROM perfil WHERE nome = 'Administrador'"
+    `SELECT id_perfil FROM perfil
+      WHERE unaccent_simples(nome) = 'ADMINISTRADOR'`
   );
 
   if (!perfil[0]) {
@@ -400,17 +401,17 @@ async function garantirGestores(cliente) {
       matricula: "GF0001",
       email: "gestor.frotas@sitra.local",
       cargo: "Gestor de Frotas",
-      setor: "Gestao de Frotas",
+      setor: "Gestão de Frotas",
       perfil: "Gestor Frotas",
     },
     {
       login: "gestor.fiscalizacao",
-      nome: "Gestor de Fiscalizacao",
+      nome: "Gestor de Fiscalização",
       cpf: "222.222.222-22",
       matricula: "GFS0001",
       email: "gestor.fiscalizacao@sitra.local",
-      cargo: "Gestor de Fiscalizacao",
-      setor: "Fiscalizacao",
+      cargo: "Gestor de Fiscalização",
+      setor: "Fiscalização",
       perfil: "Gestor Fiscalizacao",
     },
   ];
@@ -456,8 +457,18 @@ async function garantirGestores(cliente) {
       [g.nome, g.cpf, g.email, g.matricula, g.cargo, cargo[0].id_cargo, setor[0].id_setor]
     );
 
+    /*
+     * Procura o perfil ignorando acento.
+     *
+     * A migracao 024 renomeia "Gestor Fiscalizacao" para "Gestor Fiscalização",
+     * e uma comparacao literal parava de achar: a instalacao seguia adiante
+     * dizendo apenas "Perfil nao encontrado, pulando gestor.fiscalizacao" e o
+     * usuario do gestor da Fiscalizacao simplesmente nao era criado. As
+     * migracoes 002, 010, 013 e 019 procuram do mesmo jeito, pelo mesmo motivo.
+     */
     const { rows: perfil } = await cliente.query(
-      "SELECT id_perfil FROM perfil WHERE nome = $1",
+      `SELECT id_perfil FROM perfil
+        WHERE unaccent_simples(nome) = unaccent_simples($1)`,
       [g.perfil]
     );
     if (!perfil[0]) {

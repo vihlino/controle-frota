@@ -45,7 +45,7 @@ try {
 
   const { rows: setor } = await cliente.query(
     `INSERT INTO setor (nome, descricao)
-     VALUES ('Tecnologia da Informacao', 'Setor responsavel pelo SITRA')
+     VALUES ('Tecnologia da Informação', 'Setor responsável pelo SITRA')
      ON CONFLICT (nome) DO UPDATE SET nome = EXCLUDED.nome
      RETURNING id_setor`
   );

@@ -154,7 +154,7 @@ export default function VeículoDetalhe() {
 
       {/* Os quatro atalhos levam o veiculo no endereco (?veiculo=id) e a tela
           de destino abre JA filtrada. Antes iam para a lista inteira: o atalho
-          "deste veiculo" mostrava os registros de todos. */}
+          "deste veículo" mostrava os registros de todos. */}
       <Cartao titulo="Atalhos deste veículo">
         <div className="acoes-rapidas">
           <Link className="acao-rapida" to={`/frotas/checklists?veiculo=${id}`}>

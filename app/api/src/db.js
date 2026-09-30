@@ -93,6 +93,34 @@ export const pool = new pg.Pool({
    * descarta primeiro. Abrir conexao nova custa poucos milissegundos.
    */
   idleTimeoutMillis: 10_000,
+
+  /*
+   * Cada conexao nova nasce no fuso do Brasil - e o pool ESPERA por isso.
+   *
+   * "verify" e o unico gancho do pool que roda uma vez por conexao FISICA e
+   * segura a conexao ate terminar: quem pediu a conexao so a recebe depois do
+   * "pronto()". O evento "connect" NAO serve para isso - ele e disparado de
+   * forma sincrona e a conexao e entregue no mesmo instante, entao o SET
+   * disparado ali corria junto com a primeira consulta de quem pediu. O driver
+   * avisava ("Calling client.query() when the client is already executing a
+   * query") e a partir do pg 9 isso passa a ser erro.
+   */
+  verify(cliente, pronto) {
+    cliente.query(`SET TIME ZONE '${FUSO}'`, (erro) => {
+      if (erro) {
+        console.error(
+          "Nao foi possivel aplicar o fuso horario na conexao:",
+          erro.message,
+        );
+      }
+      /*
+       * O erro do fuso NAO invalida a conexao: passar "erro" aqui faria o pool
+       * descartar a conexao e devolver falha para a tela. Melhor uma conexao
+       * em UTC com o aviso no log do que a API inteira fora do ar.
+       */
+      pronto();
+    });
+  },
 });
 
 /*
@@ -106,19 +134,6 @@ export const pool = new pg.Pool({
  */
 pool.on("error", (erro) => {
   console.error("Conexao ociosa do banco caiu (descartada):", erro.message);
-});
-
-/*
- * Cada conexao nova do pool nasce no fuso do Brasil.
- *
- * O evento "connect" dispara uma vez por conexao FISICA - nao a cada
- * consulta - entao o custo e desprezivel. E vale para conexoes que o pool
- * abrir depois, inclusive as que substituem alguma que caiu.
- */
-pool.on("connect", (cliente) => {
-  cliente.query(`SET TIME ZONE '${FUSO}'`).catch((e) => {
-    console.error("Nao foi possivel aplicar o fuso horario na conexao:", e.message);
-  });
 });
 
 /**

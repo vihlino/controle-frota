@@ -129,3 +129,22 @@ services:
 
       - key: PGPASSWORD
         sync: false
+
+      # O Neon EXIGE TLS: sem isto a conexao cai antes de autenticar e a API
+      # sobe reclamando "Connection terminated unexpectedly".
+      - key: PGSSL
+        value: "true"
+
+      # ----------------------------------------------------------------------
+      # ENDERECO PUBLICO DO SISTEMA
+      # ----------------------------------------------------------------------
+      # E o endereco gravado DENTRO do QR Code de cada veiculo (a URL do site
+      # na Vercel, sem barra no final). Sem esta variavel o codigo cai no
+      # padrao "http://localhost:5173": o adesivo impresso abriria o navegador
+      # do celular num endereco que so existe na maquina do desenvolvedor, e o
+      # motorista nao conseguiria fazer o checklist.
+      #
+      # ATENCAO: trocar este valor NAO muda os adesivos ja impressos - eles
+      # carregam a URL antiga gravada na imagem e precisam ser reimpressos.
+      - key: URL_PUBLICA
+        sync: false

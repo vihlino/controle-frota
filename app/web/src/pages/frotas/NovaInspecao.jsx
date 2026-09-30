@@ -23,7 +23,7 @@ export default function NovaInspecao() {
   const [formulario, setFormulario] = useState({
     id_veiculo: "", id_gestor: "", tipo: "MENSAL",
     data_realizacao: "", hora_inicio: "08:00",
-    local: "", quilometragem: "", observacoes: "",
+    quilometragem: "", observacoes: "",
   });
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -120,8 +120,6 @@ export default function NovaInspecao() {
                      {...campo("id_gestor")} />
             <Texto rotulo="Quilometragem prevista" id="quilometragem" type="number" min="0"
                    placeholder="km" {...campo("quilometragem")} />
-            <Texto rotulo="Local da inspeção" id="local" largo
-                   placeholder="Ex.: Garagem Central" {...campo("local")} />
             <Area rotulo="Observações" id="observacoes" largo
                   placeholder="Adicione informações relevantes sobre o agendamento..."
                   {...campo("observacoes")} />

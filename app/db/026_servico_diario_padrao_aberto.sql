@@ -1,0 +1,22 @@
+-- ============================================================
+-- 026 - O padrao do servico diario alinhado com a propria regra
+-- ============================================================
+--
+-- A migracao 009 trocou a situacao inicial do servico diario de 'PLANEJADO'
+-- para 'ABERTO' e refez o CHECK - mas deixou o DEFAULT da coluna em
+-- 'PLANEJADO'. Ficaram os dois brigando na mesma tabela:
+--
+--   DEFAULT 'PLANEJADO'  +  CHECK (status IN ('ABERTO','EM_SERVICO','ENCERRADO'))
+--
+-- Ou seja: qualquer INSERT que NAO informe o status e recusado pela propria
+-- tabela, com uma mensagem que nao ajuda ninguem a entender o motivo:
+--
+--   new row for relation "servico_diario" violates check constraint
+--   "chk_servico_status"
+--
+-- Hoje ninguem tropeca porque as telas sempre mandam o status. A armadilha e
+-- para depois: o proximo script, relatorio ou importacao que confie no padrao
+-- da coluna - como qualquer um faria - falha sem explicacao aparente.
+--
+-- Um DEFAULT que a tabela recusa nao e padrao nenhum; e um campo minado.
+ALTER TABLE servico_diario ALTER COLUMN status SET DEFAULT 'ABERTO';

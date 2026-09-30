@@ -2127,6 +2127,25 @@ button { font: inherit; cursor: pointer; }
   text-align: center;
 }
 .qr-inspecao__nome { font-size: var(--t-base); font-weight: var(--peso-medio); }
+/* Titulo de secao DENTRO da lista de inspecao.
+   Com 21 itens seguidos, a lista mensal virava uma parede de cartoes iguais e
+   quem conferia perdia o lugar. O titulo divide a volta no veiculo em etapas
+   ("Pneus e rodas", "Testes dinamicos e interior") e diz em que estado o
+   veiculo tem de estar - "com o motor frio" so faz sentido no titulo.
+   Encostado a esquerda de proposito: o conteudo dos cartoes e centralizado, e o
+   titulo alinhado com a margem marca onde um trecho comeca.
+   O primeiro nao leva margem em cima porque a lista ja tem respiro acima. */
+.qr-inspecao__grupo {
+  margin: var(--e-3) 0 0;
+  font-size: var(--t-sm);
+  font-weight: var(--peso-semi);
+  color: var(--texto-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: left;
+  justify-self: stretch;
+}
+.qr-inspecao__grupo:first-child { margin-top: 0; }
 /* Os tres botoes ocupam o que o texto pede, e nao um terco da largura cada:
    "Conforme", "Atenção" e "Avaria" sao palavras curtas, e esticadas ate a
    margem pareciam tres botoes de acao principal. A letra continua a mesma. */
@@ -2953,3 +2972,16 @@ button { font: inherit; cursor: pointer; }
   border-top: 1px solid var(--superficie-3);
 }
 .checklist-assinatura .icone { color: var(--texto-3); }
+
+/* Linha de titulo que divide uma tabela em secoes (a ficha da inspecao).
+   E <th scope="colgroup">, nao <td>: para quem usa leitor de tela, a linha e
+   cabecalho de um trecho da tabela, e nao um dado a mais. */
+.tabela__grupo th {
+  background: var(--superficie-2);
+  color: var(--texto-2);
+  font-size: var(--t-sm);
+  font-weight: var(--peso-semi);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: left;
+}

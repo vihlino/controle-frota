@@ -15,13 +15,15 @@ import { useSessao } from "../lib/sessao.jsx";
 export default function Lateral() {
   const { podeVer } = useSessao();
 
-  function rotuloDashboard() {
-    if (podeVer("FROTAS_VISUALIZAR") && !podeVer("FISCALIZACAO_VISUALIZAR") && !podeVer("ADMIN_VISUALIZAR")) return "Dashboard Frotas";
-    if (podeVer("FISCALIZACAO_VISUALIZAR") && !podeVer("FROTAS_VISUALIZAR") && !podeVer("ADMIN_VISUALIZAR")) return "Dashboard Fiscalização";
-    if (podeVer("ADMIN_VISUALIZAR")) return "Dashboard TI";
-    return "Dashboard";
-  }
-
+  /*
+   * O item do menu se chama "Dashboard", e ponto.
+   *
+   * Ele ja mostrava o modulo no rotulo ("Dashboard Frotas", "Dashboard TI").
+   * Isso nao ajudava: quem tem um modulo so nao precisa que o menu repita qual
+   * e, e quem tem os tres (o administrador) via "Dashboard TI" num item que
+   * abre os tres paineis - o rotulo mentia. O painel em si continua dizendo de
+   * qual setor ele e.
+   */
   const blocos = MENU
     .filter((b) => !b.permissao || podeVer(b.permissao))
     .map((b) => ({
@@ -53,11 +55,7 @@ export default function Lateral() {
                 }
               >
                 <Icone nome={item.icone} tamanho={20} monocromatico />
-                {(
-                  <span className="lateral__rotulo">
-                    {item.para === "/dashboard" ? rotuloDashboard() : item.rotulo}
-                  </span>
-                )}
+                <span className="lateral__rotulo">{item.rotulo}</span>
               </NavLink>
             ))}
           </div>

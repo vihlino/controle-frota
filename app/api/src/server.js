@@ -28,6 +28,7 @@ import "dotenv/config";
 import { appendFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { urlPublica, ipsDaRedeLocal } from "./urlPublica.js";
 
 /*
  * Toda falha inesperada tambem vai para app/api/erros.log.
@@ -265,7 +266,7 @@ async function iniciarServidor() {
 
   app.use((_req, res) =>
     res.status(404).json({
-      erro: "Rota não encontrada",
+      erro: "Rota não encontrada.",
     })
   );
 
@@ -321,6 +322,36 @@ async function iniciarServidor() {
   app.listen(porta, () => {
 
     console.log(`SITRA API em http://localhost:${porta}`);
+
+    /*
+     * Diz, na subida, qual endereco vai gravado dentro dos QR Codes.
+     *
+     * Sem isso o erro so aparecia no fim da linha: o adesivo impresso abria
+     * "localhost" no celular do motorista, que e o proprio celular. Dito aqui,
+     * da para conferir antes de mandar imprimir.
+     */
+    const base = urlPublica();
+    if (base) {
+      console.log(`QR Codes vao apontar para ${base}`);
+      if (!process.env.URL_PUBLICA) {
+        console.log(
+          "  (deduzido do IP desta maquina na rede; abra este endereco no " +
+          "celular para testar. Para fixar, use URL_PUBLICA no .env)"
+        );
+        // Com mais de uma placa de rede, mostra todas: se a escolhida nao for a
+        // do Wi-Fi, a certa esta aqui para copiar para o URL_PUBLICA.
+        const todas = ipsDaRedeLocal();
+        if (todas.length > 1) {
+          console.log("  Outras placas de rede encontradas:");
+          for (const { ip, placa } of todas.slice(1)) console.log(`    ${ip}  (${placa})`);
+        }
+      }
+    } else {
+      console.warn(
+        "ATENCAO: URL_PUBLICA nao esta definida. Os QR Codes vao sair com " +
+        "endereco vazio e nao abrirao em nenhum celular."
+      );
+    }
 
   });
 

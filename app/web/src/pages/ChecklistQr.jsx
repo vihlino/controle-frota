@@ -18,12 +18,13 @@
  *     fechado no momento exato da devolucao.
  *   - o PERCURSO so aparece na chegada: quem sabe onde foi e quem voltou.
  */
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Icone from "../components/Icone.jsx";
 import Selo from "../components/Selo.jsx";
 import Modal from "../components/Modal.jsx";
 import { api } from "../lib/api.js";
+import { itensDaInspecao } from "../lib/itensInspecao.js";
 import { numero, rotulo } from "../lib/formato.js";
 import { reduzirImagem, pesoLegivel } from "../lib/imagem.js";
 
@@ -50,12 +51,6 @@ const ROTULO_FREQUENCIA = {
   SEMANAL: "Semanal", QUINZENAL: "Quinzenal", MENSAL: "Mensal",
   PERSONALIZADA: "Personalizada", SEM_PERIODICIDADE: "Sem periodicidade",
 };
-
-const ITENS_INSPECAO = [
-  "Pneus", "Freios", "Luzes e sinalização", "Nível de óleo", "Fluido de freio",
-  "Direção", "Suspensão", "Cintos de segurança", "Lataria e pintura",
-  "Limpeza do veículo",
-];
 
 // As partes do veiculo que o chamado aceita. Lista fechada de proposito:
 // "farol queimado" digitado de dez jeitos diferentes nao vira relatorio.
@@ -226,7 +221,7 @@ export default function ChecklistQr() {
     } catch (e) {
       setErro(
         `O checklist foi registrado, mas um chamado nao foi aberto (${e.message}). ` +
-        "Avise a gestao da frota."
+        "Avise a gestão da frota."
       );
     }
   }
@@ -249,11 +244,10 @@ export default function ChecklistQr() {
       api(`/qrcode/inspecao/${encodeURIComponent(token)}/${encodeURIComponent(m)}`)
         .then((i) => {
           setInspecao(i || null);
-          setItensInspecao(
-            (i ? ITENS_INSPECAO : []).map((item) => ({
-              item, resultado: "NORMAL", observacao: "",
-            }))
-          );
+          // A lista vem da FREQUENCIA: a semanal confere 14 itens, a mensal
+          // 21 (ver lib/itensInspecao.js). Antes era uma lista unica, e a
+          // inspecao semanal pedia o mesmo trabalho da mensal.
+          setItensInspecao(i ? itensDaInspecao(i.tipo) : []);
         })
         .catch(() => setInspecao(null));
     } catch (e) {
@@ -615,7 +609,22 @@ export default function ChecklistQr() {
             <>
               <div className="qr-inspecao__itens">
                 {itensInspecao.map((it, i) => (
-                  <div className="qr-inspecao__item" key={it.item}>
+                  /*
+                   * O titulo do grupo entra quando o grupo MUDA em relacao ao
+                   * item anterior, como IRMAO do cartao do item - dentro dele
+                   * ficaria cercado pela borda, parecendo parte da conferencia.
+                   *
+                   * O Fragment deixa os dois como filhos diretos da grade, cada
+                   * um na sua linha, e mantem a lista sendo um array simples: o
+                   * indice `i` que marcarItem usa continua valendo. Agrupar de
+                   * verdade obrigaria a traduzir indice de grupo + indice de
+                   * item em indice da lista a cada clique.
+                   */
+                  <Fragment key={`${it.grupo}-${it.item}`}>
+                    {it.grupo && it.grupo !== itensInspecao[i - 1]?.grupo && (
+                      <h4 className="qr-inspecao__grupo">{it.grupo}</h4>
+                    )}
+                  <div className="qr-inspecao__item">
                     <span className="qr-inspecao__nome">{it.item}</span>
                     <div className="qr-inspecao__opcoes">
                       {[
@@ -644,6 +653,7 @@ export default function ChecklistQr() {
                       />
                     )}
                   </div>
+                  </Fragment>
                 ))}
               </div>
 

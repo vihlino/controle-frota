@@ -331,7 +331,30 @@ export const documentos = criarCrud({
   tabela: "documento_veiculo",
   id: "id_documento",
   entidade: "documento",
-  select: `documento_veiculo.*,
+  /*
+   * A situacao vem CALCULADA da data, nao da coluna gravada.
+   *
+   * documento_veiculo.status e escrito por gatilho, que so dispara quando a
+   * linha muda - entao ele congela a situacao do dia do cadastro. Um CRLV
+   * gravado como VENCENDO continuava VENCENDO meses depois de vencer, e a tela
+   * mostrava "Vencido ha 10 dias" ao lado de um selo amarelo "Vencendo".
+   *
+   * Por isso as colunas estao listadas uma a uma em vez de
+   * "documento_veiculo.*": e a unica forma de a situacao calculada OCUPAR o
+   * lugar de status, sem duas colunas com o mesmo nome na resposta. Coluna
+   * nova na tabela precisa ser acrescentada aqui tambem.
+   *
+   * A regra mora em situacao_documento() (migracao 023), usada tambem no
+   * filtro e na ordenacao abaixo - as tres precisam concordar, senao a tela
+   * filtra por uma situacao e mostra outra.
+   */
+  select: `documento_veiculo.id_documento, documento_veiculo.id_veiculo,
+           documento_veiculo.tipo_documento, documento_veiculo.numero_documento,
+           documento_veiculo.data_emissao, documento_veiculo.data_validade,
+           documento_veiculo.observacoes, documento_veiculo.categoria,
+           documento_veiculo.id_responsavel, documento_veiculo.arquivo_url,
+           situacao_documento(documento_veiculo.status,
+                              documento_veiculo.data_validade) AS status,
            veiculo.placa, veiculo.marca, veiculo.modelo,
            servidor.nome AS responsavel,
            (documento_veiculo.data_validade - CURRENT_DATE) AS dias_para_vencer`,
@@ -340,13 +363,15 @@ export const documentos = criarCrud({
          LEFT JOIN servidor ON servidor.id_servidor = documento_veiculo.id_responsavel`,
   busca: ["veiculo.placa", "documento_veiculo.tipo_documento", "documento_veiculo.numero_documento"],
   filtros: {
-    veiculo: "documento_veiculo.id_veiculo", status: "documento_veiculo.status",
+    veiculo: "documento_veiculo.id_veiculo",
+    status: "situacao_documento(documento_veiculo.status, documento_veiculo.data_validade)",
     categoria: "documento_veiculo.categoria", responsavel: "documento_veiculo.id_responsavel",
     validadeDe: "documento_veiculo.data_validade", validadeAte: "documento_veiculo.data_validade",
   },
   ordenaveis: {
     tipo_documento: "documento_veiculo.tipo_documento", placa: "veiculo.placa",
-    data_validade: "documento_veiculo.data_validade", status: "documento_veiculo.status",
+    data_validade: "documento_veiculo.data_validade",
+    status: "situacao_documento(documento_veiculo.status, documento_veiculo.data_validade)",
     data_emissao: "documento_veiculo.data_emissao",
   },
   ordemPadrao: "documento_veiculo.data_validade",

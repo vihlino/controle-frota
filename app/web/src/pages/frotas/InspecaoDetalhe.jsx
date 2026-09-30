@@ -4,7 +4,7 @@
  * Mostra os itens verificados em tres colunas - Conforme, Atencao e Nao
  * conforme - alem das observações e do historico.
  */
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useOutletContext, useParams, useNavigate } from "react-router-dom";
 import Cartao from "../../components/Cartao.jsx";
 import Icone from "../../components/Icone.jsx";
@@ -49,7 +49,7 @@ export default function InspeçãoDetalhe() {
     { rotulo: "Responsável", valor: inspeção.responsavel, icone: "user" },
     {
       rotulo: "Situação",
-      valor: inspeção.status === "ABERTA" ? "Pendente" : "Concluida",
+      valor: inspeção.status === "ABERTA" ? "Pendente" : "Concluída",
       icone: "checklist",
     },
     {
@@ -62,11 +62,10 @@ export default function InspeçãoDetalhe() {
   ];
 
   const secundarios = [
-    ["Proxima inspeção", data(inspeção.proxima_inspecao)],
+    ["Próxima inspeção", data(inspeção.proxima_inspecao)],
     ["Quilometragem no momento", inspeção.quilometragem ? `${numero(inspeção.quilometragem)} km` : "-"],
-    ["Local da inspeção", inspeção.local || "-"],
-    ["Hora de finalizacao", hora(inspeção.hora_finalizacao)],
-    ["No da inspeção", inspeção.numero || "-"],
+    ["Hora de finalização", hora(inspeção.hora_finalizacao)],
+    ["Nº da inspeção", inspeção.numero || "-"],
     ["Itens com ressalva", numero(inspeção.itens_com_ressalva || 0)],
   ];
 
@@ -128,8 +127,23 @@ export default function InspeçãoDetalhe() {
               </tr>
             </thead>
             <tbody>
-              {itens.map((i) => (
-                <tr key={i.id_inspecao_item}>
+              {itens.map((i, n) => (
+                /*
+                 * Linha de titulo quando o grupo muda, com o mesmo agrupamento
+                 * que o condutor viu na tela do QR Code. Sem isso a ficha da
+                 * inspecao mensal era uma coluna de 21 itens soltos, e ninguem
+                 * conseguia conferir se uma secao inteira tinha sido pulada.
+                 *
+                 * Inspecao antiga nao tem grupo (a lista era unica); ali a
+                 * condicao e falsa e a tabela sai como sempre saiu.
+                 */
+                <Fragment key={i.id_inspecao_item}>
+                {i.grupo && i.grupo !== itens[n - 1]?.grupo && (
+                  <tr className="tabela__grupo">
+                    <th colSpan={5} scope="colgroup">{i.grupo}</th>
+                  </tr>
+                )}
+                <tr>
                   <td>{i.item}</td>
                   <td className="coluna-marca">
                     <Marca ativo={i.resultado === "NORMAL"} tom="verde" />
@@ -142,6 +156,7 @@ export default function InspeçãoDetalhe() {
                   </td>
                   <td>{i.observacao || "-"}</td>
                 </tr>
+                </Fragment>
               ))}
             </tbody>
           </table>
@@ -171,7 +186,7 @@ export default function InspeçãoDetalhe() {
               <li>
                 <span className="linha-tempo__ponto" data-tom="verde" />
                 <div>
-                  <strong>Inspeção concluida</strong>
+                  <strong>Inspeção concluída</strong>
                   <span>
                     {data(inspeção.data_finalizacao)} {hora(inspeção.hora_finalizacao)} -{" "}
                     {inspeção.responsavel}

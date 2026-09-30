@@ -273,9 +273,42 @@ export function criarCrud(config) {
     // O ::text converte colunas numericas para texto, para o ILIKE funcionar
     // (ILIKE e o LIKE que ignora maiuscula/minuscula, no Postgres).
     if (consulta.busca && busca.length) {
-      valores.push(`%${String(consulta.busca).trim()}%`);
+      const termo = String(consulta.busca).trim();
+      valores.push(`%${termo}%`);
       const i = valores.length;
-      condicoes.push(`(${busca.map((c) => `${c}::text ILIKE $${i}`).join(" OR ")})`);
+      const partes = busca.map((c) => `${c}::text ILIKE $${i}`);
+
+      /*
+       * Segunda passada, so com os digitos.
+       *
+       * CPF e telefone sao guardados SEM pontuacao (migracao 018) - a mascara
+       * e desenhada pela tela. Quem procura um servidor, porem, copia o CPF do
+       * documento do jeito que esta escrito la: "000.000.000-00". Comparado com
+       * "00000000000" no banco, isso nao achava ninguem, e a tela respondia
+       * "nenhum registro" para um CPF que existe.
+       *
+       * Entao, quando o que foi digitado parece um numero de documento, a busca
+       * tambem compara so os digitos - dos dois lados, tirando a pontuacao da
+       * coluna com regexp_replace.
+       *
+       * As duas condicoes que seguram isso:
+       *
+       *   - tres digitos no minimo: menos que isso acha quase tudo e a busca
+       *     perde utilidade;
+       *   - nenhuma letra no termo: sem isso, procurar "Maria 2" faria o "2"
+       *     casar com quase todo CPF da tabela, e o nome deixaria de filtrar.
+       */
+      const digitos = termo.replace(/\D/g, "");
+      const pareceDocumento = digitos.length >= 3 && !/[^\d.\-/()\s+]/.test(termo);
+      if (pareceDocumento) {
+        valores.push(`%${digitos}%`);
+        const j = valores.length;
+        for (const c of busca) {
+          partes.push(`regexp_replace(${c}::text, '[^0-9]', '', 'g') ILIKE $${j}`);
+        }
+      }
+
+      condicoes.push(`(${partes.join(" OR ")})`);
     }
 
     return { where: condicoes.length ? `WHERE ${condicoes.join(" AND ")}` : "", valores };
@@ -372,7 +405,7 @@ export function criarCrud(config) {
         `SELECT ${select} FROM ${from} WHERE ${tabela}.${id} = $1${extra}`,
         recorte ? [Number(req.params.id), recorte.valor] : [Number(req.params.id)]
       );
-      if (!rows[0]) return res.status(404).json({ erro: "Registro não encontrado" });
+      if (!rows[0]) return res.status(404).json({ erro: "Registro não encontrado." });
       res.json(rows[0]);
     } catch (e) {
       next(e);
@@ -463,7 +496,7 @@ export function criarCrud(config) {
       );
       if (!anterior.rows[0]) {
         await cliente.query("ROLLBACK");
-        return res.status(404).json({ erro: "Registro não encontrado" });
+        return res.status(404).json({ erro: "Registro não encontrado." });
       }
 
       /*
@@ -555,7 +588,7 @@ export function criarCrud(config) {
           RETURNING *`,
         recorte ? [idRegistro, recorte.valor] : [idRegistro]
       );
-      if (!rows[0]) return res.status(404).json({ erro: "Registro não encontrado" });
+      if (!rows[0]) return res.status(404).json({ erro: "Registro não encontrado." });
 
       await registrarAuditoria({
         idUsuario: req.usuario.id_usuario,
@@ -573,7 +606,7 @@ export function criarCrud(config) {
       // Sem esse tratamento, a tela mostraria "erro interno", que nao ajuda.
       if (e.code === "23503") {
         return res.status(409).json({
-          erro: "Este registro esta vinculado a outros e não pode ser excluido.",
+          erro: "Este registro está vinculado a outros e não pode ser excluído.",
         });
       }
       next(e);

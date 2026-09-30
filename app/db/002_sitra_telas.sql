@@ -5,6 +5,26 @@
 -- ============================================================
 BEGIN;
 
+-- ------------------------------------------------------------
+-- Comparacao que ignora acento e maiuscula
+-- ------------------------------------------------------------
+-- Definida aqui (e de novo na 014, identica) porque a partir deste ponto os
+-- perfis sao procurados PELO NOME, e o nome pode estar escrito com ou sem
+-- acento: a instalacao antiga gravou "Gestor Fiscalizacao" e a 024 corrige
+-- para "Gestor Fiscalizacao" com acento. Uma comparacao literal encontraria a
+-- grafia de hoje e perderia a de amanha - e a consequencia seria silenciosa: o
+-- perfil simplesmente ficaria sem a permissao, sem nenhum erro no log.
+--
+-- translate() em vez da extensao unaccent porque instalar extensao exige
+-- superusuario, e o banco da CMTT pode nao ser nosso para isso.
+CREATE OR REPLACE FUNCTION unaccent_simples(texto TEXT) RETURNS TEXT AS $$
+    SELECT upper(translate(
+        btrim(coalesce($1, '')),
+        'áàâãäéèêëíìîïóòôõöúùûüçÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇ',
+        'aaaaaeeeeiiiiooooouuuucAAAAAEEEEIIIIOOOOOUUUUC'
+    ));
+$$ LANGUAGE sql IMMUTABLE;
+
 -- 1. CHECKLIST: o mockup e o fluxo do QR Code pedem percurso e local de saida.
 ALTER TABLE checklist_frotas ADD COLUMN IF NOT EXISTS percurso VARCHAR(255);
 ALTER TABLE checklist_frotas ADD COLUMN IF NOT EXISTS local_saida VARCHAR(255);
@@ -147,10 +167,21 @@ GROUP BY
     st.nome, p.nome;
 
 -- Perfis Gestor Frotas e Gestor Fiscalizacao
-INSERT INTO perfil (nome, descricao) VALUES
-    ('Gestor Frotas',        'Acesso completo ao modulo de Frotas'),
-    ('Gestor Fiscalizacao',  'Acesso completo ao modulo de Fiscalizacao')
-ON CONFLICT (nome) DO NOTHING;
+-- O ON CONFLICT (nome) nao basta: a 024 renomeia estes perfis para a grafia
+-- com acento, e entao 'Gestor Fiscalizacao' deixaria de conflitar - cada
+-- reinicio da API criaria um perfil duplicado ao lado do renomeado. O NOT
+-- EXISTS compara ignorando acento, entao reconhece as duas grafias como o
+-- mesmo perfil.
+INSERT INTO perfil (nome, descricao)
+SELECT v.nome, v.descricao
+  FROM (VALUES
+        ('Gestor Frotas',        'Acesso completo ao modulo de Frotas'),
+        ('Gestor Fiscalizacao',  'Acesso completo ao modulo de Fiscalizacao')
+       ) AS v(nome, descricao)
+ WHERE NOT EXISTS (
+        SELECT 1 FROM perfil p
+         WHERE unaccent_simples(p.nome) = unaccent_simples(v.nome)
+       );
 
 INSERT INTO perfil_permissao (id_perfil, id_permissao)
 SELECT p.id_perfil, pe.id_permissao
@@ -160,7 +191,7 @@ JOIN permissao pe ON pe.codigo IN (
     'FROTAS_REALIZAR_INSPECAO','FROTAS_GERENCIAR_OS','FROTAS_GERENCIAR_SINISTROS',
     'FROTAS_GERAR_RELATORIOS','RELATORIOS_VISUALIZAR','RELATORIOS_GERAR'
 )
-WHERE p.nome = 'Gestor Frotas'
+WHERE unaccent_simples(p.nome) = 'GESTOR FROTAS'
 ON CONFLICT DO NOTHING;
 
 INSERT INTO perfil_permissao (id_perfil, id_permissao)
@@ -172,7 +203,7 @@ JOIN permissao pe ON pe.codigo IN (
     'FISCALIZACAO_DISTRIBUIR_OCORRENCIAS','FISCALIZACAO_GERAR_RELATORIOS',
     'FISCALIZACAO_GERENCIAR_PONTUACAO','RELATORIOS_VISUALIZAR','RELATORIOS_GERAR'
 )
-WHERE p.nome = 'Gestor Fiscalizacao'
+WHERE unaccent_simples(p.nome) = 'GESTOR FISCALIZACAO'
 ON CONFLICT DO NOTHING;
 
 COMMIT;

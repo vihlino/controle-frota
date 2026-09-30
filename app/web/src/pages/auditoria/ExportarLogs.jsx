@@ -66,7 +66,7 @@ export default function ExportarLogs() {
       const r = await api(`/auditoria/${origem}?${parâmetros(5000)}`);
       const csv = paraCsv(r.itens);
       if (!csv) {
-        setErro("Não há registros para exportar nesse periodo.");
+        setErro("Não há registros para exportar nesse período.");
         return;
       }
       // O BOM faz o Excel abrir os acentos corretamente.
@@ -109,7 +109,7 @@ export default function ExportarLogs() {
         <p className="modal__aviso">
           {previa === null
             ? "Calculando..."
-            : `${numero(previa)} registros serao exportados. O limite por arquivo e de 5.000 linhas.`}
+            : `${numero(previa)} registros serão exportados. O limite por arquivo é de 5.000 linhas.`}
         </p>
 
         <button className="botao botao--primario" onClick={exportar} disabled={exportando || !previa}>
