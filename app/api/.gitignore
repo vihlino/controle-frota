@@ -1,3 +1,7 @@
 node_modules
 .env
 erros.log
+
+# Copias do banco (npm run backup): tem CPF, telefone e hash de senha.
+# Nunca vao para o GitHub.
+backups/

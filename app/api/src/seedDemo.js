@@ -541,10 +541,29 @@ try {
             (SELECT COUNT(*)::int FROM equipe)  AS equipes`
   );
 
-  if (ja.veiculos > 0 && ja.equipes > 0) {
-    console.log(
-      `Ja existem ${ja.veiculos} veiculos e ${ja.equipes} equipes. Nada a fazer.`
-    );
+  /*
+   * O que fazer, modulo por modulo.
+   *
+   * Frotas: so num banco sem veiculo - OU quando pedido de proposito com
+   * --frotas. Num banco em uso (o sistema principal, onde o Luciano cadastra),
+   * 42 veiculos inventados aparecendo sem ninguem pedir seria uma surpresa
+   * ruim; pedido explicitamente, eles entram AO LADO do que ja existe, sem
+   * alterar nada.
+   *
+   * Fiscalizacao: so se nao houver equipe nenhuma. Nao tem opcao de forcar
+   * porque ela nao cabe duas vezes: o servico diario e unico por dia e turno, e
+   * o numero da equipe tambem.
+   */
+  const forcarFrotas = process.argv.includes("--frotas");
+  const fazerFrotas = ja.veiculos === 0 || forcarFrotas;
+  const fazerFisc = ja.equipes === 0;
+
+  if (!fazerFrotas && !fazerFisc) {
+    console.log(`Ja existem ${ja.veiculos} veiculos e ${ja.equipes} equipes. Nada a fazer.`);
+    // "node" direto, e nao "npm run seed:demo -- --frotas": no PowerShell o
+    // npm e um script .ps1, e o PowerShell engole o "--" - a opcao chegava ao
+    // npm em vez de chegar aqui, e o seed rodava como se ela nao existisse.
+    console.log("Para acrescentar mais uma frota de exemplo: node src/seedDemo.js --frotas");
     process.exit(0);
   }
 
@@ -617,7 +636,7 @@ try {
    * este caminho, a regra "banco com veiculo -> nada a fazer" deixava o modulo
    * vazio para sempre, e a unica saida era apagar tudo e comecar de novo.
    */
-  if (ja.veiculos > 0) {
+  if (!fazerFrotas) {
     console.log(`Ja existem ${ja.veiculos} veiculos: complementando so a Fiscalizacao.`);
     await complementarFiscalizacao(cliente, { setorFisc, cargoFiscal });
     await cliente.query("COMMIT");
@@ -625,6 +644,23 @@ try {
     cliente.release();
     await pool.end();
     process.exit(0);
+  }
+
+  if (ja.veiculos > 0) {
+    console.log(`Ja existem ${ja.veiculos} veiculos: acrescentando a frota de exemplo ao lado deles.`);
+  }
+
+  /*
+   * Valores que o banco exige unicos, escolhidos LIVRES.
+   *
+   * Num banco vazio qualquer valor serve. Com --frotas, o seed escreve ao lado
+   * de cadastros de verdade - e uma matricula, um login ou uma placa repetida
+   * derrubaria a transacao inteira no primeiro INSERT, sem gravar nada.
+   */
+  async function livre(sql, candidato, proximo) {
+    let valor = candidato;
+    while ((await cliente.query(sql, [valor])).rowCount) valor = proximo(valor);
+    return valor;
   }
 
   // --- servidores ---
@@ -651,7 +687,10 @@ try {
         `19${inteiro(70, 99)}-${String(inteiro(1, 12)).padStart(2, "0")}-${String(inteiro(1, 28)).padStart(2, "0")}`,
         `649${inteiro(1000, 9999)}${inteiro(1000, 9999)}`,
         NOMES[i].toLowerCase().split(" ")[0] + i + "@cmtt.local",
-        String(12500 + i),
+        await livre(
+          "SELECT 1 FROM servidor WHERE matricula = $1",
+          String(12500 + i), (m) => String(Number(m) + 100)
+        ),
         String(inteiro(10000000000, 99999999999)),
         aleatorio(["AB", "B", "AD", "D"]),
         // cargo_funcao NAO vai aqui: o gatilho sitra_espelhar_cargo copia o
@@ -680,7 +719,15 @@ try {
     const { rows } = await cliente.query(
       `INSERT INTO usuario (id_servidor, id_perfil, login, senha_hash)
        VALUES ($1, $2, $3, $4) RETURNING id_usuario`,
-      [servidores[i], perfilGestor.id_perfil, "gestor" + (i + 1), senhaPadrao]
+      [
+        servidores[i], perfilGestor.id_perfil,
+        // gestor1 ... gestor6; se ja existirem (seed anterior), gestor7 em diante
+        await livre(
+          "SELECT 1 FROM usuario WHERE login = $1",
+          "gestor" + (i + 1), (l) => "gestor" + (Number(l.slice(6)) + 6)
+        ),
+        senhaPadrao,
+      ]
     );
     usuarios.push(rows[0].id_usuario);
   }
@@ -698,7 +745,8 @@ try {
           vinculo)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id_veiculo`,
       [
-        placa(i), marca, modelo, ano, ano, aleatorio(CORES), tipo,
+        await livre("SELECT 1 FROM veiculo WHERE placa = $1", placa(i), () => placa(inteiro(0, 9999))),
+        marca, modelo, ano, ano, aleatorio(CORES), tipo,
         String(inteiro(10000000000, 99999999999)),
         `9B${String(i).padStart(2, "0")}${Math.random().toString(36).slice(2, 15).toUpperCase()}`,
         /*
@@ -791,12 +839,16 @@ try {
     }
   }
 
-  await semearFiscalizacao(cliente, {
-    fiscais,
-    coordenadores: servidores.slice(0, 6),
-    usuarios,
-    kmDoVeiculo,
-  });
+  if (fazerFisc) {
+    await semearFiscalizacao(cliente, {
+      fiscais,
+      coordenadores: servidores.slice(0, 6),
+      usuarios,
+      kmDoVeiculo,
+    });
+  } else {
+    console.log("A Fiscalizacao ja tem dados: ficou como estava.");
+  }
 
 
   // --- documentos, com vencimentos espalhados nas faixas 30/90/120 ---
@@ -956,7 +1008,11 @@ try {
                 SELECT c.odometro_chegada FROM checklist_fiscalizacao c
                  WHERE c.id_veiculo = v.id_veiculo AND c.odometro_chegada IS NOT NULL
             ) x
-        ), 0))`
+        ), 0))
+      -- So os veiculos que ESTE seed criou. Com --frotas o banco ja tem
+      -- veiculos de verdade, e nao cabe ao seed mexer neles.
+      WHERE v.id_veiculo = ANY($1::bigint[])`,
+    [veiculos]
   );
 
   // --- situacoes finais da frota ---
@@ -967,12 +1023,18 @@ try {
         WHEN id_veiculo % 9 = 0 THEN 'EM_MANUTENCAO'
         WHEN id_veiculo % 14 = 0 THEN 'INATIVO'
         ELSE status END
-      WHERE id_veiculo NOT IN (
+      -- So os veiculos deste seed: a situacao de um veiculo de verdade (em
+      -- manutencao, inativo) e informacao de quem cuida da frota. Antes esta
+      -- linha valia para a tabela inteira - inofensivo num banco vazio, e um
+      -- estrago num banco em uso.
+      WHERE id_veiculo = ANY($1::bigint[])
+        AND id_veiculo NOT IN (
         SELECT id_veiculo FROM checklist_frotas WHERE status = 'ABERTO'
         UNION
         -- a viatura que saiu no turno de hoje tambem esta na rua: por em
         -- manutencao uma viatura com checklist aberto seria incoerente
-        SELECT id_veiculo FROM checklist_fiscalizacao WHERE status = 'ABERTO')`
+        SELECT id_veiculo FROM checklist_fiscalizacao WHERE status = 'ABERTO')`,
+    [veiculos]
   );
 
   // --- alertas do sino ---
