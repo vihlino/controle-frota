@@ -12,20 +12,11 @@ import Trilha from "../../components/Trilha.jsx";
 import Selo from "../../components/Selo.jsx";
 import Modal from "../../components/Modal.jsx";
 import EditarInspecao from "../../components/EditarInspecao.jsx";
-import { Selecao } from "../../components/Campos.jsx";
+import RegistrarOs from "../../components/RegistrarOs.jsx";
 import { api } from "../../lib/api.js";
 import { data, dataHora, hora, numero, numeroOs, rotulo, ROTULOS } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
 
-const PRIORIDADES = [
-  { valor: "BAIXA", rotulo: "Baixa" },
-  { valor: "MEDIA", rotulo: "Média" },
-  { valor: "ALTA", rotulo: "Alta" },
-];
-const TIPOS_OS = [
-  { valor: "CORRETIVA", rotulo: "Corretiva" },
-  { valor: "PREVENTIVA", rotulo: "Preventiva" },
-];
 const NOME_RESULTADO = { ATENCAO: "Atenção", AVARIA: "Avaria" };
 
 /*
@@ -74,29 +65,22 @@ export default function InspeçãoDetalhe() {
 
   const recarregar = () => setRecarga((n) => n + 1);
 
+  /*
+   * Abrir OS usa a MESMA janela do Registrar OS, ja preenchida: tipo
+   * corretiva, prioridade pela ressalva (Avaria pede mais pressa que Atencao),
+   * a descricao e os itens a verificar tirados dos itens com ressalva.
+   */
   function abrirOs() {
-    setErroJanela("");
+    const comRessalva = itens.filter((i) => i.resultado !== "NORMAL");
     setAbrindoOs({
       tipo: "CORRETIVA",
-      // Avaria pede mais pressa que Atencao.
-      gravidade: itens.some((i) => i.resultado === "AVARIA") ? "ALTA" : "MEDIA",
+      gravidade: comRessalva.some((i) => i.resultado === "AVARIA") ? "ALTA" : "MEDIA",
       descricao: descricaoDaOs(itens),
+      itens: comRessalva.map((i) => ({
+        descricao: i.item,
+        observacao: `${NOME_RESULTADO[i.resultado] || i.resultado}: ${i.observacao || "sem observação"}`,
+      })),
     });
-  }
-
-  async function enviarOs(e) {
-    e.preventDefault();
-    setEnviando(true);
-    setErroJanela("");
-    try {
-      await api(`/frotas/inspecoes/${id}/os`, { method: "POST", body: abrindoOs });
-      setAbrindoOs(null);
-      recarregar();
-    } catch (err) {
-      setErroJanela(err.message);
-    } finally {
-      setEnviando(false);
-    }
   }
 
   async function enviarAnalise(e) {
@@ -207,7 +191,9 @@ export default function InspeçãoDetalhe() {
               )}
               {inspeção.analise !== "APROVADO" && (
                 <div className="analise-botoes">
-                  {podeVer("FROTAS_GERENCIAR_OS") && (
+                  {/* Com OS aberta, o botao some: o que falta e a oficina devolver
+                      e alguem fechar a OS, que aprova a inspecao. */}
+                  {podeVer("FROTAS_GERENCIAR_OS") && !inspeção.ordens_servico?.length && (
                     <button className="botao botao--primario botao--pequeno" onClick={abrirOs}>
                       <Icone nome="kpi-wrench" tamanho={14} monocromatico /> Abrir OS
                     </button>
@@ -224,7 +210,17 @@ export default function InspeçãoDetalhe() {
           }
         >
           {inspeção.analise === "APROVADO" && (
-            <p className="texto-corrido">Nenhum item com ressalva: não há o que analisar.</p>
+            <p className="texto-corrido">
+              {inspeção.aprovada_em
+                ? <>Aprovada em {dataHora(inspeção.aprovada_em)}, com o fechamento da OS de manutenção.</>
+                : "Nenhum item com ressalva: não há o que analisar."}
+            </p>
+          )}
+
+          {inspeção.analise === "ANALISADO" && inspeção.ordens_servico?.some((o) => !["RESOLVIDA", "CANCELADA"].includes(o.status)) && (
+            <p className="texto-corrido analise-espera">
+              Aguardando o fechamento da OS: quando ela for fechada, a inspeção passa a Aprovado.
+            </p>
           )}
 
           {inspeção.analise === "ANALISADO" && (
@@ -361,35 +357,12 @@ export default function InspeçãoDetalhe() {
       )}
 
       {abrindoOs && (
-        <Modal
-          titulo="Abrir OS de manutenção"
-          largura={560}
+        <RegistrarOs
+          inspecao={{ id: inspeção.id_inspecao, numero: inspeção.numero, id_veiculo: inspeção.id_veiculo }}
+          inicial={abrindoOs}
           aoFechar={() => setAbrindoOs(null)}
-          rodape={
-            <>
-              <button className="botao" onClick={() => setAbrindoOs(null)}>Cancelar</button>
-              <button className="botao botao--primario" form="form-os-inspecao" disabled={enviando}>
-                {enviando ? "Abrindo..." : "Abrir OS"}
-              </button>
-            </>
-          }
-        >
-          {erroJanela && <div className="login__erro">{erroJanela}</div>}
-          <form id="form-os-inspecao" className="formulario-grade" onSubmit={enviarOs}>
-            <Selecao rotulo="Tipo de manutenção *" id="os-tipo" opcoes={TIPOS_OS}
-                     value={abrindoOs.tipo}
-                     onChange={(e) => setAbrindoOs((f) => ({ ...f, tipo: e.target.value }))} />
-            <Selecao rotulo="Prioridade *" id="os-gravidade" opcoes={PRIORIDADES}
-                     value={abrindoOs.gravidade}
-                     onChange={(e) => setAbrindoOs((f) => ({ ...f, gravidade: e.target.value }))} />
-            <div className="campo" data-largo="sim">
-              <label htmlFor="os-descricao">O que precisa ser resolvido *</label>
-              <textarea id="os-descricao" rows={6} required minLength={5}
-                        value={abrindoOs.descricao}
-                        onChange={(e) => setAbrindoOs((f) => ({ ...f, descricao: e.target.value }))} />
-            </div>
-          </form>
-        </Modal>
+          aoSalvar={recarregar}
+        />
       )}
 
       {analisando !== null && (

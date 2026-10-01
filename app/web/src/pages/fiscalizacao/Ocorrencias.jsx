@@ -36,7 +36,7 @@ export default criarPagina({
   colunas: [
     { chave: "protocolo", rotulo: "No da ocorrência", ordenavel: true, render: (o) => o.protocolo || "-" },
     { chave: "tipo", rotulo: "Tipo", ordenavel: true },
-    { chave: "endereco", rotulo: "Local" },
+    { chave: "endereco", cortar: true, rotulo: "Local" },
     {
       chave: "data", rotulo: "Data / Hora", ordenavel: true,
       render: (o) => (

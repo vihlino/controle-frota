@@ -51,19 +51,19 @@ export const CONFIG_SERVIDOR = {
   // mapaOpcoes: quem monta as opcoes dela e a funcao do proprio campo.
   opcoes: { setores: "/setores", cargos: "/cargos" },
   colunas: [
-    { chave: "nome", rotulo: "Nome", ordenavel: true },
+    { chave: "nome", cortar: true, rotulo: "Nome", ordenavel: true },
     { chave: "matricula", rotulo: "Matrícula", ordenavel: true },
-    { chave: "data_nascimento", rotulo: "Nascimento",
+    { chave: "data_nascimento", classe: "col-oculta-notebook", rotulo: "Nascimento",
       render: (s) => data(s.data_nascimento) },
-    { chave: "cargo_funcao", rotulo: "Cargo / Função", ordenavel: true,
+    { chave: "cargo_funcao", cortar: true, rotulo: "Cargo / Função", ordenavel: true,
       render: (s) => s.cargo || s.cargo_funcao || <span className="texto-fraco">—</span> },
-    { chave: "setor", rotulo: "Setor", ordenavel: true },
+    { chave: "setor", cortar: true, rotulo: "Setor", ordenavel: true },
     // O banco guarda so os digitos; a pontuacao e desenhada na hora de
     // mostrar, pela mesma funcao que o formulario usa.
-    { chave: "telefone", rotulo: "Telefone", render: (s) => telefone(s.telefone) || "—" },
-    { chave: "email", rotulo: "E-mail" },
+    { chave: "telefone", classe: "col-oculta-notebook", rotulo: "Telefone", render: (s) => telefone(s.telefone) || "—" },
+    { chave: "email", cortar: true, rotulo: "E-mail" },
     {
-      chave: "cnh", rotulo: "CNH",
+      chave: "cnh", classe: "col-oculta-pequena", rotulo: "CNH",
       render: (s) =>
         s.cnh ? (
           <span className="celula-dupla">

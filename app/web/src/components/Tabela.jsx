@@ -12,6 +12,31 @@ import Icone from "./Icone.jsx";
 import { numero } from "../lib/formato.js";
 
 // colunas: [{ chave, rotulo, ordenavel, largura, render(linha) }]
+/*
+ * Classe de cada coluna: a que a tela declarar (`classe`) e, na coluna de
+ * Acoes, "coluna-acoes" - que fica PRESA na borda direita. Assim o menu de
+ * acoes aparece sempre, mesmo quando a tabela e mais larga que a tela e rola
+ * na horizontal (notebook, tela estreita).
+ */
+const classeDa = (c) =>
+  [c.classe, c.chave === "ações" || c.chave === "acoes" ? "coluna-acoes" : null]
+    .filter(Boolean).join(" ") || undefined;
+
+/*
+ * Coluna com `cortar: true` (texto que pode ser longo: local, e-mail,
+ * observacao...): o conteudo fica numa linha so e corta com "...", numa
+ * largura proporcional a tela (ver .celula-cortada--coluna no CSS). O texto
+ * inteiro aparece ao passar o mouse. E o que impede uma coluna de empurrar
+ * as outras - e o menu de Acoes - para fora da tela.
+ */
+function celula(c, linha) {
+  const conteudo = c.render ? c.render(linha) : linha[c.chave] ?? "-";
+  if (!c.cortar) return conteudo;
+  const bruto = typeof conteudo === "string" ? conteudo
+    : typeof linha[c.chave] === "string" ? linha[c.chave] : undefined;
+  return <div className="celula-cortada celula-cortada--coluna" title={bruto}>{conteudo}</div>;
+}
+
 export function Tabela({ colunas, linhas, chaveDe, ordem, ordenarPor, vazio, carregando }) {
   if (carregando && !linhas) return <div className="carregando">Carregando...</div>;
 
@@ -21,7 +46,7 @@ export function Tabela({ colunas, linhas, chaveDe, ordem, ordenarPor, vazio, car
         <thead>
           <tr>
             {colunas.map((c) => (
-              <th key={c.chave} style={c.largura ? { width: c.largura } : undefined}>
+              <th key={c.chave} className={classeDa(c)} style={c.largura ? { width: c.largura } : undefined}>
                 {c.ordenavel && ordenarPor ? (
                   <button className="tabela__ordenar" onClick={() => ordenarPor(c.chave)}>
                     {c.rotulo}
@@ -44,7 +69,7 @@ export function Tabela({ colunas, linhas, chaveDe, ordem, ordenarPor, vazio, car
           {(linhas || []).map((linha) => (
             <tr key={chaveDe(linha)}>
               {colunas.map((c) => (
-                <td key={c.chave}>{c.render ? c.render(linha) : linha[c.chave] ?? "-"}</td>
+                <td key={c.chave} className={classeDa(c)}>{celula(c, linha)}</td>
               ))}
             </tr>
           ))}

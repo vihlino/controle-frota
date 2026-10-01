@@ -63,6 +63,8 @@ const ROTULOS_STATUS = {
   FINALIZADO: { texto: "Finalizado", tom: "verde" },
   EM_ANALISE: { texto: "Em análise", tom: "amarelo" },
   RESOLVIDA: { texto: "Resolvida", tom: "verde" },
+  RESOLVIDO: { texto: "Resolvido", tom: "verde" },
+  ENCERRADO: { texto: "Encerrado", tom: "cinza" },
   CANCELADA: { texto: "Cancelada", tom: "vermelho" },
   VALIDO: { texto: "Válido", tom: "verde" },
   VENCENDO: { texto: "Vencendo", tom: "laranja" },
@@ -131,6 +133,11 @@ export const ROTULOS = {
     COLISAO: "Colisão", DANO_MATERIAL: "Dano material",
     ROUBO_FURTO: "Roubo / Furto", INCENDIO: "Incêndio", OUTRO: "Outro",
   },
+  parteSinistro: {
+    FRENTE: "Frente", TRASEIRA: "Traseira", LATERAL_ESQ: "Lateral esquerda",
+    LATERAL_DIR: "Lateral direita", TETO: "Teto", OUTRO: "Outro",
+  },
+  gravidadeDanos: { LEVE: "Leve", MODERADO: "Moderado", GRAVE: "Grave", PERDA_TOTAL: "Perda total" },
   equipamento: {
     MACACO: "Macaco", ESTEPE: "Estepe",
     TRIANGULO: "Triângulo", CHAVE_RODA: "Chave de roda",

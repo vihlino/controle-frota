@@ -28,21 +28,27 @@ export const PRIORIDADES_OS = [
 const soData = (v) => (v ? String(v).slice(0, 10) : "");
 const texto = (v) => (v === null || v === undefined ? "" : String(v));
 
-export default function RegistrarOs({ os, idVeiculo = "", aoFechar, aoSalvar }) {
+/*
+ * Pela INSPECAO (botao "Abrir OS" da ficha): a mesma janela, com `inspecao`
+ * = { id, numero, id_veiculo } e `inicial` = { descricao, gravidade, itens }
+ * vindos dos itens com ressalva. O veiculo fica travado no da inspecao, e a OS
+ * nasce ligada a ela.
+ */
+export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoFechar, aoSalvar }) {
   const editando = Boolean(os);
   const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
   const [veiculos, setVeiculos] = useState([]);
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [formulario, setFormulario] = useState(() => ({
-    id_veiculo: texto(os?.id_veiculo ?? idVeiculo),
+    id_veiculo: texto(os?.id_veiculo ?? inspecao?.id_veiculo ?? idVeiculo),
     data_agendada: soData(os?.data_agendada),
-    gravidade: os?.gravidade || "MEDIA",
-    tipo: os?.tipo || "PREVENTIVA",
+    gravidade: os?.gravidade || inicial?.gravidade || "MEDIA",
+    tipo: os?.tipo || inicial?.tipo || (inspecao ? "CORRETIVA" : "PREVENTIVA"),
     oficina: texto(os?.oficina),
     responsavel_oficina: texto(os?.responsavel_oficina),
     telefone_oficina: texto(os?.telefone_oficina),
-    descricao: texto(os?.descricao),
+    descricao: texto(os?.descricao ?? inicial?.descricao),
     custo_estimado: texto(os?.custo_estimado),
     prazo_previsto: soData(os?.prazo_previsto),
     pecas_necessarias: texto(os?.pecas_necessarias),
@@ -51,9 +57,10 @@ export default function RegistrarOs({ os, idVeiculo = "", aoFechar, aoSalvar }) 
   }));
   // O KM vem do veiculo escolhido ate a pessoa digitar outro.
   const [kmDigitado, setKmDigitado] = useState(editando);
-  const [itens, setItens] = useState(() =>
-    os?.itens?.length ? os.itens.map((i) => ({ ...i })) : [{ descricao: "", observacao: "" }]
-  );
+  const [itens, setItens] = useState(() => {
+    const base = os?.itens?.length ? os.itens : inicial?.itens;
+    return base?.length ? base.map((i) => ({ ...i })) : [{ descricao: "", observacao: "" }];
+  });
 
   useEffect(() => {
     api("/frotas/veiculos/opcoes").then((r) => setVeiculos(Array.isArray(r) ? r : [])).catch(() => {});
@@ -92,7 +99,10 @@ export default function RegistrarOs({ os, idVeiculo = "", aoFechar, aoSalvar }) 
           method: "PUT", body: { ...corpo, justificativa },
         });
       } else {
-        await api("/frotas/manutencoes/registro", { method: "POST", body: corpo });
+        await api("/frotas/manutencoes/registro", {
+          method: "POST",
+          body: inspecao ? { ...corpo, id_inspecao: inspecao.id } : corpo,
+        });
       }
       aoSalvar?.();
       aoFechar();
@@ -106,7 +116,8 @@ export default function RegistrarOs({ os, idVeiculo = "", aoFechar, aoSalvar }) 
   return (
     <>
       <Modal
-        titulo={editando ? (os.numero ? `Editar ${numeroOs(os.numero)}` : "Editar OS") : "Registrar OS"}
+        titulo={editando ? (os.numero ? `Editar Registro ${numeroOs(os.numero)}` : "Editar Registro da OS") : "Registrar OS"}
+        legenda={inspecao && !editando ? `Vinculada à inspeção ${inspecao.numero || ""}`.trim() : undefined}
         aoFechar={aoFechar}
         rodape={
           <>
@@ -120,6 +131,7 @@ export default function RegistrarOs({ os, idVeiculo = "", aoFechar, aoSalvar }) 
         {erro && <div className="login__erro">{erro}</div>}
         <form id="form-registrar-os" className="formulario-grade" onSubmit={salvar}>
           <Selecao rotulo="Veículo *" id="os-veiculo" required vazio="Selecione"
+                   disabled={Boolean(inspecao)}
                    opcoes={veiculos.map((v) => ({
                      valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
                    }))}

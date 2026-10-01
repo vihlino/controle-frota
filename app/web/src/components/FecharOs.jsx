@@ -100,7 +100,7 @@ export default function FecharOs({ os, aoFechar, aoSalvar }) {
   return (
     <>
       <Modal
-        titulo={corrigindo ? (os.numero ? `Editar ${numeroOs(os.numero)}` : "Editar OS") : "Fechamento de OS"}
+        titulo={corrigindo ? (os.numero ? `Editar Fechamento ${numeroOs(os.numero)}` : "Editar Fechamento da OS") : "Fechamento de OS"}
         legenda={corrigindo ? undefined : numeroOs(os.numero) || undefined}
         aoFechar={aoFechar}
         rodape={

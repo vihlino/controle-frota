@@ -4,7 +4,9 @@
  * Cada linha mostra quantos dias faltam para vencer, com cor: verde acima de
  * 30 dias, laranja dentro dos 30 e vermelho quando ja venceu.
  *
- * Um documento pode ser marcado para BLOQUEAR o veículo quando vencer.
+ * Acoes: Visualizar (ficha com arquivos e historico), Ver veiculo, Atualizar
+ * (renovacao: cadastra a versao nova e guarda a atual no historico), Editar
+ * e Excluir. A lista mostra so a versao ATUAL de cada documento.
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -12,12 +14,12 @@ import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
 import Acoes from "../../components/Acoes.jsx";
-import Modal from "../../components/Modal.jsx";
-import { Texto, Selecao, Data, Area } from "../../components/Campos.jsx";
+import FormularioDocumento, { CATEGORIAS_DOCUMENTO as CATEGORIAS } from "../../components/FormularioDocumento.jsx";
+import { Texto, Selecao } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { useConfirmacaoSenha } from "../../components/ConfirmarSenha.jsx";
 import { api } from "../../lib/api.js";
-import { data, numero } from "../../lib/formato.js";
+import { data } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
 
 const SITUACOES = [
@@ -26,28 +28,6 @@ const SITUACOES = [
   { valor: "VENCIDO", rotulo: "Vencido" },
   { valor: "INATIVO", rotulo: "Inativo" },
 ];
-/*
- * No FORMULARIO a situacao nao e escolhida - ela e calculada pela data de
- * vencimento (funcao situacao_documento no banco). Escolher "Vencendo" num
- * documento que vence em 2027 nao teria efeito nenhum: o banco reescreve na
- * hora de salvar, e a pessoa via sua escolha ser ignorada sem entender por que.
- *
- * A unica situacao que e decisao de uma pessoa e INATIVO - o documento
- * arquivado, que sai dos avisos de vencimento. Entao o campo oferece so as
- * duas opcoes que existem de verdade.
- */
-const ARQUIVAMENTO = [
-  { valor: "VALIDO", rotulo: "Ativo" },
-  { valor: "INATIVO", rotulo: "Inativo (arquivado)" },
-];
-
-const CATEGORIAS = ["Licenciamento", "Seguro", "Imposto", "Inspeção", "Manual", "Outro"];
-
-const VAZIO = {
-  id_veiculo: "", tipo_documento: "", numero_documento: "", categoria: "Licenciamento",
-  data_emissao: "", data_validade: "", status: "VALIDO", id_responsavel: "",
-  observacoes: "",
-};
 
 // Traduz os dias restantes na frase que aparece embaixo da data.
 function prazo(dias) {
@@ -71,73 +51,29 @@ export default function Documentos() {
     categoria: "",
   });
   const [veículos, setVeículos] = useState([]);
-  const [servidores, setServidores] = useState([]);
-  const [resumo, setResumo] = useState(null);
-  const [editando, setEditando] = useState(null);
+  // { modo: "novo" | "editar" | "atualizar", documento?, idVeiculo? } ou null
+  const [formulario, setFormulario] = useState(null);
   const { pedirExclusao, elemento: modalSenha } = useConfirmacaoSenha();
-  const [formulario, setFormulario] = useState(VAZIO);
-  const [erroForm, setErroForm] = useState("");
-  const [salvando, setSalvando] = useState(false);
 
   const podeGerenciar = podeVer("FROTAS_GERENCIAR_DOCUMENTOS");
 
   useEffect(() => {
     api("/frotas/veiculos/opcoes").then(setVeículos).catch(() => {});
-    api("/admin/servidores/opcoes")
-      // Array.isArray: uma resposta fora do formato esperado faria
-      // `servidores.map` derrubar a tela inteira, e o .catch abaixo nao pega
-      // isso - ele so ve falha de rede.
-      .then((r) => setServidores(Array.isArray(r) ? r : []))
-      .catch(() => {});
   }, []);
 
+  /*
+   * ?novo=1 abre o pop-up de Novo documento (atalho do painel e o endereco
+   * antigo /frotas/documentos/novo). Sai do endereco depois de usado.
+   */
   useEffect(() => {
-    api("/frotas/documentos?porPagina=200").then((r) => {
-      const itens = r.itens;
-      setResumo({
-        total: r.total,
-        vencendo: itens.filter((d) => d.dias_para_vencer >= 0 && d.dias_para_vencer <= 30).length,
-        vencidos: itens.filter((d) => d.dias_para_vencer < 0).length,
-        categorias: new Set(itens.map((d) => d.categoria).filter(Boolean)).size,
-      });
-    }).catch(() => {});
-  }, [lista.resultado]);
+    if (!parâmetros.get("novo") || !podeGerenciar) return;
+    abrirNovo(parâmetros.get("veiculo") || "");
+    navegar("/frotas/documentos", { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  function abrirNovo() {
-    setFormulario(VAZIO);
-    setErroForm("");
-    setEditando("novo");
-  }
-  function abrirEdicao(d) {
-    setFormulario({
-      ...VAZIO, ...d,
-      // VENCENDO e VENCIDO nao existem na lista do formulario (sao calculados);
-      // sem esta traducao o campo Situacao abriria em branco.
-      status: d.status === "INATIVO" ? "INATIVO" : "VALIDO",
-    });
-    setErroForm("");
-    setEditando(d.id_documento);
-  }
-
-  async function salvar(e) {
-    e.preventDefault();
-    setSalvando(true);
-    setErroForm("");
-    try {
-      const corpo = {
-        ...formulario,
-        id_veiculo: Number(formulario.id_veiculo),
-        id_responsavel: formulario.id_responsavel ? Number(formulario.id_responsavel) : null,
-      };
-      if (editando === "novo") await api("/frotas/documentos", { method: "POST", body: corpo });
-      else await api(`/frotas/documentos/${editando}`, { method: "PUT", body: corpo });
-      setEditando(null);
-      lista.recarregar();
-    } catch (e) {
-      setErroForm(e.message);
-    } finally {
-      setSalvando(false);
-    }
+  function abrirNovo(idVeiculo = "") {
+    setFormulario({ modo: "novo", idVeiculo });
   }
 
   // Era a unica exclusao com o confirm() do navegador: sem senha e sem motivo.
@@ -158,19 +94,14 @@ export default function Documentos() {
     }
   }
 
-  const campo = (nome) => ({
-    value: formulario[nome] ?? "",
-    onChange: (e) => setFormulario((f) => ({ ...f, [nome]: e.target.value })),
-  });
-
   const colunas = [
-    { chave: "tipo_documento", rotulo: "Documento", ordenavel: true },
+    { chave: "tipo_documento", cortar: true, rotulo: "Documento", ordenavel: true },
     {
       chave: "categoria", rotulo: "Categoria",
       render: (d) => (d.categoria ? <Selo texto={d.categoria} tom="azul" /> : "-"),
     },
     {
-      chave: "placa", rotulo: "Veículo", ordenavel: true,
+      chave: "placa", cortar: true, rotulo: "Veículo", ordenavel: true,
       render: (d) => (
         <span className="celula-dupla">
           <strong>{d.placa}</strong>
@@ -192,18 +123,23 @@ export default function Documentos() {
         );
       },
     },
-    { chave: "responsavel", rotulo: "Responsável", render: (d) => d.responsavel || "-" },
+    { chave: "responsavel", cortar: true, rotulo: "Responsável", render: (d) => d.responsavel || "-" },
     { chave: "status", rotulo: "Situação", ordenavel: true, render: (d) => <Selo valor={d.status} /> },
     {
       chave: "ações", rotulo: "Ações",
       render: (d) => (
         <Acoes
           acoes={[
+            { rotulo: "Visualizar", icone: "visualizar",
+              aoClicar: () => navegar(`/frotas/documentos/${d.id_documento}`) },
             { rotulo: "Ver veículo", icone: "kpi-car",
               aoClicar: () => navegar(`/frotas/veiculos/${d.id_veiculo}`) },
             ...(podeGerenciar
               ? [
-                  { rotulo: "Editar", icone: "editar", aoClicar: () => abrirEdicao(d) },
+                  { rotulo: "Atualizar", icone: "historico",
+                    aoClicar: () => setFormulario({ modo: "atualizar", documento: d }) },
+                  { rotulo: "Editar", icone: "editar",
+                    aoClicar: () => setFormulario({ modo: "editar", documento: d }) },
                   { rotulo: "Excluir", perigo: true, icone: "lixo",
                     aoClicar: () => excluir(d) },
                 ]
@@ -221,18 +157,10 @@ export default function Documentos() {
       descricao="Gerencie todos os documentos da frota em um único lugar."
       acao={
         podeGerenciar && (
-          <button className="botao botao--primario" onClick={() => navegar("/frotas/documentos/novo")}>
+          <button className="botao botao--primario" onClick={() => abrirNovo()}>
             <Icone nome="mais" tamanho={15} /> Novo documento
           </button>
         )
-      }
-      kpis={
-        resumo && [
-          { icone: "nav-gestao", rotulo: "Total de documentos", valor: resumo.total, nota: "Todos", tom: "neutro" },
-          { icone: "calendar", rotulo: "Vencendo em breve", valor: resumo.vencendo, nota: "Próximos 30 dias", tom: "ambar" },
-          { icone: "alert-triangle", rotulo: "Vencidos", valor: resumo.vencidos, nota: "Requerem atenção", tom: "vermelho" },
-          { icone: "checklist", rotulo: "Categorias", valor: resumo.categorias, nota: "Tipos de documento", tom: "roxo" },
-        ]
       }
       lista={lista}
       colunas={colunas}
@@ -258,41 +186,18 @@ export default function Documentos() {
         </>
       }
     >
-      {editando && (
-        <Modal
-          titulo={editando === "novo" ? "Novo documento" : "Editar documento"}
-          aoFechar={() => setEditando(null)}
-          rodape={
-            <>
-              <button className="botao" onClick={() => setEditando(null)}>Cancelar</button>
-              <button className="botao botao--primario" form="form-doc" disabled={salvando}>
-                <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Salvar"}
-              </button>
-            </>
-          }
-        >
-          {erroForm && <div className="login__erro">{erroForm}</div>}
-          <form id="form-doc" className="formulario-grade" onSubmit={salvar}>
-            <Selecao rotulo="Veículo *" id="id_veiculo" required vazio="Selecione"
-                     opcoes={veículos.map((v) => ({
-                       valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
-                     }))}
-                     {...campo("id_veiculo")} />
-            <Texto rotulo="Tipo de documento *" id="tipo_documento" required
-                   placeholder="Ex.: CRLV" {...campo("tipo_documento")} />
-            <Selecao rotulo="Categoria" id="form-categoria"
-                     opcoes={CATEGORIAS.map((c) => ({ valor: c, rotulo: c }))}
-                     {...campo("categoria")} />
-            <Texto rotulo="Nº / Referência" id="numero_documento" {...campo("numero_documento")}  placeholder="Ex.: 01567890123"/>
-            <Data rotulo="Data de emissão" id="data_emissao" {...campo("data_emissao")} />
-            <Data rotulo="Data de vencimento" id="data_validade" {...campo("data_validade")} />
-            <Selecao rotulo="Responsável" id="id_responsavel" vazio="Sem responsável"
-                     opcoes={servidores.map((s) => ({ valor: s.id_servidor, rotulo: s.nome }))}
-                     {...campo("id_responsavel")} />
-            <Selecao rotulo="Situação" id="form-status" opcoes={ARQUIVAMENTO} {...campo("status")} />
-            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")}  placeholder="Ex.: Renovação anual do licenciamento"/>
-          </form>
-        </Modal>
+      {formulario && (
+        <FormularioDocumento
+          modo={formulario.modo}
+          documento={formulario.documento}
+          idVeiculo={formulario.idVeiculo}
+          aoFechar={() => setFormulario(null)}
+          aoSalvar={(novoId) => {
+            // Atualizar leva direto a versao nova, com o historico ao lado.
+            if (formulario.modo === "atualizar" && novoId) navegar(`/frotas/documentos/${novoId}`);
+            else lista.recarregar();
+          }}
+        />
       )}
       {modalSenha}
     </PaginaLista>

@@ -17,9 +17,9 @@
  * id_responsavel) apontam para USUARIO, nao para SERVIDOR. Para chegar ao nome
  * da pessoa e preciso passar por usuario -> servidor. Ja foi motivo de bug.
  */
-import { Router } from "express";
+import { Router, json } from "express";
 import { criarCrud } from "../crud.js";
-import { pool } from "../db.js";
+import { pool, query } from "../db.js";
 import { autenticar, exigePermissao } from "../auth.js";
 import { registrarAuditoria } from "../auditoria.js";
 
@@ -263,7 +263,7 @@ export const inspecoes = criarCrud({
                AND i.resultado <> 'NORMAL') AS itens_com_ressalva,
            -- Aprovado / Em analise / Analisado (migracao 029). E o que a lista
            -- mostra no lugar de "Aprovado / Reprovado".
-           analise_inspecao(inspecao.status, inspecao.resultado, inspecao.analisada_em) AS analise,
+           analise_inspecao(inspecao.status, inspecao.resultado, inspecao.analisada_em, inspecao.aprovada_em) AS analise,
            (SELECT s2.nome FROM usuario u2 JOIN servidor s2 ON s2.id_servidor = u2.id_servidor
              WHERE u2.id_usuario = inspecao.analisada_por) AS analisada_por_nome,
            -- As OS abertas a partir desta inspecao, para a ficha mostrar o que
@@ -282,14 +282,14 @@ export const inspecoes = criarCrud({
   filtros: {
     veiculo: "inspecao.id_veiculo", tipo: "inspecao.tipo", status: "inspecao.status",
     resultado: "inspecao.resultado",
-    analise: "analise_inspecao(inspecao.status, inspecao.resultado, inspecao.analisada_em)",
+    analise: "analise_inspecao(inspecao.status, inspecao.resultado, inspecao.analisada_em, inspecao.aprovada_em)",
     dataDe: "inspecao.data_realizacao", dataAte: "inspecao.data_realizacao",
   },
   ordenaveis: {
     data_realizacao: "inspecao.data_realizacao", placa: "veiculo.placa",
     tipo: "inspecao.tipo", status: "inspecao.status",
     proxima_inspecao: "inspecao.proxima_inspecao", responsavel: "servidor.nome",
-    analise: "analise_inspecao(inspecao.status, inspecao.resultado, inspecao.analisada_em)",
+    analise: "analise_inspecao(inspecao.status, inspecao.resultado, inspecao.analisada_em, inspecao.aprovada_em)",
   },
   ordemPadrao: "inspecao.data_realizacao DESC",
   campos: [
@@ -752,19 +752,49 @@ manutencoes.post(
         await cliente.query("ROLLBACK");
         return res.status(400).json({ erro: "Veículo não encontrado." });
       }
+
+      /*
+       * OS aberta a partir da INSPECAO (botao "Abrir OS" da ficha da
+       * inspecao): mesma janela do Registrar OS, mas a OS nasce ligada a
+       * inspecao, e a abertura conta como a analise dela.
+       */
+      const idInspecao = req.body?.id_inspecao ? Number(req.body.id_inspecao) : null;
+      let insp = null;
+      if (idInspecao) {
+        insp = await carregarInspecao(cliente, idInspecao);
+        if (!insp) {
+          await cliente.query("ROLLBACK");
+          return res.status(404).json({ erro: "Inspeção não encontrada." });
+        }
+        if (Number(insp.id_veiculo) !== dados.id_veiculo) {
+          await cliente.query("ROLLBACK");
+          return res.status(400).json({ erro: "A OS precisa ser do mesmo veículo da inspeção." });
+        }
+      }
+
       const { rows } = await cliente.query(
         `INSERT INTO ordem_servico
-           (id_veiculo, origem, gravidade, id_solicitante, tipo, status, data_agendada,
-            oficina, responsavel_oficina, telefone_oficina, descricao, custo_estimado,
-            prazo_previsto, pecas_necessarias, observacoes, quilometragem)
-         VALUES ($1, 'FROTAS', $2, $3, $4, 'EM_ANALISE', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+           (id_veiculo, origem, id_registro_origem, gravidade, id_solicitante, tipo, status,
+            data_agendada, oficina, responsavel_oficina, telefone_oficina, descricao,
+            custo_estimado, prazo_previsto, pecas_necessarias, observacoes, quilometragem)
+         VALUES ($1, $15, $16, $2, $3, $4, 'EM_ANALISE', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
          RETURNING *`,
         [dados.id_veiculo, dados.gravidade, req.usuario.id_usuario, dados.tipo, dados.data_agendada,
          dados.oficina, dados.responsavel_oficina, dados.telefone_oficina, dados.descricao,
          dados.custo_estimado, dados.prazo_previsto, dados.pecas_necessarias, dados.observacoes,
-         dados.quilometragem ?? v[0].quilometragem_atual]
+         dados.quilometragem ?? v[0].quilometragem_atual,
+         insp ? "INSPECAO" : "FROTAS", insp ? idInspecao : null]
       );
       await gravarItensOs(cliente, rows[0].id_os, itens);
+
+      if (insp && !insp.analisada_em && insp.status === "FINALIZADA" && insp.resultado !== "CONFORME") {
+        await cliente.query(
+          `UPDATE inspecao
+              SET analisada_em = CURRENT_TIMESTAMP, analisada_por = $2, analise_observacao = $3
+            WHERE id_inspecao = $1`,
+          [idInspecao, req.usuario.id_usuario, `${rows[0].numero} aberta para manutenção.`]
+        );
+      }
       await cliente.query("COMMIT");
 
       await registrarAuditoria({
@@ -933,6 +963,25 @@ manutencoes.post(
       );
       await gravarItensOs(cliente, id, itens, "FECHAMENTO");
 
+      /*
+       * OS de inspecao fechada: a inspecao fica APROVADA - desde que todas as
+       * OS abertas por ela estejam fechadas (ou canceladas).
+       */
+      if (antes.origem === "INSPECAO" && antes.id_registro_origem) {
+        await cliente.query(
+          `UPDATE inspecao
+              SET aprovada_em = COALESCE(aprovada_em, CURRENT_TIMESTAMP),
+                  analisada_em = COALESCE(analisada_em, CURRENT_TIMESTAMP),
+                  analisada_por = COALESCE(analisada_por, $2)
+            WHERE id_inspecao = $1
+              AND NOT EXISTS (
+                    SELECT 1 FROM ordem_servico os
+                     WHERE os.origem = 'INSPECAO' AND os.id_registro_origem = $1
+                       AND os.status NOT IN ('RESOLVIDA', 'CANCELADA'))`,
+          [antes.id_registro_origem, req.usuario.id_usuario]
+        );
+      }
+
       // O KM confirmado atualiza o veiculo - so para a frente, nunca para tras.
       await cliente.query(
         `UPDATE veiculo SET quilometragem_atual = $2
@@ -987,8 +1036,12 @@ export const documentos = criarCrud({
            documento_veiculo.data_emissao, documento_veiculo.data_validade,
            documento_veiculo.observacoes, documento_veiculo.categoria,
            documento_veiculo.id_responsavel, documento_veiculo.arquivo_url,
+           documento_veiculo.orgao_emissor, documento_veiculo.criado_em,
+           documento_veiculo.id_documento_anterior, documento_veiculo.substituido_em,
            situacao_documento(documento_veiculo.status,
                               documento_veiculo.data_validade) AS status,
+           (SELECT COUNT(*)::int FROM documento_arquivo a
+             WHERE a.id_documento = documento_veiculo.id_documento) AS arquivos,
            veiculo.placa, veiculo.marca, veiculo.modelo,
            servidor.nome AS responsavel,
            (documento_veiculo.data_validade - CURRENT_DATE) AS dias_para_vencer`,
@@ -1012,11 +1065,268 @@ export const documentos = criarCrud({
   campos: [
     "id_veiculo", "tipo_documento", "numero_documento", "data_emissao",
     "data_validade", "status", "observacoes",
-    "categoria", "id_responsavel", "arquivo_url",
+    "categoria", "id_responsavel", "arquivo_url", "orgao_emissor",
   ],
   obrigatorios: ["id_veiculo", "tipo_documento"],
   permissoes: { ver: VER, gerenciar: "FROTAS_GERENCIAR_DOCUMENTOS" },
+  // A lista mostra so a versao ATUAL de cada documento; as substituidas
+  // ficam no historico, na tela de Visualizar (migracao 033).
+  condicaoFixa: "documento_veiculo.substituido_em IS NULL",
+  filhos: [{ tabela: "documento_arquivo", chave: "id_documento" }],
+  // Alterar um documento exige dizer por que (fica na auditoria).
+  exigeJustificativa: true,
+  // Versao substituida e historico: nao se edita mais.
+  bloquearEdicao: (atual) =>
+    atual.substituido_em
+      ? "Esta versão do documento já foi substituída e faz parte do histórico: não pode ser alterada."
+      : null,
+  // Excluir uma versao nao pode quebrar o historico:
+  //  - versao do meio: a seguinte passa a apontar para a anterior a ela;
+  //  - versao atual: a anterior volta a ser a atual (sai do historico).
+  antesExcluir: async (cliente, doc) => {
+    await cliente.query(
+      "UPDATE documento_veiculo SET id_documento_anterior = $2 WHERE id_documento_anterior = $1",
+      [doc.id_documento, doc.id_documento_anterior]
+    );
+    if (!doc.substituido_em && doc.id_documento_anterior) {
+      await cliente.query(
+        `UPDATE documento_veiculo
+            SET substituido_em = NULL, substituido_por = NULL,
+                status = situacao_documento('VALIDO', data_validade)
+          WHERE id_documento = $1`,
+        [doc.id_documento_anterior]
+      );
+    }
+  },
 });
+
+/*
+ * ===========================================================================
+ * Documento: ficha completa, arquivos anexados e "Atualizar" (nova versao)
+ * ===========================================================================
+ */
+const TIPOS_ARQUIVO_DOC = ["application/pdf", "image/jpeg", "image/png"];
+const MAX_ARQUIVO_DOC = 10 * 1024 * 1024;
+// O arquivo vem em base64 (data URL), ~1/3 maior que o binario: 15 MB cobre
+// um PDF de 10 MB. So esta rota aceita corpo grande (ver server.js).
+const corpoDeArquivo = json({ limit: "15mb" });
+
+/** Ficha: o documento (mesmo substituido), os arquivos e todas as versoes. */
+documentos.get("/:id/ficha", autenticar, exigePermissao(VER), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const { rows } = await query(
+      `SELECT d.*, situacao_documento(d.status, d.data_validade) AS situacao,
+              (d.data_validade - CURRENT_DATE) AS dias_para_vencer,
+              v.placa, v.marca, v.modelo, s.nome AS responsavel,
+              (SELECT s2.nome FROM usuario u2 JOIN servidor s2 ON s2.id_servidor = u2.id_servidor
+                WHERE u2.id_usuario = d.substituido_por) AS substituido_por_nome
+         FROM documento_veiculo d
+         JOIN veiculo v ON v.id_veiculo = d.id_veiculo
+         LEFT JOIN servidor s ON s.id_servidor = d.id_responsavel
+        WHERE d.id_documento = $1`,
+      [id]
+    );
+    if (!rows[0]) return res.status(404).json({ erro: "Documento não encontrado." });
+
+    const { rows: arquivos } = await query(
+      `SELECT a.id_arquivo, a.nome, a.tipo, a.bytes, a.criado_em,
+              (SELECT s.nome FROM usuario u JOIN servidor s ON s.id_servidor = u.id_servidor
+                WHERE u.id_usuario = a.enviado_por) AS enviado_por_nome
+         FROM documento_arquivo a WHERE a.id_documento = $1 ORDER BY a.id_arquivo`,
+      [id]
+    );
+
+    // Todas as versoes da mesma "familia": sobe pelos anteriores ate a
+    // primeira e desce pelas que a substituiram.
+    const { rows: versoes } = await query(
+      `WITH RECURSIVE raiz AS (
+         SELECT id_documento, id_documento_anterior FROM documento_veiculo WHERE id_documento = $1
+         UNION ALL
+         SELECT d.id_documento, d.id_documento_anterior
+           FROM documento_veiculo d JOIN raiz r ON d.id_documento = r.id_documento_anterior
+       ), primeira AS (
+         SELECT id_documento FROM raiz WHERE id_documento_anterior IS NULL LIMIT 1
+       ), familia AS (
+         SELECT id_documento FROM primeira
+         UNION ALL
+         SELECT d.id_documento FROM documento_veiculo d JOIN familia f ON d.id_documento_anterior = f.id_documento
+       )
+       SELECT d.id_documento, d.numero_documento, d.data_emissao, d.data_validade,
+              d.substituido_em, d.criado_em,
+              situacao_documento(d.status, d.data_validade) AS situacao,
+              (SELECT COUNT(*)::int FROM documento_arquivo a WHERE a.id_documento = d.id_documento) AS arquivos
+         FROM documento_veiculo d
+        WHERE d.id_documento IN (SELECT id_documento FROM familia)
+        ORDER BY d.criado_em DESC, d.id_documento DESC`,
+      [id]
+    );
+    res.json({ ...rows[0], arquivos, versoes });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Anexa um arquivo (PDF, JPG ou PNG, ate 10 MB) a um documento atual. */
+documentos.post(
+  "/:id/arquivos",
+  corpoDeArquivo,
+  autenticar,
+  exigePermissao("FROTAS_GERENCIAR_DOCUMENTOS"),
+  async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      const nome = String(req.body?.nome || "").trim().slice(0, 255) || "documento";
+      const m = /^data:([a-z/+.-]+);base64,([A-Za-z0-9+/=]+)$/i.exec(String(req.body?.dataUrl || "").trim());
+      if (!m) return res.status(400).json({ erro: "Arquivo inválido." });
+      const tipo = m[1].toLowerCase();
+      if (!TIPOS_ARQUIVO_DOC.includes(tipo)) {
+        return res.status(400).json({ erro: "Envie o documento em PDF, JPG ou PNG." });
+      }
+      const buffer = Buffer.from(m[2], "base64");
+      if (!buffer.length || buffer.length > MAX_ARQUIVO_DOC) {
+        return res.status(400).json({ erro: "O arquivo precisa ter até 10 MB." });
+      }
+      const { rows: doc } = await query(
+        "SELECT substituido_em FROM documento_veiculo WHERE id_documento = $1", [id]
+      );
+      if (!doc[0]) return res.status(404).json({ erro: "Documento não encontrado." });
+      if (doc[0].substituido_em) {
+        return res.status(409).json({ erro: "Esta versão já foi substituída: anexe na versão atual." });
+      }
+      const { rows } = await query(
+        `INSERT INTO documento_arquivo (id_documento, nome, tipo, bytes, conteudo, enviado_por)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id_arquivo, nome, tipo, bytes, criado_em`,
+        [id, nome, tipo, buffer.length, buffer, req.usuario.id_usuario]
+      );
+      await registrarAuditoria({
+        idUsuario: req.usuario.id_usuario, acao: "CRIAR", entidade: "documento_arquivo",
+        idRegistro: rows[0].id_arquivo, dadosNovos: { id_documento: id, nome, tipo, bytes: buffer.length },
+      });
+      res.status(201).json(rows[0]);
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+/** Abre o arquivo (o navegador mostra PDF e imagem na propria aba). */
+documentos.get("/arquivos/:idArquivo", autenticar, exigePermissao(VER), async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      "SELECT nome, tipo, conteudo FROM documento_arquivo WHERE id_arquivo = $1",
+      [Number(req.params.idArquivo)]
+    );
+    if (!rows[0]) return res.status(404).json({ erro: "Arquivo não encontrado." });
+    res.setHeader("Content-Type", rows[0].tipo);
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename*=UTF-8''${encodeURIComponent(rows[0].nome)}`
+    );
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    res.send(rows[0].conteudo);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Remove um arquivo anexado - com justificativa, e fica na auditoria. */
+documentos.delete(
+  "/arquivos/:idArquivo",
+  autenticar,
+  exigePermissao("FROTAS_GERENCIAR_DOCUMENTOS"),
+  async (req, res, next) => {
+    try {
+      const justificativa = String(req.body?.justificativa || "").trim();
+      if (justificativa.length < 5) {
+        return res.status(400).json({ erro: "Escreva a justificativa da exclusão (o motivo fica registrado na auditoria)." });
+      }
+      const { rows } = await query(
+        `DELETE FROM documento_arquivo a
+          USING documento_veiculo d
+          WHERE a.id_arquivo = $1 AND d.id_documento = a.id_documento AND d.substituido_em IS NULL
+          RETURNING a.id_arquivo, a.id_documento, a.nome, a.tipo, a.bytes`,
+        [Number(req.params.idArquivo)]
+      );
+      if (!rows[0]) return res.status(404).json({ erro: "Arquivo não encontrado (ou de uma versão já substituída)." });
+      await registrarAuditoria({
+        idUsuario: req.usuario.id_usuario, acao: "EXCLUIR", entidade: "documento_arquivo",
+        idRegistro: rows[0].id_arquivo, justificativa, dadosAnteriores: rows[0],
+      });
+      res.status(204).end();
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+/**
+ * ATUALIZAR: cadastra a versao nova do documento (renovacao). A versao atual
+ * vira historico - INATIVA e marcada como substituida -, sem ser apagada.
+ */
+documentos.post(
+  "/:id/atualizar",
+  autenticar,
+  exigePermissao("FROTAS_GERENCIAR_DOCUMENTOS"),
+  async (req, res, next) => {
+    const id = Number(req.params.id);
+    const c = req.body || {};
+    const dataOk = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || "")) ? String(v) : null);
+    const emissao = dataOk(c.data_emissao);
+    const validade = dataOk(c.data_validade);
+    if (!validade) return res.status(400).json({ erro: "Informe a nova data de vencimento." });
+    if (emissao && emissao > validade) {
+      return res.status(400).json({ erro: "A emissão não pode ser depois do vencimento." });
+    }
+    const cliente = await pool.connect();
+    try {
+      await cliente.query("BEGIN");
+      const { rows: atual } = await cliente.query(
+        "SELECT * FROM documento_veiculo WHERE id_documento = $1 FOR UPDATE", [id]
+      );
+      if (!atual[0]) {
+        await cliente.query("ROLLBACK");
+        return res.status(404).json({ erro: "Documento não encontrado." });
+      }
+      if (atual[0].substituido_em) {
+        await cliente.query("ROLLBACK");
+        return res.status(409).json({ erro: "Esta versão já foi substituída. Atualize a versão atual." });
+      }
+      const a = atual[0];
+      const texto = (v, padrao) => (v === undefined ? padrao : (String(v).trim() || null));
+      const { rows: novo } = await cliente.query(
+        `INSERT INTO documento_veiculo
+           (id_veiculo, tipo_documento, numero_documento, data_emissao, data_validade, status,
+            observacoes, categoria, id_responsavel, orgao_emissor, id_documento_anterior)
+         VALUES ($1, $2, $3, $4, $5, 'VALIDO', $6, $7, $8, $9, $10)
+         RETURNING id_documento`,
+        [a.id_veiculo, a.tipo_documento, texto(c.numero_documento, null), emissao, validade,
+         texto(c.observacoes, null), a.categoria,
+         c.id_responsavel === undefined ? a.id_responsavel : (c.id_responsavel ? Number(c.id_responsavel) : null),
+         texto(c.orgao_emissor, a.orgao_emissor), id]
+      );
+      await cliente.query(
+        `UPDATE documento_veiculo
+            SET status = 'INATIVO', substituido_em = CURRENT_TIMESTAMP, substituido_por = $2
+          WHERE id_documento = $1`,
+        [id, req.usuario.id_usuario]
+      );
+      await cliente.query("COMMIT");
+      await registrarAuditoria({
+        idUsuario: req.usuario.id_usuario, acao: "ATUALIZAR_DOCUMENTO", entidade: "documento",
+        idRegistro: novo[0].id_documento,
+        dadosAnteriores: a, dadosNovos: { ...c, id_documento: novo[0].id_documento, id_documento_anterior: id },
+      });
+      res.status(201).json({ id_documento: novo[0].id_documento });
+    } catch (e) {
+      await cliente.query("ROLLBACK").catch(() => {});
+      next(e);
+    } finally {
+      cliente.release();
+    }
+  }
+);
 
 // ---------- Sinistros ----------
 export const sinistros = criarCrud({
@@ -1047,9 +1357,13 @@ export const sinistros = criarCrud({
     "id_veiculo", "id_servidor", "data", "hora", "local", "descricao", "bo",
     "observacoes", "status", "id_responsavel", "id_os", "tipo",
     "houve_terceiros", "numero",
+    // Migracao 031: o que a tela ja pedia e se perdia.
+    "parte_danificada", "gravidade_danos", "descricao_danos", "providencias",
   ],
   obrigatorios: ["id_veiculo", "id_servidor", "data", "hora", "local", "descricao", "id_responsavel"],
   permissoes: { ver: VER, gerenciar: "FROTAS_GERENCIAR_SINISTROS" },
+  // Sinistro e registro de um fato: alterar exige dizer por que (auditoria).
+  exigeJustificativa: true,
 });
 
 const router = Router();

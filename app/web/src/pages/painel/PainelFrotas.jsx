@@ -186,7 +186,7 @@ export default function PainelFrotas({ dados }) {
           <Link className="acao-rapida" to="/frotas/manutencoes?registrar=1">
             + Registrar OS
           </Link>
-          <Link className="acao-rapida" to="/frotas/documentos/novo">
+          <Link className="acao-rapida" to="/frotas/documentos?novo=1">
             + Adicionar documento
           </Link>
           <Link className="acao-rapida" to="/frotas/relatorios">

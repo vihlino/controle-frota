@@ -26,8 +26,8 @@ export default criarPagina({
   mapaOpcoes: {},
   colunas: [
     { chave: "codigo", rotulo: "Código", ordenavel: true },
-    { chave: "nome", rotulo: "Item", ordenavel: true },
-    { chave: "descricao", rotulo: "Documentacao", render: (i) => i.descricao || "-" },
+    { chave: "nome", cortar: true, rotulo: "Item", ordenavel: true },
+    { chave: "descricao", cortar: true, rotulo: "Documentacao", render: (i) => i.descricao || "-" },
     {
       chave: "valor_pontos", rotulo: "Pontos", ordenavel: true,
       render: (i) => <Selo texto={`${numero(i.valor_pontos)} pts`} tom="amarelo" />,

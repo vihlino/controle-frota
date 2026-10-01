@@ -1,116 +1,86 @@
 /**
- * Sinistros.jsx - Ocorrências envolvendo veículos da frota.
+ * Sinistros.jsx - Ocorrencias envolvendo veiculos da frota.
  *
- * Registra tipo, local, condutor, envolvimento de terceiros e numero do B.O.
- * Depois do registro, a situação do veículo pode ser mudada na tela de
- * Veículos, se ele ficar indisponivel.
+ * Registra tipo, local, condutor, envolvimento de terceiros, B.O. e os danos.
+ * Registrar e Editar abrem o mesmo pop-up (RegistrarSinistro); Editar e
+ * Excluir pedem justificativa e senha, como no resto do sistema. Sem os
+ * cartoes de numeros no topo: poluiam a tela.
  */
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
 import Acoes from "../../components/Acoes.jsx";
-import Modal from "../../components/Modal.jsx";
-import { Texto, Selecao, Data, Area, Periodo } from "../../components/Campos.jsx";
+import RegistrarSinistro, { TIPOS_SINISTRO, SITUACOES_SINISTRO } from "../../components/RegistrarSinistro.jsx";
+import { useConfirmacaoSenha } from "../../components/ConfirmarSenha.jsx";
+import { Texto, Selecao, Periodo } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
 import { data, hora, rotulo, simNao } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
 
-const TIPOS = [
-  { valor: "COLISAO", rotulo: "Colisao" },
-  { valor: "DANO_MATERIAL", rotulo: "Dano material" },
-  { valor: "ROUBO_FURTO", rotulo: "Roubo / Furto" },
-  { valor: "INCENDIO", rotulo: "Incendio" },
-  { valor: "OUTRO", rotulo: "Outro" },
-];
-const SITUACOES = [
-  { valor: "ABERTO", rotulo: "Aberto" },
-  { valor: "EM_ANALISE", rotulo: "Em analise" },
-  { valor: "RESOLVIDO", rotulo: "Resolvido" },
-  { valor: "ENCERRADO", rotulo: "Encerrado" },
-];
-const TOM_TIPO = {
+export const TOM_TIPO_SINISTRO = {
   COLISAO: "vermelho", DANO_MATERIAL: "amarelo",
   ROUBO_FURTO: "azul", INCENDIO: "laranja", OUTRO: "verde",
 };
 
-const VAZIO = {
-  id_veículo: "", id_servidor: "", data: "", hora: "", local: "", tipo: "COLISAO",
-  descricao: "", bo: "", houve_terceiros: false, status: "ABERTO", observacoes: "",
-};
-
 export default function Sinistros() {
   const navegar = useNavigate();
-  const { podeVer, usuario } = useSessao();
+  const { podeVer } = useSessao();
+  const [parametros] = useSearchParams();
   const lista = useLista("frotas/sinistros", {
-    busca: "", veiculo: "", status: "", tipo: "", dataDe: "", dataAte: "",
+    busca: "", veiculo: parametros.get("veiculo") || "", status: "", tipo: "", dataDe: "", dataAte: "",
   });
   const [veículos, setVeículos] = useState([]);
-  const [servidores, setServidores] = useState([]);
-  const [resumo, setResumo] = useState(null);
-  const [registrando, setRegistrando] = useState(false);
-  const [formulario, setFormulario] = useState(VAZIO);
-  const [erroForm, setErroForm] = useState("");
-  const [salvando, setSalvando] = useState(false);
+  // registrando = {} (novo) | { sinistro } (editar) | null (fechado)
+  const [registrando, setRegistrando] = useState(null);
+  const { pedirExclusao, elemento: modalSenha } = useConfirmacaoSenha();
 
   const podeGerenciar = podeVer("FROTAS_GERENCIAR_SINISTROS");
 
   useEffect(() => {
     api("/frotas/veiculos/opcoes").then(setVeículos).catch(() => {});
-    api("/admin/servidores/opcoes")
-      // Array.isArray: uma resposta fora do formato esperado faria
-      // `servidores.map` derrubar a tela inteira, e o .catch abaixo nao pega
-      // isso - ele so ve falha de rede.
-      .then((r) => setServidores(Array.isArray(r) ? r : []))
-      .catch(() => {});
   }, []);
 
+  /*
+   * ?novo=1 abre o Registrar (endereco antigo /frotas/sinistros/novo);
+   * ?editar=ID vem do botao Editar da ficha do sinistro. Saem do endereco
+   * depois de usados, senao um F5 abriria a janela de novo.
+   */
   useEffect(() => {
-    api("/frotas/sinistros?porPagina=200").then((r) => {
-      const itens = r.itens;
-      setResumo({
-        total: r.total,
-        andamento: itens.filter((s) => ["ABERTO", "EM_ANALISE"].includes(s.status)).length,
-        resolvidos: itens.filter((s) => s.status === "RESOLVIDO").length,
-        encerrados: itens.filter((s) => s.status === "ENCERRADO").length,
-      });
-    }).catch(() => {});
-  }, [lista.resultado]);
+    const novo = parametros.get("novo");
+    const editar = parametros.get("editar");
+    if (!novo && !editar) return;
+    if (novo) setRegistrando({ idVeiculo: parametros.get("veiculo") || "" });
+    if (editar) {
+      api(`/frotas/sinistros/${editar}`)
+        .then((sinistro) => setRegistrando({ sinistro }))
+        .catch((e) => alert(e.message));
+    }
+    navegar("/frotas/sinistros", { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  async function salvar(e) {
-    e.preventDefault();
-    setSalvando(true);
-    setErroForm("");
+  async function excluir(s) {
+    const resposta = await pedirExclusao({
+      titulo: "Excluir sinistro",
+      oQue: s.numero ? `o sinistro ${s.numero} do veículo ${s.placa}` : `o sinistro do veículo ${s.placa}`,
+    });
+    if (!resposta.ok) return;
     try {
-      await api("/frotas/sinistros", {
-        method: "POST",
-        body: {
-          ...formulario,
-          id_veiculo: Number(formulario.id_veículo),
-          id_servidor: Number(formulario.id_servidor),
-          id_responsavel: usuario.id_usuario,
-          houve_terceiros: !!formulario.houve_terceiros,
-        },
+      await api(`/frotas/sinistros/${s.id_sinistro}`, {
+        method: "DELETE",
+        body: { justificativa: resposta.justificativa },
       });
-      setRegistrando(false);
-      setFormulario(VAZIO);
       lista.recarregar();
     } catch (e) {
-      setErroForm(e.message);
-    } finally {
-      setSalvando(false);
+      alert(e.message);
     }
   }
 
-  const campo = (nome) => ({
-    value: formulario[nome] ?? "",
-    onChange: (e) => setFormulario((f) => ({ ...f, [nome]: e.target.value })),
-  });
-
   const colunas = [
-    { chave: "numero", rotulo: "No do sinistro", ordenavel: true, render: (s) => s.numero || "-" },
+    { chave: "numero", rotulo: "Nº do sinistro", ordenavel: true, render: (s) => s.numero || "-" },
     {
       chave: "data", rotulo: "Data / Hora", ordenavel: true,
       render: (s) => (
@@ -121,7 +91,7 @@ export default function Sinistros() {
       ),
     },
     {
-      chave: "placa", rotulo: "Veículo", ordenavel: true,
+      chave: "placa", cortar: true, rotulo: "Veículo", ordenavel: true,
       render: (s) => (
         <span className="celula-dupla">
           <strong>{s.placa}</strong>
@@ -131,20 +101,20 @@ export default function Sinistros() {
     },
     {
       chave: "tipo", rotulo: "Tipo de sinistro", ordenavel: true,
-      render: (s) => <Selo texto={rotulo("tipoSinistro", s.tipo)} tom={TOM_TIPO[s.tipo]} />,
+      render: (s) => <Selo texto={rotulo("tipoSinistro", s.tipo)} tom={TOM_TIPO_SINISTRO[s.tipo]} />,
     },
-    { chave: "local", rotulo: "Local" },
+    { chave: "local", cortar: true, rotulo: "Local" },
     {
-      chave: "condutor", rotulo: "Condutor",
+      chave: "condutor", cortar: true, rotulo: "Condutor",
       render: (s) => (
         <span className="celula-dupla">
           <strong>{s.condutor}</strong>
-          <span>Responsavel: {s.responsavel}</span>
+          <span>Responsável: {s.responsavel}</span>
         </span>
       ),
     },
     { chave: "houve_terceiros", rotulo: "Houve terceiros?", render: (s) => simNao(s.houve_terceiros) },
-    { chave: "bo", rotulo: "B.O.", render: (s) => s.bo || "-" },
+    { chave: "bo", classe: "col-oculta-pequena", rotulo: "B.O.", render: (s) => s.bo || "-" },
     { chave: "status", rotulo: "Situação", ordenavel: true, render: (s) => <Selo valor={s.status} /> },
     {
       chave: "ações", rotulo: "Ações",
@@ -153,8 +123,14 @@ export default function Sinistros() {
           acoes={[
             { rotulo: "Visualizar", icone: "visualizar",
               aoClicar: () => navegar(`/frotas/sinistros/${s.id_sinistro}`) },
+            ...(podeGerenciar
+              ? [{ rotulo: "Editar", icone: "editar", aoClicar: () => setRegistrando({ sinistro: s }) }]
+              : []),
             { rotulo: "Ver veículo", icone: "kpi-car",
               aoClicar: () => navegar(`/frotas/veiculos/${s.id_veiculo}`) },
+            ...(podeGerenciar
+              ? [{ rotulo: "Excluir", perigo: true, icone: "lixo", aoClicar: () => excluir(s) }]
+              : []),
           ]}
         />
       ),
@@ -168,18 +144,10 @@ export default function Sinistros() {
       descricao="Gerencie e acompanhe todos os sinistros registrados na frota."
       acao={
         podeGerenciar && (
-          <button className="botao botao--primario" onClick={() => navegar("/frotas/sinistros/novo")}>
+          <button className="botao botao--primario" onClick={() => setRegistrando({})}>
             <Icone nome="alert-triangle" tamanho={15} /> Registrar sinistro
           </button>
         )
-      }
-      kpis={
-        resumo && [
-          { icone: "alert-triangle", rotulo: "Total de sinistros", valor: resumo.total, nota: "Todos os registros", tom: "neutro" },
-          { icone: "calendar", rotulo: "Em andamento", valor: resumo.andamento, nota: "Aguardando conclusão", tom: "ambar" },
-          { icone: "checklist", rotulo: "Resolvidos", valor: resumo.resolvidos, nota: "Sinistros finalizados", tom: "verde" },
-          { icone: "minus", rotulo: "Cancelados", valor: resumo.encerrados, nota: "Registros cancelados", tom: "vermelho" },
-        ]
       }
       lista={lista}
       colunas={colunas}
@@ -195,10 +163,10 @@ export default function Sinistros() {
                    opcoes={veículos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.modelo}` }))}
                    value={lista.filtros.veiculo}
                    onChange={(e) => lista.alterarFiltro("veiculo", e.target.value)} />
-          <Selecao rotulo="Tipo de sinistro" id="tipo" vazio="Todos" opcoes={TIPOS}
+          <Selecao rotulo="Tipo de sinistro" id="tipo" vazio="Todos" opcoes={TIPOS_SINISTRO}
                    value={lista.filtros.tipo}
                    onChange={(e) => lista.alterarFiltro("tipo", e.target.value)} />
-          <Selecao rotulo="Situação" id="status" vazio="Todas" opcoes={SITUACOES}
+          <Selecao rotulo="Situação" id="status" vazio="Todas" opcoes={SITUACOES_SINISTRO}
                    value={lista.filtros.status}
                    onChange={(e) => lista.alterarFiltro("status", e.target.value)} />
           <Periodo id="periodo" de={lista.filtros.dataDe} ate={lista.filtros.dataAte}
@@ -208,54 +176,14 @@ export default function Sinistros() {
       }
     >
       {registrando && (
-        <Modal
-          titulo="Registrar sinistro"
-          legenda="Quando necessário, mude a situação do veículo depois do registro."
-          aoFechar={() => setRegistrando(false)}
-          rodape={
-            <>
-              <button className="botao" onClick={() => setRegistrando(false)}>Cancelar</button>
-              <button className="botao botao--primario" form="form-sinistro" disabled={salvando}>
-                <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Registrar sinistro"}
-              </button>
-            </>
-          }
-        >
-          {erroForm && <div className="login__erro">{erroForm}</div>}
-          <form id="form-sinistro" className="formulario-grade" onSubmit={salvar}>
-            <Selecao rotulo="Veículo *" id="id_veículo" required vazio="Selecione"
-                     opcoes={veículos.map((v) => ({
-                       valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
-                     }))}
-                     {...campo("id_veículo")} />
-            <Selecao rotulo="Condutor *" id="id_servidor" required vazio="Selecione"
-                     opcoes={servidores.map((s) => ({ valor: s.id_servidor, rotulo: s.nome }))}
-                     {...campo("id_servidor")} />
-            <Selecao rotulo="Tipo de sinistro *" id="form-tipo" required opcoes={TIPOS} {...campo("tipo")} />
-            <Data rotulo="Data *" id="data" required {...campo("data")} />
-            <Texto rotulo="Hora *" id="hora" type="time" required {...campo("hora")}  placeholder="Ex.: 08:30"/>
-            <Texto rotulo="Número do B.O." id="bo" {...campo("bo")}  placeholder="Ex.: 202412345678"/>
-            <Selecao rotulo="Situação" id="form-status" opcoes={SITUACOES} {...campo("status")} />
-            <Texto rotulo="Local *" id="local" required largo
-                   placeholder="Ex.: Av. Brasil, 1250 - Centro" {...campo("local")} />
-            <div className="campo campo--marcavel" data-largo="sim">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={!!formulario.houve_terceiros}
-                  onChange={(e) =>
-                    setFormulario((f) => ({ ...f, houve_terceiros: e.target.checked }))
-                  }
-                />
-                Houve envolvimento de terceiros
-              </label>
-            </div>
-            <Area rotulo="Descrição do sinistro *" id="descricao" largo required
-                  {...campo("descricao")}  placeholder="Ex.: Colisão na lateral direita"/>
-            <Area rotulo="Observações" id="observacoes" largo {...campo("observacoes")}  placeholder="Ex.: Terceiro avançou a sinalização"/>
-          </form>
-        </Modal>
+        <RegistrarSinistro
+          sinistro={registrando.sinistro}
+          idVeiculo={registrando.idVeiculo}
+          aoFechar={() => setRegistrando(null)}
+          aoSalvar={lista.recarregar}
+        />
       )}
+      {modalSenha}
     </PaginaLista>
   );
 }

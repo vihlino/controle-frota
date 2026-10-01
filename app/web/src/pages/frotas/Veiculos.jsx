@@ -148,13 +148,13 @@ export default function Veículos() {
   const colunas = [
     { chave: "placa", rotulo: "Placa", ordenavel: true },
     { chave: "marca", rotulo: "Marca", ordenavel: true },
-    { chave: "modelo", rotulo: "Modelo", ordenavel: true },
-    { chave: "renavam", rotulo: "Renavam" },
+    { chave: "modelo", cortar: true, rotulo: "Modelo", ordenavel: true },
+    { chave: "renavam", classe: "col-oculta-pequena", rotulo: "Renavam" },
     { chave: "chassi", rotulo: "Chassi" },
     { chave: "ano_modelo", rotulo: "Ano modelo", ordenavel: true },
-    { chave: "ano_fabricacao", rotulo: "Ano fabricação" },
+    { chave: "ano_fabricacao", classe: "col-oculta-pequena", rotulo: "Ano fabricação" },
     { chave: "vinculo", rotulo: "Vínculo", render: (v) => vinculo(v.vinculo) },
-    { chave: "setor", rotulo: "Setor", ordenavel: true },
+    { chave: "setor", cortar: true, rotulo: "Setor", ordenavel: true },
     { chave: "status", rotulo: "Situação", ordenavel: true, render: (v) => <Selo valor={v.status} /> },
     {
       chave: "qrcode", rotulo: "QR Code",

@@ -27,7 +27,13 @@ export default criarPagina({
     },
     { chave: "placa", rotulo: "Viatura", ordenavel: true },
     { chave: "tipo", rotulo: "Tipo", render: (o) => rotulo("tipoOs", o.tipo) },
-    { chave: "descricao", rotulo: "Serviço", render: (o) => o.descricao || o.serviço_realizado || "-" },
+    {
+      chave: "descricao", rotulo: "Serviço", classe: "coluna-flexivel",
+      render: (o) => {
+        const t = o.descricao || o.servico_realizado;
+        return t ? <span className="celula-cortada" title={t}>{t}</span> : "-";
+      },
+    },
     { chave: "oficina", rotulo: "Oficina", render: (o) => o.oficina || "-" },
     { chave: "custo", rotulo: "Custo", ordenavel: true, render: (o) => dinheiro(o.custo) },
     { chave: "status", rotulo: "Situação", ordenavel: true, render: (o) => <Selo valor={o.status} /> },

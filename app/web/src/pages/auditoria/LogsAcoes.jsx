@@ -4,27 +4,19 @@
 import criarPagina from "../../components/criarPagina.jsx";
 import Selo from "../../components/Selo.jsx";
 import { dataHora } from "../../lib/formato.js";
+import { ACOES_AUDITORIA } from "../../lib/rotulosAuditoria.js";
 
-const ACOES = [
-  { valor: "CRIAR", rotulo: "Criação" },
-  { valor: "EDITAR", rotulo: "Edição" },
-  { valor: "EXCLUIR", rotulo: "Exclusão" },
-  { valor: "GERAR_RELATORIO", rotulo: "Geracao de relatório" },
-  { valor: "ATESTAR_RELATORIO", rotulo: "Ateste de relatório" },
-  { valor: "GERAR_QRCODE", rotulo: "Geracao de QR Code" },
-  { valor: "EDITAR_PERMISSOES", rotulo: "Alteração de permissões" },
-  { valor: "ALTERAR_SENHA", rotulo: "Troca de senha" },
-  { valor: "FECHAR_OS", rotulo: "Fechamento de OS" },
-];
+const ACOES = ACOES_AUDITORIA;
 const TOM = {
   CRIAR: "verde", EDITAR: "azul", EXCLUIR: "vermelho",
   GERAR_RELATORIO: "amarelo", ATESTAR_RELATORIO: "verde",
   GERAR_QRCODE: "amarelo", EDITAR_PERMISSOES: "laranja", ALTERAR_SENHA: "laranja",
-  FECHAR_OS: "verde",
+  FECHAR_OS: "verde", ATUALIZAR_DOCUMENTO: "azul",
 };
 
 export default criarPagina({
   recurso: "auditoria/acoes",
+  exportarLogs: "acoes",
   id: "id_auditoria",
   titulo: "Logs de Ações",
   descricao: "Tudo o que foi criado, alterado ou excluido no sistema, e por quem.",
@@ -34,7 +26,7 @@ export default criarPagina({
   mapaOpcoes: {},
   colunas: [
     { chave: "data_hora", rotulo: "Data e hora", ordenavel: true, render: (a) => dataHora(a.data_hora) },
-    { chave: "usuario_nome", rotulo: "Usuário", ordenavel: true },
+    { chave: "usuario_nome", cortar: true, rotulo: "Usuário", ordenavel: true },
     {
       chave: "acao", rotulo: "Ação", ordenavel: true,
       render: (a) => (
@@ -43,7 +35,7 @@ export default criarPagina({
     },
     { chave: "entidade", rotulo: "Registro afetado", ordenavel: true },
     { chave: "id_registro", rotulo: "No do registro" },
-    { chave: "justificativa", rotulo: "Justificativa", render: (a) => a.justificativa || "-" },
+    { chave: "justificativa", cortar: true, rotulo: "Justificativa", render: (a) => a.justificativa || "-" },
   ],
   filtros: [
     { nome: "busca", rotulo: "Buscar", dica: "Usuário, ação ou registro" },

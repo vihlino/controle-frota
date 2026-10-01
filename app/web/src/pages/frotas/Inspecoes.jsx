@@ -196,14 +196,13 @@ export default function Inspeções() {
     {
       chave: "data_realizacao", rotulo: "Data da inspeção", ordenavel: true,
       render: (i) => (
-        <span className="celula-dupla">
-          <strong>{data(i.data_realizacao)}</strong>
-          <span>{i.placa} — {i.marca} {i.modelo}</span>
-        </span>
+        // So a data: o veiculo ja tem coluna propria logo ao lado, e repetir
+        // placa e modelo aqui deixava esta coluna a mais larga da tabela.
+        <strong>{data(i.data_realizacao)}</strong>
       ),
     },
     {
-      chave: "placa", rotulo: "Veículo", ordenavel: true,
+      chave: "placa", cortar: true, rotulo: "Veículo", ordenavel: true,
       render: (i) => (
         <span className="celula-dupla">
           <strong>{i.placa}</strong>
@@ -230,7 +229,7 @@ export default function Inspeções() {
       chave: "proxima_inspecao", rotulo: "Próxima inspeção", ordenavel: true,
       render: (i) => data(i.proxima_inspecao || i.proxima_inspeção),
     },
-    { chave: "responsavel", rotulo: "Responsável", ordenavel: true },
+    { chave: "responsavel", cortar: true, rotulo: "Responsável", ordenavel: true },
     {
       chave: "status", rotulo: "Situação", ordenavel: true,
       render: (i) => (

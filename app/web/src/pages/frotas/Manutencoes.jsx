@@ -106,13 +106,28 @@ export default function Manutenções() {
       render: (o) => (
         <span className="celula-dupla">
           <strong>{o.placa}</strong>
-          <span>{`${o.marca} ${o.modelo}`}</span>
+          <span className="celula-cortada celula-cortada--curta" title={`${o.marca} ${o.modelo}`}>
+            {`${o.marca} ${o.modelo}`}
+          </span>
         </span>
       ),
     },
     { chave: "tipo", rotulo: "Tipo", render: (o) => rotulo("tipoOs", o.tipo) },
-    { chave: "descricao", rotulo: "Descrição", render: (o) => o.descricao || o.servico_realizado || "-" },
-    { chave: "oficina", rotulo: "Oficina", render: (o) => o.oficina || "-" },
+    {
+      // So o comeco, numa linha: a descricao inteira esticava a linha da
+      // tabela. Passando o mouse aparece o texto todo; completo na ficha da OS.
+      chave: "descricao", rotulo: "Descrição", classe: "coluna-flexivel",
+      render: (o) => {
+        const t = o.descricao || o.servico_realizado;
+        return t ? <span className="celula-cortada" title={t}>{t}</span> : "-";
+      },
+    },
+    {
+      chave: "oficina", rotulo: "Oficina",
+      render: (o) => (o.oficina
+        ? <span className="celula-cortada celula-cortada--curta" title={o.oficina}>{o.oficina}</span>
+        : "-"),
+    },
     {
       chave: "quilometragem", rotulo: "KM",
       render: (o) => {
@@ -125,7 +140,12 @@ export default function Manutenções() {
       chave: "custo", rotulo: "Custo", ordenavel: true,
       render: (o) =>
         o.custo != null ? dinheiro(o.custo)
-          : o.custo_estimado != null ? <span className="texto-apoio">{dinheiro(o.custo_estimado)} (est.)</span>
+          : o.custo_estimado != null ? (
+              <span className="celula-dupla" title="Custo estimado no registro">
+                <span>{dinheiro(o.custo_estimado)}</span>
+                <span>estimado</span>
+              </span>
+            )
             : "-",
     },
     { chave: "status", rotulo: "Situação", ordenavel: true, render: (o) => <Selo valor={o.status} /> },

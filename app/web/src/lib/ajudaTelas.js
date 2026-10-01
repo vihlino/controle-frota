@@ -21,7 +21,7 @@ export const AJUDA_TELAS = {
   "/frotas/manutencoes":
     "Histórico das ordens de serviço da frota. Registre a OS quando o veículo for para a oficina e faça o fechamento quando o serviço voltar, com o que foi feito, o custo e o KM.",
   "/frotas/documentos":
-    "Documentos dos veículos (CRLV, IPVA, seguro, licenciamento...). A situação é calculada pela data de vencimento, e os vencidos ou vencendo aparecem nos alertas.",
+    "Documentos dos veículos (CRLV, IPVA, seguro, licenciamento...). A situação é calculada pela data de vencimento, e os vencidos ou vencendo aparecem nos alertas. Em Ações: Visualizar mostra o que foi preenchido, os arquivos e as versões antigas; Atualizar cadastra o documento renovado e guarda o anterior no histórico.",
   "/frotas/sinistros":
     "Registro de sinistros (colisões, avarias, furtos) com os veículos da frota: data, local, condutor, boletim de ocorrência e o que foi feito.",
   "/frotas/relatorios":
@@ -65,13 +65,11 @@ export const AJUDA_TELAS = {
 
   // Auditoria
   "/auditoria/acessos":
-    "Entradas, saídas e tentativas de acesso ao sistema, com data, hora e usuário.",
+    "Entradas, saídas e tentativas de acesso ao sistema, com data, hora e usuário. O botão Exportar gera o arquivo em PDF ou CSV, escolhendo o período.",
   "/auditoria/acoes":
-    "Tudo o que foi criado, alterado, fechado ou excluído no sistema, por quem e com qual justificativa.",
+    "Tudo o que foi criado, alterado, fechado ou excluído no sistema, por quem e com qual justificativa. O botão Exportar gera o arquivo em PDF ou CSV, escolhendo o período.",
   "/auditoria/alteracoes":
-    "O que mudou em cada registro, com o valor anterior e o novo, lado a lado.",
-  "/auditoria/exportar":
-    "Escolha a origem e o período dos logs. O arquivo sai em CSV, pronto para abrir no Excel.",
+    "O que mudou em cada registro, com o valor anterior e o novo, lado a lado. O botão Exportar gera o arquivo em PDF ou CSV, escolhendo o período.",
 };
 
 export function ajudaDaTela(caminho) {

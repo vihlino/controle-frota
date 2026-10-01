@@ -204,6 +204,7 @@ export const MODELOS = {
         JOIN veiculo v ON v.id_veiculo = d.id_veiculo
         LEFT JOIN servidor s ON s.id_servidor = d.id_responsavel
        WHERE COALESCE(d.data_validade, d.data_emissao) BETWEEN $1 AND $2
+         AND d.substituido_em IS NULL -- versoes antigas ficam so no historico
        ORDER BY d.data_validade NULLS LAST`,
   },
 

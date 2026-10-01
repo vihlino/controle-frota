@@ -112,13 +112,13 @@ export default function Usuários() {
   }
 
   const colunas = [
-    { chave: "nome", rotulo: "Servidor", ordenavel: true },
+    { chave: "nome", cortar: true, rotulo: "Servidor", ordenavel: true },
     { chave: "login", rotulo: "Login", ordenavel: true },
     { chave: "matricula", rotulo: "Matrícula" },
-    { chave: "cargo_funcao", rotulo: "Cargo / Função" },
-    { chave: "setor", rotulo: "Setor" },
+    { chave: "cargo_funcao", cortar: true, rotulo: "Cargo / Função" },
+    { chave: "setor", cortar: true, rotulo: "Setor" },
     {
-      chave: "perfil", rotulo: "Perfil", ordenavel: true,
+      chave: "perfil", cortar: true, rotulo: "Perfil", ordenavel: true,
       render: (u) =>
         podeGerenciar ? (
           <select

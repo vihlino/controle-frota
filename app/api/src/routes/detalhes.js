@@ -93,7 +93,7 @@ router.get("/veiculos/:id/resumo", autenticar, verFrotas, async (req, res, next)
            WHERE id_veiculo = $1 AND status NOT IN ('RESOLVIDA','CANCELADA')) AS os_abertas,
          (SELECT COUNT(*)::int FROM sinistro WHERE id_veiculo = $1) AS sinistros,
          (SELECT COUNT(*)::int FROM documento_veiculo
-           WHERE id_veiculo = $1) AS documentos,
+           WHERE id_veiculo = $1 AND substituido_em IS NULL) AS documentos,
          -- Pela DATA, nao pela coluna status: ela e escrita por gatilho e
          -- congela no dia do cadastro, entao documento que venceu depois disso
          -- continuava contado como valido na Ficha do Veiculo.

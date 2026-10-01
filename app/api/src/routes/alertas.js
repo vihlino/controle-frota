@@ -128,7 +128,7 @@ async function alertasCalculados() {
       id_registro: d.id_documento,
       // A lista de documentos pesquisada pela placa: aparecem os documentos
       // daquele veiculo, com o que vence destacado pela situacao.
-      link: `/frotas/documentos?busca=${encodeURIComponent(d.placa)}`,
+      link: `/frotas/documentos/${d.id_documento}`,
       status: "PENDENTE",
       data_criacao: new Date().toISOString(),
     });

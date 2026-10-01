@@ -5,15 +5,9 @@
 import criarPagina from "../../components/criarPagina.jsx";
 import Selo from "../../components/Selo.jsx";
 import { dataHora } from "../../lib/formato.js";
+import { EVENTOS_ACESSO } from "../../lib/rotulosAuditoria.js";
 
-const EVENTOS = [
-  { valor: "LOGIN", rotulo: "Entrada" },
-  { valor: "LOGOUT", rotulo: "Saida" },
-  { valor: "FALHA_LOGIN", rotulo: "Falha de login" },
-  { valor: "ALTERACAO_SENHA", rotulo: "Troca de senha" },
-  { valor: "SESSAO_EXPIRADA", rotulo: "Sessão expirada" },
-  { valor: "RECUPERACAO_SENHA", rotulo: "Recuperacao de senha" },
-];
+const EVENTOS = EVENTOS_ACESSO;
 const TOM = {
   LOGIN: "verde", LOGOUT: "azul", FALHA_LOGIN: "vermelho",
   ALTERACAO_SENHA: "amarelo", SESSAO_EXPIRADA: "laranja", RECUPERACAO_SENHA: "amarelo",
@@ -21,6 +15,7 @@ const TOM = {
 
 export default criarPagina({
   recurso: "auditoria/acessos",
+  exportarLogs: "acessos",
   id: "id_log_acesso",
   titulo: "Logs de Acesso",
   descricao: "Entradas, saidas e tentativas de acesso ao sistema.",
@@ -31,7 +26,7 @@ export default criarPagina({
   colunas: [
     { chave: "data_hora", rotulo: "Data e hora", ordenavel: true, render: (l) => dataHora(l.data_hora) },
     {
-      chave: "usuario_nome", rotulo: "Usuário", ordenavel: true,
+      chave: "usuario_nome", cortar: true, rotulo: "Usuário", ordenavel: true,
       render: (l) => l.usuario_nome || l.login_informado || "-",
     },
     { chave: "login_informado", rotulo: "Login informado", render: (l) => l.login_informado || "-" },

@@ -266,7 +266,15 @@ export function criarCrud(config) {
         condicoes.push(`${coluna} >= $${valores.length}`);
       } else if (parametro.endsWith("Ate")) {
         valores.push(valorFinal);
-        condicoes.push(`${coluna} <= $${valores.length}`);
+        // "Ate 01/10" e o DIA 01/10 inteiro. Em coluna de data e hora (os
+        // logs), "<= '2026-10-01'" virava "ate meia-noite" e deixava de fora
+        // tudo o que aconteceu no proprio dia. Com data pura, compara com o
+        // dia seguinte; em coluna DATE da exatamente o mesmo resultado.
+        condicoes.push(
+          /^\d{4}-\d{2}-\d{2}$/.test(String(valorFinal))
+            ? `${coluna} < ($${valores.length}::date + 1)`
+            : `${coluna} <= $${valores.length}`
+        );
       } else {
         valores.push(valorFinal);
         condicoes.push(`${coluna} = $${valores.length}`);
@@ -631,8 +639,20 @@ export function criarCrud(config) {
           `DELETE FROM ${f.tabela} WHERE ${f.chave} = $1 RETURNING *`,
           [idRegistro]
         );
-        if (rows.length) guardados[f.tabela] = rows;
+        // Conteudo binario (arquivo anexado) nao vai para a auditoria: so o
+        // tamanho - senao um PDF de 10 MB viraria um JSON gigante no rastro.
+        if (rows.length) {
+          guardados[f.tabela] = rows.map((r) =>
+            Object.fromEntries(Object.entries(r).map(([k, v]) =>
+              [k, Buffer.isBuffer(v) ? `[arquivo de ${v.length} bytes]` : v]))
+          );
+        }
       }
+
+      // Gancho opcional, na mesma transacao, logo antes de apagar (ex.: o
+      // documento devolve a versao anterior para "atual" quando a versao nova
+      // e excluida, e religa o historico quando sai uma versao do meio).
+      if (config.antesExcluir) await config.antesExcluir(cliente, alvo.rows[0]);
 
       await cliente.query(`DELETE FROM ${tabela} WHERE ${id} = $1`, [idRegistro]);
 

@@ -197,7 +197,13 @@ async function iniciarServidor() {
     message: { erro: "Muitas tentativas. Tente novamente em 15 minutos." },
   }));
 
-  app.use(express.json({ limit: "1mb" }));
+  // O anexo de documento (PDF/foto em base64) passa de 1 MB: essa rota usa o
+  // proprio leitor de corpo, com limite maior (routes/frotas.js).
+  const jsonPadrao = express.json({ limit: "1mb" });
+  const ROTA_ANEXO_DOCUMENTO = /^\/api\/frotas\/documentos\/\d+\/arquivos\/?$/;
+  app.use((req, res, next) =>
+    ROTA_ANEXO_DOCUMENTO.test(req.path) ? next() : jsonPadrao(req, res, next)
+  );
 
   /*
    * -------------------------------------------------------------------------

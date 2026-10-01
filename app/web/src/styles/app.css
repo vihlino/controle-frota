@@ -3339,3 +3339,153 @@ button { font: inherit; cursor: pointer; }
 .linha-tempo--compacta .linha-tempo__ponto { width: 7px; height: 7px; margin-top: 4px; }
 .fechamento-pendente span { flex: 1 1 260px; }
 .fechamento-pendente .botao { flex: none; white-space: nowrap; }
+
+/* Texto longo numa celula de tabela (ex.: descricao da OS): uma linha so,
+   cortada com "..."; o texto inteiro aparece ao passar o mouse (title). */
+.celula-cortada {
+  display: block;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Coluna que se ajusta ao espaco que SOBRA (ex.: Descricao da OS): as outras
+   colunas ficam do tamanho do proprio conteudo e esta ocupa o resto, cortando
+   o texto com "...". Em tela estreita ela encolhe ate 100px antes de a tabela
+   precisar rolar - e nunca empurra Acoes para fora da tela. */
+/* PROPORCAO DAS COLUNAS
+   A tabela ocupa 100% do cartao; cada coluna fica do tamanho do proprio
+   conteudo e a sobra se divide entre TODAS, na proporcao de cada uma. O que
+   impede uma coluna de engolir a tabela:
+   - a coluna "flexivel" (Descricao da OS) fica com ~22% da largura - cresce
+     em tela grande, encolhe em notebook - e corta o texto com "...";
+   - as colunas marcadas com `cortar` tem um teto que acompanha a largura da
+     tela (12% dela: ~155px num notebook, ~230px num monitor grande). */
+.tabela td.coluna-flexivel { width: 22%; max-width: 0; min-width: 100px; }
+.tabela td.coluna-flexivel .celula-cortada { max-width: none; min-width: 100px; }
+.celula-cortada--coluna,
+.celula-cortada--curta { max-width: clamp(100px, 10vw, 260px); }
+
+/* Cabecalho pode quebrar em duas linhas ("Ano / fabricação", "Houve /
+   terceiros?"): sem isso o TITULO decidia a largura da coluna, e "Sim" ou
+   "2024" ocupavam o espaco de uma frase. Quebra so entre palavras. */
+.tabela th { white-space: normal; line-height: 1.25; vertical-align: bottom; }
+.tabela th .tabela__ordenar { white-space: normal; text-align: left; }
+
+/* Colunas secundarias das tabelas mais largas (Servidores, Veiculos,
+   Sinistros): saem em tela menor, para o resto caber sem rolar para o lado.
+   A informacao continua na tela de Visualizar. */
+@media (max-width: 1450px) { .tabela .col-oculta-notebook { display: none; } }
+@media (max-width: 1300px) { .tabela .col-oculta-pequena { display: none; } }
+/* Dentro de uma celula de duas linhas (placa + modelo), cada linha corta. */
+.celula-cortada .celula-dupla > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Notebook (ate 1450px): um pouco menos de respiro entre as colunas, para a
+   tabela inteira caber sem rolar para o lado. */
+@media (max-width: 1450px) {
+  .tabela th, .tabela td { padding-left: 6px; padding-right: 6px; }
+}
+
+/* Acoes presa na borda direita da tabela: com rolagem horizontal, o menu
+   continua a vista. A sombra mostra que ha conteudo passando por baixo. */
+.tabela th.coluna-acoes,
+.tabela td.coluna-acoes {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background: var(--superficie);
+  box-shadow: -8px 0 8px -8px rgba(0, 0, 0, 0.18);
+  text-align: center;
+}
+.tabela tbody tr:hover td.coluna-acoes { background: var(--superficie-2); }
+.analise-espera { margin-bottom: var(--e-2); }
+
+/* ---------- Documentos: aviso de versao, arquivos e historico (033) ---------- */
+.doc-aviso {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--ambar-suave);
+  border: 1px solid var(--ambar);
+  border-radius: var(--raio-sm);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--texto-2);
+}
+.doc-aviso .icone { flex: none; margin-top: 1px; }
+.doc-aviso strong { color: var(--texto); }
+.doc-aviso--pagina { margin-bottom: var(--e-3); align-items: center; flex-wrap: wrap; }
+.doc-aviso--pagina > span { flex: 1 1 260px; }
+.doc-aviso--pagina .os-ligadas__link { flex: none; font-size: 13px; }
+
+.campo-arquivo { padding: 7px 10px; cursor: pointer; }
+.campo-arquivo::file-selector-button {
+  margin-right: 10px;
+  padding: 5px 10px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-sm);
+  background: var(--superficie-2);
+  color: var(--texto);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.doc-arquivos__acao { margin-left: auto; flex: none; }
+.doc-arquivos { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.doc-arquivos li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--superficie-3);
+  border-radius: var(--raio-sm);
+  min-width: 0;
+}
+.doc-arquivos li > .icone { flex: none; }
+.doc-arquivos__info { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.doc-arquivos__info strong {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.doc-arquivos__info span { font-size: 11.5px; color: var(--texto-3); }
+.doc-arquivos__botoes { display: flex; gap: 6px; flex: none; }
+.botao--icone { padding: 7px 9px; }
+
+.linha-tempo__ponto[data-tom="cinza"] { background: var(--texto-3); }
+.doc-versoes li[data-atual="sim"] strong { color: var(--texto); }
+.doc-versoes__aqui { font-style: normal; font-weight: normal; color: var(--texto-3); }
+.doc-versoes .os-ligadas__link { font-size: 12px; margin-top: 2px; align-self: flex-start; }
+.doc-versoes li > div { display: flex; flex-direction: column; min-width: 0; }
+
+@media (max-width: 600px) {
+  .doc-arquivos li { flex-wrap: wrap; }
+  .doc-arquivos__info { flex-basis: calc(100% - 40px); }
+  .doc-arquivos__botoes { width: 100%; justify-content: flex-end; }
+}
+
+/* ---------- Tabelas centralizadas (01/10) ----------
+   Titulo e informacao de todas as colunas no centro, nas listas e nas fichas.
+   Fica no fim do arquivo para valer sobre as regras de alinhamento acima.
+   Excecao: a linha que divide a tabela em secoes (.tabela__grupo) continua a
+   esquerda, porque e titulo de trecho, nao de coluna. */
+.tabela th,
+.tabela td { text-align: center; vertical-align: middle; }
+.tabela th .tabela__ordenar { text-align: center; justify-content: center; }
+.tabela td .celula-dupla { align-items: center; }
+.tabela td .celula-cortada { margin-left: auto; margin-right: auto; text-align: center; }
+.tabela td.coluna-flexivel .celula-cortada { width: 100%; }
+.tabela .tabela__grupo th { text-align: left; }
+/* Celula de duas linhas cortada (placa + modelo): centralizada, cada linha
+   nunca passa da largura da celula - senao o texto longo vazava pelos DOIS
+   lados ("olkswagen Gol...") em vez de terminar em "...". */
+.tabela td .celula-cortada .celula-dupla > * { max-width: 100%; }

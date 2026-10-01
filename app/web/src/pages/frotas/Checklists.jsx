@@ -299,7 +299,7 @@ export default function Checklists() {
       ),
     },
     {
-      chave: "placa", rotulo: "Placa / Veículo", ordenavel: true,
+      chave: "placa", cortar: true, rotulo: "Placa / Veículo", ordenavel: true,
       render: (c) => (
         <span className="celula-dupla">
           <strong>{c.placa}</strong>
@@ -307,7 +307,7 @@ export default function Checklists() {
         </span>
       ),
     },
-    { chave: "condutor", rotulo: "Condutor", ordenavel: true },
+    { chave: "condutor", cortar: true, rotulo: "Condutor", ordenavel: true },
     {
       chave: "saida", rotulo: "Saida (hora / KM)",
       render: (c) => (

@@ -32,8 +32,8 @@ export default criarPagina({
   colunas: [
     { chave: "numero", rotulo: "Número", ordenavel: true },
     { chave: "tipo", rotulo: "Tipo", ordenavel: true },
-    { chave: "integrantes", rotulo: "Integrantes", render: (e) => numero(e.integrantes) },
-    { chave: "observacoes", rotulo: "Observações", render: (e) => e.observacoes || "-" },
+    { chave: "integrantes", cortar: true, rotulo: "Integrantes", render: (e) => numero(e.integrantes) },
+    { chave: "observacoes", cortar: true, rotulo: "Observações", render: (e) => e.observacoes || "-" },
     {
       chave: "status", rotulo: "Situação", ordenavel: true,
       render: (e) => (

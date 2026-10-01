@@ -28,6 +28,7 @@ import PaginaLista from "./PaginaLista.jsx";
 import Icone from "./Icone.jsx";
 import Modal from "./Modal.jsx";
 import Acoes from "./Acoes.jsx";
+import ExportarLogsModal from "./ExportarLogsModal.jsx";
 import { useConfirmacaoSenha } from "./ConfirmarSenha.jsx";
 import { Texto, Selecao, Data, Area, Periodo } from "./Campos.jsx";
 import { MASCARAS } from "../lib/mascaras.js";
@@ -96,6 +97,8 @@ export default function criarPagina(config) {
 
     const [opcoes, setOpcoes] = useState({});        // listas dos selects
     const [editando, setEditando] = useState(null);  // null | "novo" | id
+    // Telas de Auditoria: config.exportarLogs = "acessos" | "acoes" | "alteracoes".
+    const [exportando, setExportando] = useState(false);
     const [formulario, setFormulario] = useState({});
     const [erroForm, setErroForm] = useState("");
     const [salvando, setSalvando] = useState(false);
@@ -416,10 +419,18 @@ export default function criarPagina(config) {
         titulo={config.titulo}
         descricao={config.descricao}
         acao={
-          temFormulario && podeGerenciar && podeCriar && (
-            <button className="botao botao--primario" onClick={() => abrir(null)}>
-              <Icone nome={config.iconeAcao || "mais"} tamanho={15} /> {config.rotuloAcao}
-            </button>
+          config.exportarLogs ? (
+            podeVer("AUDITORIA_EXPORTAR") && (
+              <button className="botao botao--primario" onClick={() => setExportando(true)}>
+                <Icone nome="exportar" tamanho={15} /> Exportar
+              </button>
+            )
+          ) : (
+            temFormulario && podeGerenciar && podeCriar && (
+              <button className="botao botao--primario" onClick={() => abrir(null)}>
+                <Icone nome={config.iconeAcao || "mais"} tamanho={15} /> {config.rotuloAcao}
+              </button>
+            )
           )
         }
         lista={lista}
@@ -525,6 +536,9 @@ export default function criarPagina(config) {
           </Modal>
         )}
 
+        {exportando && (
+          <ExportarLogsModal origem={config.exportarLogs} aoFechar={() => setExportando(false)} />
+        )}
         {modalSenha}
       </PaginaLista>
     );

@@ -46,9 +46,9 @@ export default criarPagina({
   colunas: [
     { chave: "placa", rotulo: "Placa", ordenavel: true },
     { chave: "marca", rotulo: "Marca", ordenavel: true },
-    { chave: "modelo", rotulo: "Modelo", ordenavel: true },
+    { chave: "modelo", cortar: true, rotulo: "Modelo", ordenavel: true },
     { chave: "ano_modelo", rotulo: "Ano modelo", ordenavel: true },
-    { chave: "setor", rotulo: "Setor", ordenavel: true },
+    { chave: "setor", cortar: true, rotulo: "Setor", ordenavel: true },
     {
       chave: "quilometragem_atual", rotulo: "KM atual",
       render: (v) => `${numero(v.quilometragem_atual)} km`,

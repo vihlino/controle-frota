@@ -23,8 +23,8 @@ import Sinistros from "./pages/frotas/Sinistros.jsx";
 import Relatorios from "./pages/frotas/Relatorios.jsx";
 import RelatorioVer from "./pages/frotas/RelatorioVer.jsx";
 import ManutencaoDetalhe from "./pages/frotas/ManutencaoDetalhe.jsx";
-import NovoDocumento from "./pages/frotas/NovoDocumento.jsx";
-import NovoSinistro from "./pages/frotas/NovoSinistro.jsx";
+import SinistroDetalhe from "./pages/frotas/SinistroDetalhe.jsx";
+import DocumentoDetalhe from "./pages/frotas/DocumentoDetalhe.jsx";
 
 import ServicoDiario from "./pages/fiscalizacao/ServicoDiario.jsx";
 import Equipes from "./pages/fiscalizacao/Equipes.jsx";
@@ -47,7 +47,6 @@ import Backups from "./pages/admin/Backups.jsx";
 import LogsAcesso from "./pages/auditoria/LogsAcesso.jsx";
 import LogsAcoes from "./pages/auditoria/LogsAcoes.jsx";
 import Alteracoes from "./pages/auditoria/Alteracoes.jsx";
-import ExportarLogs from "./pages/auditoria/ExportarLogs.jsx";
 
 function Protegido({ children }) {
   const { usuario, carregando } = useSessao();
@@ -104,9 +103,11 @@ export default function App() {
         <Route path="/frotas/manutencoes/agendar" element={<Navigate to="/frotas/manutencoes?registrar=1" replace />} />
         <Route path="/frotas/manutencoes/:id" element={<ComPermissao codigo={FROTAS}><ManutencaoDetalhe /></ComPermissao>} />
         <Route path="/frotas/documentos" element={<ComPermissao codigo={FROTAS}><Documentos /></ComPermissao>} />
-        <Route path="/frotas/documentos/novo" element={<ComPermissao codigo={FROTAS}><NovoDocumento /></ComPermissao>} />
+        <Route path="/frotas/documentos/novo" element={<Navigate to="/frotas/documentos?novo=1" replace />} />
+        <Route path="/frotas/documentos/:id" element={<ComPermissao codigo={FROTAS}><DocumentoDetalhe /></ComPermissao>} />
         <Route path="/frotas/sinistros" element={<ComPermissao codigo={FROTAS}><Sinistros /></ComPermissao>} />
-        <Route path="/frotas/sinistros/novo" element={<ComPermissao codigo={FROTAS}><NovoSinistro /></ComPermissao>} />
+        <Route path="/frotas/sinistros/novo" element={<Navigate to="/frotas/sinistros?novo=1" replace />} />
+        <Route path="/frotas/sinistros/:id" element={<ComPermissao codigo={FROTAS}><SinistroDetalhe /></ComPermissao>} />
         <Route path="/frotas/motoristas" element={<ComPermissao codigo={FROTAS}><Motoristas /></ComPermissao>} />
         <Route path="/frotas/servidores" element={<ComPermissao codigo={FROTAS}><Servidores /></ComPermissao>} />
         <Route path="/frotas/relatorios" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><Relatorios /></ComPermissao>} />
@@ -134,7 +135,7 @@ export default function App() {
         <Route path="/auditoria/acessos" element={<ComPermissao codigo={AUDIT}><LogsAcesso /></ComPermissao>} />
         <Route path="/auditoria/acoes" element={<ComPermissao codigo={AUDIT}><LogsAcoes /></ComPermissao>} />
         <Route path="/auditoria/alteracoes" element={<ComPermissao codigo={AUDIT}><Alteracoes /></ComPermissao>} />
-        <Route path="/auditoria/exportar" element={<ComPermissao codigo="AUDITORIA_EXPORTAR"><ExportarLogs /></ComPermissao>} />
+        <Route path="/auditoria/exportar" element={<Navigate to="/auditoria/acessos" replace />} />
 
         <Route path="*" element={<EmConstrucao />} />
       </Route>

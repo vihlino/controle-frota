@@ -32,8 +32,8 @@ const PaginaSetores = criarPagina({
   descreverExclusao: (s) => `o setor ${s.nome}`,
   mapaOpcoes: {},
   colunas: [
-    { chave: "nome", rotulo: "Setor", ordenavel: true },
-    { chave: "descricao", rotulo: "Descrição", render: (s) => s.descricao || "-" },
+    { chave: "nome", cortar: true, rotulo: "Setor", ordenavel: true },
+    { chave: "descricao", cortar: true, rotulo: "Descrição", render: (s) => s.descricao || "-" },
     { chave: "servidores", rotulo: "Servidores", render: (s) => numero(s.servidores) },
     { chave: "veiculos", rotulo: "Veículos", render: (s) => numero(s.veiculos) },
     {
@@ -79,7 +79,7 @@ const PaginaCargos = criarPagina({
   },
   opcoes: { setores: "/setores" },
   colunas: [
-    { chave: "nome", rotulo: "Cargo", ordenavel: true },
+    { chave: "nome", cortar: true, rotulo: "Cargo", ordenavel: true },
     {
       chave: "setor", rotulo: "Onde vale", ordenavel: true,
       // A coluna responde a pergunta que decide este cadastro: o cargo serve em
@@ -90,7 +90,7 @@ const PaginaCargos = criarPagina({
           ? <Selo texto={`Só em ${c.setor}`} tom="azul" />
           : <span className="texto-fraco">Todos os setores</span>,
     },
-    { chave: "descricao", rotulo: "Descrição", render: (c) => c.descricao || "-" },
+    { chave: "descricao", cortar: true, rotulo: "Descrição", render: (c) => c.descricao || "-" },
     { chave: "servidores", rotulo: "Servidores", render: (c) => numero(c.servidores) },
     {
       chave: "status", rotulo: "Situação", ordenavel: true,
