@@ -28,6 +28,10 @@ export default criarPagina({
   iconeAcao: "mais",
   rotuloSalvar: "Salvar",
   permissaoGerenciar: "FROTAS_GERENCIAR_SERVIDORES",
+  // "Visualizar" abre a tela de Detalhes do Fiscal (08/10).
+  detalhe: true,
+  // Menu de acoes: "Multas" abre a ficha direto na aba Multas (08/10).
+  acoesDetalhe: [{ rotulo: "Multas", icone: "alert-triangle", aba: "multas" }],
   /*
    * "FISCAL DE TRANSITO" sem acento e de proposito: e a chave que
    * unaccent_simples() produz no banco (ver o filtro cargo_nome em

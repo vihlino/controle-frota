@@ -179,7 +179,7 @@ export default function PainelFiscalizacao({ dados }) {
           <Link className="acao-rapida" to="/fiscalizacao/viaturas">
             <Icone nome="fisc-viatura" tamanho={20} /> Ver Viaturas
           </Link>
-          <Link className="acao-rapida" to="/frotas/relatorios">
+          <Link className="acao-rapida" to="/fiscalizacao/relatorios">
             <Icone nome="chart-line" tamanho={20} /> Relatórios
           </Link>
         </div>

@@ -25,6 +25,10 @@ export default criarPagina({
   // desta tela destoar de "Novo veiculo".
   iconeAcao: "mais",
   rotuloSalvar: "Salvar",
+  // "Visualizar" abre a tela de detalhes do motorista (08/10).
+  detalhe: true,
+  // Menu de acoes: "Multas" abre a ficha direto na aba Multas (08/10).
+  acoesDetalhe: [{ rotulo: "Multas", icone: "alert-triangle", aba: "multas" }],
 
   // Quem gerencia a frota cadastra motorista sem precisar da permissao de
   // Administracao. CONFIG_SERVIDOR exige ADMIN_GERENCIAR_SERVIDORES, o que

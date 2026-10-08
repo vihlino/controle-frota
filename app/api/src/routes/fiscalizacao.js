@@ -15,6 +15,8 @@
  */
 import { Router } from "express";
 import { criarCrud } from "../crud.js";
+import { query } from "../db.js";
+import { autenticar, exigePermissao } from "../auth.js";
 
 const VER = "FISCALIZACAO_VISUALIZAR";
 
@@ -187,6 +189,175 @@ export const pontuacaoItens = criarCrud({
 });
 
 const router = Router();
+
+/*
+ * Ficha do fiscal (08/10) - mesma tela de Detalhes do Motorista, com o que
+ * e da Fiscalizacao: ocorrencias atendidas pelas equipes dele, checklists de
+ * viatura que ele assinou, pontuacao (so para quem gerencia a pontuacao),
+ * equipes, servicos que coordenou e o historico de atividades.
+ *
+ * Ocorrencia e pontuacao sao registradas por EQUIPE: entram as da equipe em
+ * que o fiscal estava NAQUELE dia (data_inicio/data_fim do equipe_servidor).
+ * Pontuacao lancada direto para o servidor tambem entra.
+ */
+router.get("/fiscais/:id/ficha", autenticar,
+  exigePermissao(VER, "ADMIN_VISUALIZAR"),
+  async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      const permissoes = req.usuario?.permissoes || [];
+      const s = await query(
+        `SELECT s.*, st.nome AS setor, c.nome AS cargo,
+                (s.cnh_data_validade - CURRENT_DATE) AS cnh_dias
+           FROM servidor s
+           LEFT JOIN setor st ON st.id_setor = s.id_setor
+           LEFT JOIN cargo c  ON c.id_cargo  = s.id_cargo
+          WHERE s.id_servidor = $1`,
+        [id]
+      );
+      const fiscal = s.rows[0];
+      if (!fiscal) return res.status(404).json({ erro: "Fiscal não encontrado." });
+      // Mesmo recorte da lista de servidores: quem so ve a Fiscalizacao
+      // enxerga apenas o proprio setor.
+      const amplo = permissoes.includes("ADMIN_VISUALIZAR") || permissoes.includes("FROTAS_VISUALIZAR");
+      if (!amplo && String(fiscal.id_setor) !== String(req.usuario?.id_setor ?? -1)) {
+        return res.status(403).json({ erro: "Este servidor é de outro setor." });
+      }
+      const vePontos = permissoes.includes("FISCALIZACAO_GERENCIAR_PONTUACAO");
+
+      const usuario = await query(
+        `SELECT u.login, u.status, u.ultimo_acesso, p.nome AS perfil
+           FROM usuario u JOIN perfil p ON p.id_perfil = u.id_perfil
+          WHERE u.id_servidor = $1`,
+        [id]
+      );
+
+      const equipes = await query(
+        `SELECT e.id_equipe, e.numero, e.tipo, es.data_inicio, es.data_fim,
+                (es.status AND es.data_fim IS NULL) AS atual,
+                (SELECT t.turno FROM equipe_turno t
+                  WHERE t.id_equipe = e.id_equipe AND t.data_inicio <= CURRENT_DATE
+                    AND (t.data_fim IS NULL OR t.data_fim >= CURRENT_DATE)
+                  ORDER BY t.data_inicio DESC LIMIT 1) AS turno,
+                (SELECT string_agg(sx.nome, ', ' ORDER BY sx.nome)
+                   FROM equipe_servidor ex JOIN servidor sx ON sx.id_servidor = ex.id_servidor
+                  WHERE ex.id_equipe = e.id_equipe AND ex.id_servidor <> $1
+                    AND ex.status AND ex.data_fim IS NULL) AS colegas
+           FROM equipe_servidor es
+           JOIN equipe e ON e.id_equipe = es.id_equipe
+          WHERE es.id_servidor = $1
+          ORDER BY atual DESC, es.data_inicio DESC`,
+        [id]
+      );
+
+      // Equipe do fiscal NAQUELE dia.
+      const NA_EQUIPE = (dataCol, equipeCol) => `EXISTS (
+        SELECT 1 FROM equipe_servidor es
+         WHERE es.id_servidor = $1 AND es.id_equipe = ${equipeCol}
+           AND es.data_inicio <= ${dataCol}
+           AND (es.data_fim IS NULL OR es.data_fim >= ${dataCol}))`;
+
+      const ocorrencias = await query(
+        `SELECT DISTINCT ON (o.id_ocorrencia)
+                o.id_ocorrencia, o.protocolo, o.tipo, o.data, o.hora, o.endereco,
+                o.descricao, o.status, eq.numero AS equipe
+           FROM ocorrencia o
+           JOIN distribuicao_ocorrencia d ON d.id_ocorrencia = o.id_ocorrencia
+           JOIN equipe eq ON eq.id_equipe = d.id_equipe
+          WHERE ${NA_EQUIPE("d.data", "d.id_equipe")}
+          ORDER BY o.id_ocorrencia, d.data DESC, d.hora DESC`,
+        [id]
+      );
+      ocorrencias.rows.sort((a, b) =>
+        String(b.data).localeCompare(String(a.data)) || String(b.hora).localeCompare(String(a.hora)));
+
+      const checklists = await query(
+        `SELECT c.id_checklist, c.data_abertura, c.hora_saida, c.hora_chegada, c.status,
+                (c.odometro_chegada - c.odometro_saida) AS km_rodado, cs.tipo AS papel,
+                v.placa, v.marca, v.modelo, eq.numero AS equipe
+           FROM checklist_fiscal_servidor cs
+           JOIN checklist_fiscalizacao c ON c.id_checklist = cs.id_checklist
+           JOIN veiculo v ON v.id_veiculo = c.id_veiculo
+           LEFT JOIN equipe eq ON eq.id_equipe = c.id_equipe
+          WHERE cs.id_servidor = $1
+          ORDER BY c.data_abertura DESC, c.hora_saida DESC
+          LIMIT 200`,
+        [id]
+      );
+
+      const pontuacao = vePontos ? await query(
+        `SELECT r.id_pontuacao, r.data_registro, r.quantidade, r.pontos_aplicados, r.observacao,
+                r.entidade_origem, i.codigo, i.nome AS item, eq.numero AS equipe,
+                (r.id_servidor IS NOT NULL) AS individual
+           FROM pontuacao_registro r
+           JOIN pontuacao_item i ON i.id_item = r.id_item
+           LEFT JOIN equipe eq ON eq.id_equipe = r.id_equipe
+          WHERE r.id_servidor = $1
+             OR (r.id_servidor IS NULL AND r.id_equipe IS NOT NULL
+                 AND ${NA_EQUIPE("r.data_registro::date", "r.id_equipe")})
+          ORDER BY r.data_registro DESC
+          LIMIT 300`,
+        [id]
+      ) : null;
+
+      const servicos = await query(
+        `SELECT id_servico_diario, data, turno, status
+           FROM servico_diario WHERE id_coordenador = $1
+          ORDER BY data DESC LIMIT 100`,
+        [id]
+      );
+
+      const cadastro = await query(
+        `SELECT a.data_hora, a.acao, a.entidade, a.justificativa, COALESCE(sa.nome, ua.login) AS pessoa
+           FROM auditoria a
+           LEFT JOIN usuario ua ON ua.id_usuario = a.id_usuario
+           LEFT JOIN servidor sa ON sa.id_servidor = ua.id_servidor
+          WHERE (a.entidade = 'servidor' AND a.id_registro = $1)
+             OR (a.entidade = 'usuario'
+                 AND a.id_registro IN (SELECT id_usuario FROM usuario WHERE id_servidor = $1))
+          ORDER BY a.data_hora DESC LIMIT 50`,
+        [id]
+      );
+
+      const multasResumo = await query(
+        `SELECT COUNT(*) FILTER (WHERE status <> 'CANCELADA')::int AS multas,
+                COUNT(*) FILTER (WHERE status IN ('PENDENTE', 'EM_RECURSO'))::int AS multas_abertas,
+                COALESCE(SUM(pontos) FILTER (WHERE status <> 'CANCELADA'
+                  AND data >= CURRENT_DATE - INTERVAL '12 months'), 0)::int AS pontos_12m
+           FROM multa WHERE id_servidor = $1`,
+        [id]
+      );
+
+      const seisMeses = new Date();
+      seisMeses.setMonth(seisMeses.getMonth() - 6);
+      const recente = (d) => d && new Date(d) >= seisMeses;
+      const soma = (lista) => lista.reduce((t, r) => t + Number(r.pontos_aplicados || 0), 0);
+
+      res.json({
+        ...fiscal,
+        usuario: usuario.rows[0] || null,
+        equipes: equipes.rows,
+        ocorrencias: ocorrencias.rows,
+        checklists: checklists.rows,
+        pontuacao: pontuacao ? pontuacao.rows : null,
+        servicos: servicos.rows,
+        cadastro: cadastro.rows,
+        resumo: {
+          ocorrencias: ocorrencias.rows.length,
+          ocorrencias_6m: ocorrencias.rows.filter((o) => recente(o.data)).length,
+          checklists: checklists.rows.length,
+          checklists_6m: checklists.rows.filter((c) => recente(c.data_abertura)).length,
+          servicos: servicos.rows.length,
+          pontos: pontuacao ? soma(pontuacao.rows) : null,
+          pontos_6m: pontuacao ? soma(pontuacao.rows.filter((r) => recente(r.data_registro))) : null,
+          ...multasResumo.rows[0],
+        },
+      });
+    } catch (e) {
+      next(e);
+    }
+  });
+
 router.use("/servico-diario", servicoDiario);
 router.use("/equipes", equipes);
 router.use("/apoios", apoios);

@@ -215,4 +215,11 @@ export const CONFIG_SERVIDOR = {
   }),
 };
 
-export default criarPagina(CONFIG_SERVIDOR);
+// "Visualizar" abre a tela de detalhes do servidor (08/10). Fica fora do
+// CONFIG_SERVIDOR para nao valer na tela de Fiscais, que tera ficha propria.
+export default criarPagina({
+  ...CONFIG_SERVIDOR,
+  detalhe: true,
+  // Menu de acoes: "Multas" abre a ficha direto na aba Multas (08/10).
+  acoesDetalhe: [{ rotulo: "Multas", icone: "alert-triangle", aba: "multas" }],
+});

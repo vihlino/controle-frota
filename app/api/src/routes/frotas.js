@@ -104,6 +104,7 @@ export const checklists = criarCrud({
            veiculo.placa, veiculo.marca, veiculo.modelo,
            veiculo.ano_fabricacao, veiculo.ano_modelo, veiculo.cor,
            veiculo.tipo_veiculo, setor.nome AS setor,
+           veiculo.tipo_combustivel, veiculo.status AS veiculo_status,
            (checklist_frotas.odometro_chegada - checklist_frotas.odometro_saida) AS km_rodado,
            (SELECT COALESCE(jsonb_agg(jsonb_build_object(
                      'equipamento', e.equipamento, 'conforme', e.conforme,
@@ -128,6 +129,8 @@ export const checklists = criarCrud({
   busca: ["veiculo.placa", "servidor.nome", "checklist_frotas.percurso"],
   filtros: {
     veiculo: "checklist_frotas.id_veiculo",
+    // Ficha do motorista/servidor (08/10): os checklists dele.
+    servidor: "checklist_frotas.id_servidor",
     status: "checklist_frotas.status",
     dataDe: "checklist_frotas.data_abertura",
     dataAte: "checklist_frotas.data_abertura",
@@ -257,7 +260,12 @@ export const inspecoes = criarCrud({
   entidade: "inspecao",
   select: `inspecao.*,
            veiculo.placa, veiculo.marca, veiculo.modelo,
+           veiculo.tipo_veiculo, veiculo.tipo_combustivel,
+           veiculo.ano_fabricacao, veiculo.ano_modelo, veiculo.status AS veiculo_status,
+           veiculo.quilometragem_atual AS km_atual_veiculo,
+           (SELECT st.nome FROM setor st WHERE st.id_setor = veiculo.id_setor) AS setor,
            servidor.nome AS responsavel,
+           servidor.matricula AS responsavel_matricula,
            (SELECT COUNT(*)::int FROM inspecao_item i
              WHERE i.id_inspecao = inspecao.id_inspecao
                AND i.resultado <> 'NORMAL') AS itens_com_ressalva,
@@ -270,7 +278,9 @@ export const inspecoes = criarCrud({
            -- ja foi encaminhado e levar direto a cada uma.
            (SELECT COALESCE(json_agg(json_build_object(
                      'id_os', os.id_os, 'numero', os.numero, 'status', os.status,
-                     'descricao', os.descricao) ORDER BY os.id_os), '[]'::json)
+                     'descricao', os.descricao, 'data_abertura', os.data_abertura,
+                     'data_fechamento', os.data_fechamento, 'oficina', os.oficina,
+                     'gravidade', os.gravidade) ORDER BY os.id_os), '[]'::json)
               FROM ordem_servico os
              WHERE os.origem = 'INSPECAO'
                AND os.id_registro_origem = inspecao.id_inspecao) AS ordens_servico`,
@@ -584,7 +594,10 @@ export const manutencoes = criarCrud({
   // LEFT por isso: com INNER, todo chamado aberto no patio sumia da lista.
   select: `ordem_servico.*,
            veiculo.placa, veiculo.marca, veiculo.modelo,
-           veiculo.quilometragem_atual,
+           veiculo.quilometragem_atual, veiculo.status AS veiculo_status,
+           veiculo.tipo_veiculo, veiculo.tipo_combustivel, veiculo.ano_fabricacao, veiculo.ano_modelo,
+           veiculo.chassi, veiculo.renavam,
+           (SELECT st.nome FROM setor st WHERE st.id_setor = veiculo.id_setor) AS setor,
            COALESCE(solicitante.nome, condutor.nome) AS solicitante,
            responsavel.nome AS responsavel,
            (SELECT s3.nome FROM usuario u3 JOIN servidor s3 ON s3.id_servidor = u3.id_servidor
@@ -611,6 +624,9 @@ export const manutencoes = criarCrud({
   busca: ["veiculo.placa", "ordem_servico.descricao", "ordem_servico.oficina", "ordem_servico.numero"],
   filtros: {
     veiculo: "ordem_servico.id_veiculo", status: "ordem_servico.status",
+    // Ficha do motorista/servidor (08/10): OS pedidas por ele - pelo QR Code
+    // (condutor) ou registradas com o login dele.
+    servidor: "COALESCE(ordem_servico.id_servidor_solicitante, u_sol.id_servidor)",
     tipo: "ordem_servico.tipo", gravidade: "ordem_servico.gravidade",
     origem: "ordem_servico.origem",
     dataDe: "ordem_servico.data_abertura", dataAte: "ordem_servico.data_abertura",
@@ -1119,6 +1135,12 @@ documentos.get("/:id/ficha", autenticar, exigePermissao(VER), async (req, res, n
       `SELECT d.*, situacao_documento(d.status, d.data_validade) AS situacao,
               (d.data_validade - CURRENT_DATE) AS dias_para_vencer,
               v.placa, v.marca, v.modelo, s.nome AS responsavel,
+              v.tipo_veiculo, v.tipo_combustivel, v.ano_fabricacao, v.ano_modelo,
+              v.chassi, v.renavam, v.quilometragem_atual, v.status AS veiculo_status,
+              (SELECT s3.nome FROM checklist_frotas c3 JOIN servidor s3 ON s3.id_servidor = c3.id_servidor
+                WHERE c3.id_veiculo = v.id_veiculo AND c3.status = 'ABERTO'
+                ORDER BY c3.data_abertura DESC LIMIT 1) AS condutor_atual,
+              (SELECT st.nome FROM setor st WHERE st.id_setor = v.id_setor) AS setor,
               (SELECT s2.nome FROM usuario u2 JOIN servidor s2 ON s2.id_servidor = u2.id_servidor
                 WHERE u2.id_usuario = d.substituido_por) AS substituido_por_nome
          FROM documento_veiculo d
@@ -1162,6 +1184,22 @@ documentos.get("/:id/ficha", autenticar, exigePermissao(VER), async (req, res, n
       [id]
     );
     res.json({ ...rows[0], arquivos, versoes });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Lista os arquivos de um documento (sem o conteudo). */
+documentos.get("/:id/arquivos", autenticar, exigePermissao(VER), async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT a.id_arquivo, a.nome, a.tipo, a.bytes, a.criado_em,
+              (SELECT s.nome FROM usuario u JOIN servidor s ON s.id_servidor = u.id_servidor
+                WHERE u.id_usuario = a.enviado_por) AS enviado_por_nome
+         FROM documento_arquivo a WHERE a.id_documento = $1 ORDER BY a.id_arquivo`,
+      [Number(req.params.id)]
+    );
+    res.json(rows);
   } catch (e) {
     next(e);
   }
@@ -1294,7 +1332,9 @@ documentos.post(
         return res.status(409).json({ erro: "Esta versão já foi substituída. Atualize a versão atual." });
       }
       const a = atual[0];
-      const texto = (v, padrao) => (v === undefined ? padrao : (String(v).trim() || null));
+      // null vem do formulario como "campo vazio": vira NULL no banco, e nao
+      // o texto "null" (era o que String(null) gravava).
+      const texto = (v, padrao) => (v === undefined ? padrao : v === null ? null : (String(v).trim() || null));
       const { rows: novo } = await cliente.query(
         `INSERT INTO documento_veiculo
            (id_veiculo, tipo_documento, numero_documento, data_emissao, data_validade, status,
@@ -1334,7 +1374,19 @@ export const sinistros = criarCrud({
   id: "id_sinistro",
   entidade: "sinistro",
   select: `sinistro.*,
-           veiculo.placa, veiculo.marca, veiculo.modelo,
+           (SELECT COUNT(*)::int FROM sinistro_arquivo a
+             WHERE a.id_sinistro = sinistro.id_sinistro) AS arquivos,
+           veiculo.placa, veiculo.marca, veiculo.modelo, veiculo.quilometragem_atual,
+           veiculo.status AS veiculo_status,
+           veiculo.tipo_veiculo, veiculo.tipo_combustivel, veiculo.ano_fabricacao, veiculo.ano_modelo,
+           veiculo.chassi, veiculo.renavam,
+           (SELECT st.nome FROM setor st WHERE st.id_setor = veiculo.id_setor) AS setor,
+           condutor.matricula AS condutor_matricula, condutor.telefone AS condutor_telefone,
+           (SELECT COALESCE(json_agg(json_build_object(
+                     'tipo', e.tipo, 'nome', e.nome, 'documento', e.documento, 'placa', e.placa,
+                     'modelo', e.modelo, 'contato', e.contato, 'situacao', e.situacao,
+                     'observacao', e.observacao) ORDER BY e.ordem, e.id_envolvido), '[]'::json)
+              FROM sinistro_envolvido e WHERE e.id_sinistro = sinistro.id_sinistro) AS envolvidos,
            condutor.nome AS condutor,
            responsavel.nome AS responsavel`,
   from: `sinistro
@@ -1346,6 +1398,8 @@ export const sinistros = criarCrud({
   filtros: {
     veiculo: "sinistro.id_veiculo", status: "sinistro.status", tipo: "sinistro.tipo",
     responsavel: "sinistro.id_responsavel",
+    // Ficha do motorista/servidor (08/10): sinistros em que ele era o condutor.
+    servidor: "sinistro.id_servidor",
     dataDe: "sinistro.data", dataAte: "sinistro.data",
   },
   ordenaveis: {
@@ -1359,12 +1413,326 @@ export const sinistros = criarCrud({
     "houve_terceiros", "numero",
     // Migracao 031: o que a tela ja pedia e se perdia.
     "parte_danificada", "gravidade_danos", "descricao_danos", "providencias",
+    // Migracao 035: situacao do condutor e orcamento.
+    "situacao_condutor", "orcamento_oficina", "orcamento_pecas", "orcamento_mao_obra", "orcamento_outros",
   ],
   obrigatorios: ["id_veiculo", "id_servidor", "data", "hora", "local", "descricao", "id_responsavel"],
   permissoes: { ver: VER, gerenciar: "FROTAS_GERENCIAR_SINISTROS" },
   // Sinistro e registro de um fato: alterar exige dizer por que (auditoria).
   exigeJustificativa: true,
+  // Fotos e documentos anexados saem junto com o sinistro (migracao 034).
+  filhos: [
+    { tabela: "sinistro_arquivo", chave: "id_sinistro" },
+    { tabela: "sinistro_envolvido", chave: "id_sinistro" },
+  ],
 });
+
+/*
+ * Envolvidos do sinistro (migracao 035): a lista inteira e regravada de uma
+ * vez - e como o formulario trabalha (adiciona, tira, corrige linhas e salva).
+ * O que estava antes vai para a auditoria.
+ */
+const TIPOS_ENVOLVIDO = ["OUTRO_VEICULO", "PASSAGEIRO", "PEDESTRE", "TESTEMUNHA", "OUTRO"];
+const SITUACOES_ENVOLVIDO = ["SEM_LESOES", "LESOES_LEVES", "LESOES_GRAVES"];
+
+sinistros.put(
+  "/:id/envolvidos",
+  autenticar,
+  exigePermissao("FROTAS_GERENCIAR_SINISTROS"),
+  async (req, res, next) => {
+    const id = Number(req.params.id);
+    const lista = Array.isArray(req.body?.envolvidos) ? req.body.envolvidos : null;
+    if (!lista) return res.status(400).json({ erro: "Envie a lista de envolvidos." });
+    const t = (v, max) => (v == null ? null : String(v).trim().slice(0, max) || null);
+    const limpos = [];
+    for (const e of lista) {
+      if (!TIPOS_ENVOLVIDO.includes(e?.tipo)) return res.status(400).json({ erro: "Tipo de envolvido inválido." });
+      if (e.situacao && !SITUACOES_ENVOLVIDO.includes(e.situacao)) {
+        return res.status(400).json({ erro: "Situação do envolvido inválida." });
+      }
+      const item = {
+        tipo: e.tipo, nome: t(e.nome, 150), documento: t(e.documento, 40),
+        placa: t(e.placa, 10)?.toUpperCase() ?? null, modelo: t(e.modelo, 100),
+        contato: t(e.contato, 60), situacao: e.situacao || null, observacao: t(e.observacao, 2000),
+      };
+      if (!item.nome && !item.placa) {
+        return res.status(400).json({ erro: "Cada envolvido precisa de nome ou placa." });
+      }
+      limpos.push(item);
+    }
+    const cliente = await pool.connect();
+    try {
+      await cliente.query("BEGIN");
+      const { rows: existe } = await cliente.query("SELECT 1 FROM sinistro WHERE id_sinistro = $1", [id]);
+      if (!existe[0]) {
+        await cliente.query("ROLLBACK");
+        return res.status(404).json({ erro: "Sinistro não encontrado." });
+      }
+      const { rows: antes } = await cliente.query(
+        "DELETE FROM sinistro_envolvido WHERE id_sinistro = $1 RETURNING tipo, nome, placa, modelo, contato, situacao",
+        [id]
+      );
+      for (const [n, e] of limpos.entries()) {
+        await cliente.query(
+          `INSERT INTO sinistro_envolvido
+             (id_sinistro, ordem, tipo, nome, documento, placa, modelo, contato, situacao, observacao)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          [id, n, e.tipo, e.nome, e.documento, e.placa, e.modelo, e.contato, e.situacao, e.observacao]
+        );
+      }
+      await cliente.query("COMMIT");
+      const mudou = JSON.stringify(antes.map((a) => [a.tipo, a.nome, a.placa]))
+        !== JSON.stringify(limpos.map((a) => [a.tipo, a.nome, a.placa]));
+      if (mudou || antes.length !== limpos.length) {
+        await registrarAuditoria({
+          idUsuario: req.usuario.id_usuario, acao: "EDITAR", entidade: "sinistro_envolvido",
+          idRegistro: id, dadosAnteriores: { envolvidos: antes }, dadosNovos: { envolvidos: limpos },
+        });
+      }
+      res.json({ ok: true, total: limpos.length });
+    } catch (e) {
+      await cliente.query("ROLLBACK").catch(() => {});
+      next(e);
+    } finally {
+      cliente.release();
+    }
+  }
+);
+
+/*
+ * Sinistro: fotos e documentos anexados (migracao 034). Mesmas regras do anexo
+ * de documento: PDF, JPG ou PNG, ate 10 MB, guardado no banco.
+ */
+sinistros.get("/:id/arquivos", autenticar, exigePermissao(VER), async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT a.id_arquivo, a.nome, a.tipo, a.bytes, a.criado_em,
+              (SELECT s.nome FROM usuario u JOIN servidor s ON s.id_servidor = u.id_servidor
+                WHERE u.id_usuario = a.enviado_por) AS enviado_por_nome
+         FROM sinistro_arquivo a WHERE a.id_sinistro = $1 ORDER BY a.id_arquivo`,
+      [Number(req.params.id)]
+    );
+    res.json(rows);
+  } catch (e) {
+    next(e);
+  }
+});
+
+sinistros.post(
+  "/:id/arquivos",
+  corpoDeArquivo,
+  autenticar,
+  exigePermissao("FROTAS_GERENCIAR_SINISTROS"),
+  async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      const nome = String(req.body?.nome || "").trim().slice(0, 255) || "arquivo";
+      const m = /^data:([a-z/+.-]+);base64,([A-Za-z0-9+/=]+)$/i.exec(String(req.body?.dataUrl || "").trim());
+      if (!m) return res.status(400).json({ erro: "Arquivo inválido." });
+      const tipo = m[1].toLowerCase();
+      if (!TIPOS_ARQUIVO_DOC.includes(tipo)) {
+        return res.status(400).json({ erro: "Envie fotos em JPG ou PNG, ou documentos em PDF." });
+      }
+      const buffer = Buffer.from(m[2], "base64");
+      if (!buffer.length || buffer.length > MAX_ARQUIVO_DOC) {
+        return res.status(400).json({ erro: "Cada arquivo precisa ter até 10 MB." });
+      }
+      const { rows: existe } = await query("SELECT 1 FROM sinistro WHERE id_sinistro = $1", [id]);
+      if (!existe[0]) return res.status(404).json({ erro: "Sinistro não encontrado." });
+      const { rows } = await query(
+        `INSERT INTO sinistro_arquivo (id_sinistro, nome, tipo, bytes, conteudo, enviado_por)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id_arquivo, nome, tipo, bytes, criado_em`,
+        [id, nome, tipo, buffer.length, buffer, req.usuario.id_usuario]
+      );
+      await registrarAuditoria({
+        idUsuario: req.usuario.id_usuario, acao: "CRIAR", entidade: "sinistro_arquivo",
+        idRegistro: rows[0].id_arquivo, dadosNovos: { id_sinistro: id, nome, tipo, bytes: buffer.length },
+      });
+      res.status(201).json(rows[0]);
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+sinistros.get("/arquivos/:idArquivo", autenticar, exigePermissao(VER), async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      "SELECT nome, tipo, conteudo FROM sinistro_arquivo WHERE id_arquivo = $1",
+      [Number(req.params.idArquivo)]
+    );
+    if (!rows[0]) return res.status(404).json({ erro: "Arquivo não encontrado." });
+    res.setHeader("Content-Type", rows[0].tipo);
+    res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(rows[0].nome)}`);
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    res.send(rows[0].conteudo);
+  } catch (e) {
+    next(e);
+  }
+});
+
+sinistros.delete(
+  "/arquivos/:idArquivo",
+  autenticar,
+  exigePermissao("FROTAS_GERENCIAR_SINISTROS"),
+  async (req, res, next) => {
+    try {
+      const justificativa = String(req.body?.justificativa || "").trim();
+      if (justificativa.length < 5) {
+        return res.status(400).json({ erro: "Escreva a justificativa da exclusão (o motivo fica registrado na auditoria)." });
+      }
+      const { rows } = await query(
+        `DELETE FROM sinistro_arquivo WHERE id_arquivo = $1
+         RETURNING id_arquivo, id_sinistro, nome, tipo, bytes`,
+        [Number(req.params.idArquivo)]
+      );
+      if (!rows[0]) return res.status(404).json({ erro: "Arquivo não encontrado." });
+      await registrarAuditoria({
+        idUsuario: req.usuario.id_usuario, acao: "EXCLUIR", entidade: "sinistro_arquivo",
+        idRegistro: rows[0].id_arquivo, justificativa, dadosAnteriores: rows[0],
+      });
+      res.status(204).end();
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+/*
+ * Multas (migracao 037, 08/10): vinculadas ao condutor e ao veiculo. Aparecem
+ * na aba "Multas" dos detalhes do Motorista, do Servidor e do Fiscal - por
+ * isso quem ve Fiscalizacao ou Administracao tambem consegue ler.
+ */
+export const multas = criarCrud({
+  tabela: "multa",
+  id: "id_multa",
+  entidade: "multa",
+  filhos: [{ tabela: "multa_arquivo", chave: "id_multa" }],
+  select: `multa.*,
+           veiculo.placa, veiculo.marca, veiculo.modelo,
+           condutor.nome AS condutor,
+           (SELECT COUNT(*)::int FROM multa_arquivo a WHERE a.id_multa = multa.id_multa) AS arquivos`,
+  from: `multa
+         JOIN veiculo ON veiculo.id_veiculo = multa.id_veiculo
+         JOIN servidor condutor ON condutor.id_servidor = multa.id_servidor`,
+  busca: ["veiculo.placa", "multa.numero_auto", "multa.descricao", "multa.local", "condutor.nome"],
+  filtros: {
+    servidor: "multa.id_servidor", veiculo: "multa.id_veiculo", status: "multa.status",
+    gravidade: "multa.gravidade", dataDe: "multa.data", dataAte: "multa.data",
+  },
+  ordenaveis: { data: "multa.data", valor: "multa.valor", status: "multa.status", placa: "veiculo.placa" },
+  ordemPadrao: "multa.data DESC, multa.id_multa DESC",
+  campos: [
+    "id_servidor", "id_veiculo", "numero_auto", "orgao_autuador", "codigo_infracao",
+    "data", "hora", "local", "descricao", "gravidade", "pontos", "valor",
+    "vencimento", "status", "data_pagamento", "observacoes", "criado_por",
+  ],
+  obrigatorios: ["id_servidor", "id_veiculo", "data", "descricao", "gravidade"],
+  permissoes: {
+    ver: [VER, "FISCALIZACAO_VISUALIZAR", "ADMIN_VISUALIZAR"],
+    gerenciar: "FROTAS_GERENCIAR_MULTAS",
+  },
+});
+
+const VER_MULTA = exigePermissao(VER, "FISCALIZACAO_VISUALIZAR", "ADMIN_VISUALIZAR");
+
+/* Anexos da multa: auto de infracao, notificacao, comprovante (PDF/JPG/PNG, 10 MB). */
+multas.get("/:id/arquivos", autenticar, VER_MULTA, async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT a.id_arquivo, a.nome, a.tipo, a.bytes, a.criado_em,
+              (SELECT s.nome FROM usuario u JOIN servidor s ON s.id_servidor = u.id_servidor
+                WHERE u.id_usuario = a.enviado_por) AS enviado_por_nome
+         FROM multa_arquivo a WHERE a.id_multa = $1 ORDER BY a.id_arquivo`,
+      [Number(req.params.id)]
+    );
+    res.json(rows);
+  } catch (e) {
+    next(e);
+  }
+});
+
+multas.post(
+  "/:id/arquivos",
+  corpoDeArquivo,
+  autenticar,
+  exigePermissao("FROTAS_GERENCIAR_MULTAS"),
+  async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      const nome = String(req.body?.nome || "").trim().slice(0, 255) || "arquivo";
+      const m = /^data:([a-z/+.-]+);base64,([A-Za-z0-9+/=]+)$/i.exec(String(req.body?.dataUrl || "").trim());
+      if (!m) return res.status(400).json({ erro: "Arquivo inválido." });
+      const tipo = m[1].toLowerCase();
+      if (!TIPOS_ARQUIVO_DOC.includes(tipo)) {
+        return res.status(400).json({ erro: "Envie fotos em JPG ou PNG, ou documentos em PDF." });
+      }
+      const buffer = Buffer.from(m[2], "base64");
+      if (!buffer.length || buffer.length > MAX_ARQUIVO_DOC) {
+        return res.status(400).json({ erro: "Cada arquivo precisa ter até 10 MB." });
+      }
+      const { rows: existe } = await query("SELECT 1 FROM multa WHERE id_multa = $1", [id]);
+      if (!existe[0]) return res.status(404).json({ erro: "Multa não encontrada." });
+      const { rows } = await query(
+        `INSERT INTO multa_arquivo (id_multa, nome, tipo, bytes, conteudo, enviado_por)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id_arquivo, nome, tipo, bytes, criado_em`,
+        [id, nome, tipo, buffer.length, buffer, req.usuario.id_usuario]
+      );
+      await registrarAuditoria({
+        idUsuario: req.usuario.id_usuario, acao: "CRIAR", entidade: "multa_arquivo",
+        idRegistro: rows[0].id_arquivo, dadosNovos: { id_multa: id, nome, tipo, bytes: buffer.length },
+      });
+      res.status(201).json(rows[0]);
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+multas.get("/arquivos/:idArquivo", autenticar, VER_MULTA, async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      "SELECT nome, tipo, conteudo FROM multa_arquivo WHERE id_arquivo = $1",
+      [Number(req.params.idArquivo)]
+    );
+    if (!rows[0]) return res.status(404).json({ erro: "Arquivo não encontrado." });
+    res.setHeader("Content-Type", rows[0].tipo);
+    res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(rows[0].nome)}`);
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    res.send(rows[0].conteudo);
+  } catch (e) {
+    next(e);
+  }
+});
+
+multas.delete(
+  "/arquivos/:idArquivo",
+  autenticar,
+  exigePermissao("FROTAS_GERENCIAR_MULTAS"),
+  async (req, res, next) => {
+    try {
+      const justificativa = String(req.body?.justificativa || "").trim();
+      if (justificativa.length < 5) {
+        return res.status(400).json({ erro: "Escreva a justificativa da exclusão (o motivo fica registrado na auditoria)." });
+      }
+      const { rows } = await query(
+        `DELETE FROM multa_arquivo WHERE id_arquivo = $1
+         RETURNING id_arquivo, id_multa, nome, tipo, bytes`,
+        [Number(req.params.idArquivo)]
+      );
+      if (!rows[0]) return res.status(404).json({ erro: "Arquivo não encontrado." });
+      await registrarAuditoria({
+        idUsuario: req.usuario.id_usuario, acao: "EXCLUIR", entidade: "multa_arquivo",
+        idRegistro: rows[0].id_arquivo, justificativa, dadosAnteriores: rows[0],
+      });
+      res.status(204).end();
+    } catch (e) {
+      next(e);
+    }
+  }
+);
 
 const router = Router();
 router.use("/veiculos", veiculos);
@@ -1373,5 +1741,6 @@ router.use("/inspecoes", inspecoes);
 router.use("/manutencoes", manutencoes);
 router.use("/documentos", documentos);
 router.use("/sinistros", sinistros);
+router.use("/multas", multas);
 
 export default router;

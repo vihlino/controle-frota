@@ -7,9 +7,13 @@
  *
  * O conteudo vem do snapshot congelado na geracao, nao de consulta nova. O
  * campo "integro" avisa se o conteudo salvo ainda confere com o selo.
+ *
+ * Cabecalho (07/10): marca da CMTT a esquerda com os dados da companhia,
+ * marca do SITRA a direita. Rodape: so as assinaturas dos escolhidos para
+ * atestar (Atestado / Aguardando ateste).
  */
 import { useEffect, useState } from "react";
-import { useOutletContext, useParams, useNavigate } from "react-router-dom";
+import { useLocation, useOutletContext, useParams, useNavigate } from "react-router-dom";
 import Cartao from "../../components/Cartao.jsx";
 import Icone from "../../components/Icone.jsx";
 import Trilha from "../../components/Trilha.jsx";
@@ -37,6 +41,8 @@ function celula(valor, tipo) {
 export default function RelatórioVer() {
   const { id } = useParams();
   const navegar = useNavigate();
+  const fiscalizacao = useLocation().pathname.startsWith("/fiscalizacao");
+  const base = fiscalizacao ? "/fiscalizacao/relatorios" : "/frotas/relatorios";
   const { definirCabecalho } = useOutletContext();
   const { podeVer, usuario } = useSessao();
   const [relatório, setRelatório] = useState(null);
@@ -47,16 +53,16 @@ export default function RelatórioVer() {
 
   const podeAtestar = podeVer("RELATORIOS_ATESTAR");
 
-  // ATE TRES pessoas atestam o mesmo relatório, e ninguem atesta duas vezes.
-  // A conta tambem vale para esconder o botao: melhor nao oferecer do que
-  // deixar clicar e devolver erro.
+  // Relatorio com ateste encaminhado (036): so os escolhidos atestam, cada um
+  // uma vez. Relatorios antigos: ate tres pessoas com a permissao.
   const atestacoes = relatório?.atestacoes || [];
-  const jaAtestei = atestacoes.some((a) => a.id_usuario === usuario?.id_usuario);
-  const podeAtestarAgora =
-    relatório &&
-    relatório.status !== "CANCELADO" &&
-    atestacoes.length < 3 &&
-    !jaAtestei;
+  const minha = atestacoes.find((a) => String(a.id_usuario) === String(usuario?.id_usuario));
+  const meuPendente = minha?.status === "PENDENTE";
+  const podeAtestarAgora = !relatório || relatório.status === "CANCELADO" ? false
+    : relatório.ateste_designado
+      ? meuPendente
+      : podeAtestar && relatório.status !== "GERADO" && atestacoes.length < 3 && !minha;
+  const feitos = atestacoes.filter((a) => a.status === "ATESTADO").length;
 
   useEffect(() => {
     definirCabecalho({ titulo: "", legenda: "" });
@@ -113,7 +119,10 @@ export default function RelatórioVer() {
   if (erro) return <Cartao><div className="vazio">{erro}</div></Cartao>;
   if (!relatório) return <div className="carregando">Carregando o relatório...</div>;
 
-  const conteudo = relatório.conteudo_snapshot || { colunas: [], linhas: [] };
+  // A API devolve o conteudo congelado na coluna `snapshot` (tabela
+  // relatorio). A tela lia `conteudo_snapshot`, que nao existe: todo
+  // relatorio aparecia com 0 registros e a tabela vazia.
+  const conteudo = relatório.snapshot || relatório.conteudo_snapshot || { colunas: [], linhas: [] };
 
   return (
     <>
@@ -121,8 +130,8 @@ export default function RelatórioVer() {
         <div>
           <Trilha
             itens={[
-              { rotulo: "Frotas" },
-              { rotulo: "Relatórios", para: "/frotas/relatorios" },
+              { rotulo: fiscalizacao ? "Fiscalização" : "Frotas" },
+              { rotulo: "Relatórios", para: base },
               { rotulo: relatório.nome },
             ]}
           />
@@ -133,7 +142,7 @@ export default function RelatórioVer() {
           </p>
         </div>
         <div className="cabecalho-pagina__acoes">
-          <button className="botao" onClick={() => navegar("/frotas/relatorios")}>
+          <button className="botao" onClick={() => navegar(base)}>
             <Icone nome="seta-esquerda" tamanho={15} /> Voltar
           </button>
           <button className="botao" onClick={baixarCsv}>
@@ -142,7 +151,7 @@ export default function RelatórioVer() {
           <button className="botao" onClick={() => window.print()}>
             <Icone nome="arrow-up" tamanho={15} /> Imprimir / PDF
           </button>
-          {podeAtestar && podeAtestarAgora && (
+          {podeAtestarAgora && (
             <button className="botao botao--primario" onClick={() => setAtestando(true)}>
               <Icone nome="salvar" tamanho={15} monocromatico /> Atestar relatório
             </button>
@@ -157,15 +166,33 @@ export default function RelatórioVer() {
         </div>
       )}
 
+      {meuPendente && relatório.status !== "CANCELADO" && (
+        <div className="rel-encaminhado esconder-impressao">
+          <Icone nome="salvar" tamanho={18} />
+          <span>
+            <strong>Este relatório foi encaminhado para você atestar.</strong>{" "}
+            Confira os registros e clique em "Atestar relatório".
+          </span>
+        </div>
+      )}
+
       <article className="documento">
         <header className="documento__cabecalho">
-          {/* Versao escura: o relatorio e impresso em papel branco, e a logo de
-              letras brancas sumiria ali. */}
-          <img src="/icons/logo-sitra-escura.png" alt="SITRA" className="documento__logo" />
-          <div className="documento__selo">
+          <div className="documento__orgao">
+            <img src="/icons/cmtt-logo-documento.png" alt="CMTT" className="documento__logo-cmtt" />
+            <div>
+              <strong>Companhia Municipal de Trânsito e Transporte</strong>
+              <span>CMTT · {relatório.modulo === "FISCALIZACAO" ? "Fiscalização" : "Gestão de Frotas"}</span>
+              <span>Setor: {relatório.gerado_por_setor}</span>
+            </div>
+          </div>
+          <div className="documento__sistema">
+            {/* Versao com letras escuras: o relatorio e impresso em papel branco. */}
+            <img src="/icons/logo-sitra-documento.png" alt="SITRA" className="documento__logo" />
             <Selo
-              texto={relatório.status === "ATESTADO" ? "Atestado" : "Aguardando ateste"}
-              tom={relatório.status === "ATESTADO" ? "verde" : "amarelo"}
+              texto={{ ATESTADO: "Atestado", GERADO: "Sem ateste", CANCELADO: "Cancelado" }[relatório.status]
+                || (atestacoes.length ? `Aguardando ateste (${feitos} de ${atestacoes.length})` : "Aguardando ateste")}
+              tom={{ ATESTADO: "verde", GERADO: "azul", CANCELADO: "vermelho" }[relatório.status] || "amarelo"}
             />
           </div>
         </header>
@@ -215,40 +242,35 @@ export default function RelatórioVer() {
           )}
         </div>
 
-        <footer className="documento__rodape">
-          {/* Ate TRES assinaturas, lado a lado. Quem ainda nao atestou aparece
-              como linha em branco: no papel, o espaco vazio e o convite para
-              assinar - some-lo esconderia que faltam atestos. */}
-          <div className="documento__assinaturas">
-            {atestacoes.map((a) => (
-              <div className="documento__assinatura" key={a.ordem}>
-                <p className="documento__ateste">Atestado por</p>
-                <p className="documento__assinante">{a.nome}</p>
-                <p className="documento__cargo">{a.cargo}</p>
-                <p className="documento__quando">Em {dataHora(a.data_atestacao)}</p>
-                {a.observacao && <p className="documento__observacao">{a.observacao}</p>}
-              </div>
-            ))}
-            {atestacoes.length === 0 && (
-              <div className="documento__assinatura">
-                <p className="documento__ateste">Aguardando ateste do responsável</p>
-                <p className="documento__assinante">_______________________________</p>
-                <p className="documento__cargo">Nome e cargo do responsável</p>
-              </div>
-            )}
-          </div>
-
-          <div className="documento__orgao-rodape">
-            <img src="/icons/cmtt-logo.svg" alt="CMTT" className="documento__logo-cmtt" />
-            <div>
-              <strong>Companhia Municipal de Trânsito e Transporte</strong>
-              <small>
-                Documento gerado automaticamente pelo SITRA. Não necessita de
-                assinatura quando usado para fins internos da administração.
-              </small>
+        {/* Rodape: uma assinatura por pessoa escolhida (ate tres, lado a
+            lado). Quem ainda nao atestou fica com a linha em branco e
+            "Aguardando ateste". Relatorio sem ateste nao tem rodape. */}
+        {(atestacoes.length > 0 || relatório.status === "AGUARDANDO_ATESTE") && (
+          <footer className="documento__rodape">
+            <div className="documento__assinaturas" data-qtd={Math.max(atestacoes.length, 1)}>
+              {atestacoes.map((a) => {
+                const ok = a.status === "ATESTADO";
+                return (
+                  <div className="documento__assinatura" data-ok={ok} key={a.ordem}>
+                    <p className="documento__ateste">{ok ? "✓ Atestado eletronicamente" : "Aguardando ateste"}</p>
+                    <p className="documento__assinante">{a.nome}</p>
+                    <p className="documento__cargo">{a.cargo}</p>
+                    <p className="documento__quando">{ok ? `Em ${dataHora(a.data_atestacao)}` : "\u00a0"}</p>
+                    {ok && a.observacao && <p className="documento__observacao">"{a.observacao}"</p>}
+                  </div>
+                );
+              })}
+              {atestacoes.length === 0 && (
+                <div className="documento__assinatura">
+                  <p className="documento__ateste">Aguardando ateste</p>
+                  <p className="documento__assinante">&nbsp;</p>
+                  <p className="documento__cargo">Responsável pelo ateste</p>
+                  <p className="documento__quando">&nbsp;</p>
+                </div>
+              )}
             </div>
-          </div>
-        </footer>
+          </footer>
+        )}
       </article>
 
       {atestando && (

@@ -5,10 +5,12 @@
  * Sem filtros extras nem selecao manual de colunas - cada tipo tem seu modelo
  * padrao, definido no backend.
  *
- * Gerado, o relatório nasce AGUARDANDO ATESTE e a tela abre o documento.
+ * Ao gerar, a pessoa responde se o relatório precisa de ateste. Se precisa,
+ * escolhe quantas pessoas (1 a 3) e quem: o relatório nasce AGUARDANDO
+ * ATESTE e vai para o sino de cada escolhido. Sem ateste, nasce GERADO.
  */
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
@@ -18,13 +20,18 @@ import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
 import { data, dataHora, numero } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
+import { SimNao } from "../../components/RegistrarSinistro.jsx";
 
 const SITUACOES = [
-  { valor: "GERADO", rotulo: "Gerado" },
+  { valor: "GERADO", rotulo: "Sem ateste" },
   { valor: "AGUARDANDO_ATESTE", rotulo: "Aguardando ateste" },
   { valor: "ATESTADO", rotulo: "Atestado" },
   { valor: "CANCELADO", rotulo: "Cancelado" },
 ];
+// Só no filtro: os relatórios encaminhados para quem está usando o sistema.
+const FILTRO_SITUACAO = [{ valor: "MEU_ATESTE", rotulo: "Aguardando meu ateste" }, ...SITUACOES];
+const FORM_VAZIO = { tipo: "", periodo_inicio: "", periodo_fim: "", precisa_ateste: null, quantidade: "1", atestantes: [""] };
+const ORDINAL = ["1º", "2º", "3º"];
 const TOM_STATUS = {
   GERADO: "azul", AGUARDANDO_ATESTE: "amarelo",
   ATESTADO: "verde", CANCELADO: "vermelho",
@@ -32,11 +39,16 @@ const TOM_STATUS = {
 
 export default function Relatórios() {
   const navegar = useNavigate();
+  // A mesma tela atende Frotas e Fiscalizacao: o relatorio abre e volta
+  // dentro da area em que a pessoa esta.
+  const fiscalizacao = useLocation().pathname.startsWith("/fiscalizacao");
+  const base = fiscalizacao ? "/fiscalizacao/relatorios" : "/frotas/relatorios";
   const { podeVer } = useSessao();
   const lista = useLista("relatorios", { busca: "", tipo: "", status: "", dataDe: "", dataAte: "" });
   const [tipos, setTipos] = useState([]);
   const [gerando, setGerando] = useState(false);
-  const [formulario, setFormulario] = useState({ tipo: "", periodo_inicio: "", periodo_fim: "" });
+  const [formulario, setFormulario] = useState(FORM_VAZIO);
+  const [usuarios, setUsuarios] = useState([]);
   const [erroForm, setErroForm] = useState("");
   const [salvando, setSalvando] = useState(false);
 
@@ -46,14 +58,55 @@ export default function Relatórios() {
     api("/relatorios/tipos").then((r) => setTipos(Array.isArray(r) ? r : [])).catch(() => {});
   }, []);
 
+  // A lista de quem pode ser escolhido para atestar carrega ao abrir a janela.
+  useEffect(() => {
+    if (!gerando) return;
+    api("/relatorios/atestantes").then((r) => setUsuarios(Array.isArray(r) ? r : [])).catch(() => {});
+  }, [gerando]);
+
+  function abrirGerar() {
+    setFormulario(FORM_VAZIO);
+    setErroForm("");
+    setGerando(true);
+  }
+
+  function mudarQuantidade(valor) {
+    const n = Number(valor);
+    setFormulario((f) => ({
+      ...f, quantidade: valor,
+      atestantes: Array.from({ length: n }, (_, i) => f.atestantes[i] || ""),
+    }));
+  }
+
+  function escolherAtestante(i, valor) {
+    setFormulario((f) => ({ ...f, atestantes: f.atestantes.map((a, j) => (j === i ? valor : a)) }));
+  }
+
   async function gerar(e) {
     e.preventDefault();
-    setSalvando(true);
     setErroForm("");
+    if (formulario.precisa_ateste === null) {
+      setErroForm("Responda se o relatório precisa ser atestado.");
+      return;
+    }
+    if (formulario.precisa_ateste && formulario.atestantes.some((a) => !a)) {
+      setErroForm("Escolha quem vai atestar o relatório.");
+      return;
+    }
+    setSalvando(true);
     try {
-      const novo = await api("/relatorios", { method: "POST", body: formulario });
+      const novo = await api("/relatorios", {
+        method: "POST",
+        body: {
+          tipo: formulario.tipo,
+          periodo_inicio: formulario.periodo_inicio,
+          periodo_fim: formulario.periodo_fim,
+          precisa_ateste: formulario.precisa_ateste,
+          atestantes: formulario.precisa_ateste ? formulario.atestantes.map(Number) : [],
+        },
+      });
       setGerando(false);
-      navegar(`/frotas/relatorios/${novo.id_relatorio}`);
+      navegar(`${base}/${novo.id_relatorio}`);
     } catch (e) {
       setErroForm(e.message);
     } finally {
@@ -99,7 +152,10 @@ export default function Relatórios() {
             texto={SITUACOES.find((s) => s.valor === r.status)?.rotulo || r.status}
             tom={TOM_STATUS[r.status]}
           />
-          {r.atestado_por && (
+          {r.status === "AGUARDANDO_ATESTE" && r.atestos_total > 0 && (
+            <span className="celula-nota">{r.atestos_feitos} de {r.atestos_total} atestos</span>
+          )}
+          {r.status === "ATESTADO" && r.atestado_por && (
             <span className="celula-nota">
               {dataHora(r.atestado_por.data)} - {r.atestado_por.nome}
             </span>
@@ -110,53 +166,24 @@ export default function Relatórios() {
     {
       chave: "ações", rotulo: "Ações",
       render: (r) => (
-        <button className="botao botao--pequeno"
-                onClick={() => navegar(`/frotas/relatorios/${r.id_relatorio}`)}>
-          Ver
+        <button className={r.meu_ateste_pendente ? "botao botao--pequeno botao--primario" : "botao botao--pequeno"}
+                onClick={() => navegar(`${base}/${r.id_relatorio}`)}>
+          {r.meu_ateste_pendente ? "Atestar" : "Ver"}
         </button>
       ),
     },
   ];
 
-  const CATEGORIAS_RELATORIO = [
-    { tipo: "VEICULOS", nome: "Veículos", descricao: "Relatórios sobre a frota, cadastro, status e utilização dos veículos.", icone: "kpi-car", tom: "azul" },
-    { tipo: "CHECKLISTS", nome: "Checklists", descricao: "Checklists realizados pelos motoristas.", icone: "checklist", tom: "verde" },
-    { tipo: "INSPECOES", nome: "Inspeções", descricao: "Relatórios das inspeções veiculares realizadas.", icone: "calendar", tom: "amarelo" },
-    { tipo: "MANUTENCOES", nome: "Manutenções", descricao: "Relatórios de manutenções, custos e histórico de serviços.", icone: "kpi-wrench", tom: "laranja" },
-    { tipo: "DOCUMENTOS", nome: "Documentos", descricao: "Relatórios de documentos, vencimentos e pendências.", icone: "nav-gestao", tom: "azul" },
-    { tipo: "SINISTROS", nome: "Sinistros", descricao: "Relatórios de sinistros, ocorrências e status.", icone: "alert-triangle", tom: "vermelho" },
-    { tipo: "INDICADORES", nome: "Indicadores", descricao: "Indicadores de desempenho e KPIs da frota.", icone: "chart-line", tom: "verde" },
-    { tipo: "PERSONALIZADO", nome: "Personalizado", descricao: "Monte seu próprio relatório com campos personalizados.", icone: "arrow-up", tom: "amarelo" },
-  ];
-
   return (
     <PaginaLista
-      trilha={[{ rotulo: "Frotas" }, { rotulo: "Relatórios" }]}
+      trilha={[{ rotulo: fiscalizacao ? "Fiscalização" : "Frotas" }, { rotulo: "Relatórios" }]}
       titulo="Relatórios"
       descricao="Visualize, gerencie e ateste os relatórios gerados no sistema."
       acao={
         podeGerar && (
-          <button className="botao botao--primario" onClick={() => setGerando(true)}>
+          <button className="botao botao--primario" onClick={abrirGerar}>
             <Icone nome="chart-line" tamanho={15} /> Gerar relatório
           </button>
-        )
-      }
-      secao={
-        podeGerar && (
-          <div className="cartao" style={{ padding: "24px" }}>
-            <h2 style={{ margin: "0 0 16px", fontSize: "16px", fontWeight: 600 }}>Categorias de relatórios</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
-              {CATEGORIAS_RELATORIO.map((cat) => (
-                <div key={cat.tipo} className="cartao" style={{ padding: "20px", cursor: "pointer", border: "1px solid var(--borda)" }}
-                     onClick={() => { setFormulario((f) => ({ ...f, tipo: cat.tipo })); setGerando(true); }}>
-                  <Icone nome={cat.icone} tamanho={24} style={{ color: `var(--${cat.tom})` }} />
-                  <strong style={{ display: "block", marginTop: "10px", fontSize: "14px" }}>{cat.nome}</strong>
-                  <p style={{ fontSize: "12px", color: "var(--texto-2)", margin: "6px 0 14px" }}>{cat.descricao}</p>
-                  <span style={{ fontSize: "12px", color: "var(--amarelo)", fontWeight: 600 }}>Gerar relatório →</span>
-                </div>
-              ))}
-            </div>
-          </div>
         )
       }
       lista={lista}
@@ -176,7 +203,7 @@ export default function Relatórios() {
                    opcoes={tipos.map((t) => ({ valor: t.tipo, rotulo: t.nome }))}
                    value={lista.filtros.tipo}
                    onChange={(e) => lista.alterarFiltro("tipo", e.target.value)} />
-          <Selecao rotulo="Situação" id="status" vazio="Todas" opcoes={SITUACOES}
+          <Selecao rotulo="Situação" id="status" vazio="Todas" opcoes={FILTRO_SITUACAO}
                    value={lista.filtros.status}
                    onChange={(e) => lista.alterarFiltro("status", e.target.value)} />
         </>
@@ -230,6 +257,41 @@ export default function Relatórios() {
                 <strong>Informações do modelo:</strong> {escolhido.colunas.join(", ")}.
               </p>
             )}
+
+            <div className="rel-ateste">
+              <h3 className="rel-ateste__titulo">Ateste</h3>
+              <div className="formulario-grade">
+                <SimNao nome="precisa_ateste" rotulo="O relatório precisa ser atestado? *"
+                        valor={formulario.precisa_ateste}
+                        aoMudar={(v) => setFormulario((f) => ({ ...f, precisa_ateste: v }))} />
+                {formulario.precisa_ateste && (
+                  <Selecao rotulo="Quantas pessoas vão atestar? *" id="quantidade"
+                           opcoes={[{ valor: "1", rotulo: "1 pessoa" }, { valor: "2", rotulo: "2 pessoas" }, { valor: "3", rotulo: "3 pessoas" }]}
+                           value={formulario.quantidade}
+                           onChange={(e) => mudarQuantidade(e.target.value)} />
+                )}
+              </div>
+              {formulario.precisa_ateste && (
+                <>
+                  <div className="formulario-grade">
+                    {formulario.atestantes.map((escolha, i) => (
+                      <Selecao key={i} rotulo={`${ORDINAL[i]} responsável pelo ateste *`} id={`atestante_${i}`}
+                               vazio="Selecione o usuário"
+                               opcoes={usuarios
+                                 .filter((u) => String(u.id_usuario) === escolha
+                                   || !formulario.atestantes.includes(String(u.id_usuario)))
+                                 .map((u) => ({ valor: String(u.id_usuario), rotulo: u.cargo ? `${u.nome} - ${u.cargo}` : u.nome }))}
+                               value={escolha}
+                               onChange={(e) => escolherAtestante(i, e.target.value)} />
+                    ))}
+                  </div>
+                  <p className="rel-ateste__nota">
+                    Ao gerar, o relatório é encaminhado para {formulario.atestantes.length === 1 ? "a pessoa escolhida" : "as pessoas escolhidas"}:
+                    o aviso aparece no sino e só {formulario.atestantes.length === 1 ? "ela pode" : "elas podem"} atestar.
+                  </p>
+                </>
+              )}
+            </div>
           </form>
         </Modal>
       )}

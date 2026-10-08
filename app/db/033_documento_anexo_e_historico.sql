@@ -42,3 +42,9 @@ CREATE TABLE IF NOT EXISTS documento_arquivo (
   CONSTRAINT chk_documento_arquivo_bytes CHECK (bytes > 0 AND bytes <= 10485760)
 );
 CREATE INDEX IF NOT EXISTS idx_documento_arquivo_doc ON documento_arquivo (id_documento);
+
+-- Correcao: o "Atualizar" gravava o texto 'null' nos campos deixados em branco
+-- (orgao emissor, numero, observacoes). Volta a ser vazio de verdade.
+UPDATE documento_veiculo SET orgao_emissor = NULL WHERE orgao_emissor = 'null';
+UPDATE documento_veiculo SET numero_documento = NULL WHERE numero_documento = 'null';
+UPDATE documento_veiculo SET observacoes = NULL WHERE observacoes = 'null';

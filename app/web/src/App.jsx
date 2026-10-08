@@ -1,7 +1,7 @@
 /**
  * App.jsx - O mapa de rotas do sistema.
  */
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 import { useSessao } from "./lib/sessao.jsx";
 
@@ -11,7 +11,6 @@ import ChecklistQr from "./pages/ChecklistQr.jsx";
 import EmConstrucao from "./pages/EmConstrucao.jsx";
 
 import Veiculos from "./pages/frotas/Veiculos.jsx";
-import VeiculoQrCode from "./pages/frotas/VeiculoQrCode.jsx";
 import VeiculoDetalhe from "./pages/frotas/VeiculoDetalhe.jsx";
 import ChecklistDetalhe from "./pages/frotas/ChecklistDetalhe.jsx";
 import InspecaoDetalhe from "./pages/frotas/InspecaoDetalhe.jsx";
@@ -38,6 +37,8 @@ import Usuarios from "./pages/admin/Usuarios.jsx";
 import Servidores from "./pages/admin/Servidores.jsx";
 import Motoristas from "./pages/Motoristas.jsx";
 import Fiscais from "./pages/Fiscais.jsx";
+import ServidorDetalhe from "./pages/ServidorDetalhe.jsx";
+import FiscalDetalhe from "./pages/FiscalDetalhe.jsx";
 import TrocarSenha from "./pages/TrocarSenha.jsx";
 import Perfis from "./pages/admin/Perfis.jsx";
 import Setores from "./pages/admin/Setores.jsx";
@@ -77,6 +78,15 @@ const FISC = "FISCALIZACAO_VISUALIZAR";
 const ADMIN = "ADMIN_VISUALIZAR";
 const AUDIT = "AUDITORIA_VISUALIZAR";
 
+/*
+ * A tela de QR Code virou uma aba de Detalhes do Veiculo. O endereco antigo
+ * (botao QR Code da lista, links salvos) continua funcionando: cai na aba.
+ */
+function QrCodeParaAba() {
+  const { id } = useParams();
+  return <Navigate to={`/frotas/veiculos/${id}?aba=qrcode`} replace />;
+}
+
 export default function App() {
   const { usuario } = useSessao();
 
@@ -91,7 +101,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
 
         <Route path="/frotas/veiculos" element={<ComPermissao codigo={FROTAS}><Veiculos /></ComPermissao>} />
-        <Route path="/frotas/veiculos/:id/qrcode" element={<ComPermissao codigo={FROTAS}><VeiculoQrCode /></ComPermissao>} />
+        <Route path="/frotas/veiculos/:id/qrcode" element={<QrCodeParaAba />} />
         <Route path="/frotas/veiculos/:id" element={<ComPermissao codigo={FROTAS}><VeiculoDetalhe /></ComPermissao>} />
         <Route path="/frotas/checklists" element={<ComPermissao codigo={FROTAS}><Checklists /></ComPermissao>} />
         <Route path="/frotas/checklists/:id" element={<ComPermissao codigo={FROTAS}><ChecklistDetalhe /></ComPermissao>} />
@@ -110,8 +120,12 @@ export default function App() {
         <Route path="/frotas/sinistros/:id" element={<ComPermissao codigo={FROTAS}><SinistroDetalhe /></ComPermissao>} />
         <Route path="/frotas/motoristas" element={<ComPermissao codigo={FROTAS}><Motoristas /></ComPermissao>} />
         <Route path="/frotas/servidores" element={<ComPermissao codigo={FROTAS}><Servidores /></ComPermissao>} />
+        <Route path="/frotas/motoristas/:id" element={<ComPermissao codigo={FROTAS}><ServidorDetalhe /></ComPermissao>} />
+        <Route path="/frotas/servidores/:id" element={<ComPermissao codigo={FROTAS}><ServidorDetalhe /></ComPermissao>} />
         <Route path="/frotas/relatorios" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><Relatorios /></ComPermissao>} />
-        <Route path="/frotas/relatorios/:id" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><RelatorioVer /></ComPermissao>} />
+        {/* Sem trava de perfil: quem foi escolhido para atestar abre o
+            relatório pelo sino mesmo sem ver a lista. A API decide. */}
+        <Route path="/frotas/relatorios/:id" element={<RelatorioVer />} />
 
         <Route path="/fiscalizacao/servico-diario" element={<ComPermissao codigo={FISC}><ServicoDiario /></ComPermissao>} />
         <Route path="/fiscalizacao/equipes" element={<ComPermissao codigo={FISC}><Equipes /></ComPermissao>} />
@@ -120,13 +134,16 @@ export default function App() {
         <Route path="/fiscalizacao/manutencoes" element={<ComPermissao codigo={FISC}><ManutencoesFisc /></ComPermissao>} />
         <Route path="/fiscalizacao/checklists" element={<ComPermissao codigo={FISC}><ChecklistsFiscalizacao /></ComPermissao>} />
         <Route path="/fiscalizacao/fiscais" element={<ComPermissao codigo={FISC}><Fiscais /></ComPermissao>} />
+        <Route path="/fiscalizacao/fiscais/:id" element={<ComPermissao codigo={FISC}><FiscalDetalhe /></ComPermissao>} />
         {/* Rota antiga: quem tiver o link salvo continua chegando na tela certa. */}
         <Route path="/fiscalizacao/motoristas" element={<Navigate to="/fiscalizacao/fiscais" replace />} />
         <Route path="/fiscalizacao/pontuacao" element={<ComPermissao codigo="FISCALIZACAO_GERENCIAR_PONTUACAO"><Pontuacao /></ComPermissao>} />
         <Route path="/fiscalizacao/relatorios" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><Relatorios /></ComPermissao>} />
+        <Route path="/fiscalizacao/relatorios/:id" element={<RelatorioVer />} />
 
         <Route path="/admin/usuarios" element={<ComPermissao codigo={ADMIN}><Usuarios /></ComPermissao>} />
         <Route path="/admin/servidores" element={<ComPermissao codigo={ADMIN}><Servidores /></ComPermissao>} />
+        <Route path="/admin/servidores/:id" element={<ComPermissao codigo={ADMIN}><ServidorDetalhe /></ComPermissao>} />
         <Route path="/admin/perfis" element={<ComPermissao codigo="PERFIL_VISUALIZAR"><Perfis /></ComPermissao>} />
         <Route path="/admin/setores" element={<ComPermissao codigo={ADMIN}><Setores /></ComPermissao>} />
         <Route path="/admin/parametros" element={<ComPermissao codigo={ADMIN}><Parametros /></ComPermissao>} />

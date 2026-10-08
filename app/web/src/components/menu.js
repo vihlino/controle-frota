@@ -28,7 +28,10 @@ export const MENU = [
     grupo: "Fiscalização",
     permissao: "FISCALIZACAO_VISUALIZAR",
     itens: [
+      // Ordem pedida pelo Cesar em 08/10.
       { rotulo: "Serviço Diário", para: "/fiscalizacao/servico-diario", icone: "calendar" },
+      { rotulo: "Fiscais",       para: "/fiscalizacao/fiscais",       icone: "motorista" },
+      { rotulo: "Equipes",       para: "/fiscalizacao/equipes",       icone: "equipe" },
       { rotulo: "Viaturas",      para: "/fiscalizacao/viaturas",      icone: "fisc-viatura" },
       { rotulo: "Ocorrências",   para: "/fiscalizacao/ocorrencias",   icone: "fisc-ocorrencias" },
       { rotulo: "Checklists",    para: "/fiscalizacao/checklists",    icone: "checklist" },
@@ -40,8 +43,6 @@ export const MENU = [
         permissao: "FISCALIZACAO_GERENCIAR_PONTUACAO",
         cadeado: true,
       },
-      { rotulo: "Fiscais",       para: "/fiscalizacao/fiscais",       icone: "motorista" },
-      { rotulo: "Equipes",       para: "/fiscalizacao/equipes",       icone: "equipe" },
       { rotulo: "Relatórios", para: "/fiscalizacao/relatorios", icone: "chart-line" },
     ],
   },

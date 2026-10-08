@@ -22,8 +22,8 @@
  * com QR Code e historico), Checklists (coluna de equipamentos), Relatórios
  * (fluxo de geracao), Usuários (senha separada) e Perfis (matriz de permissões).
  */
-import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import PaginaLista from "./PaginaLista.jsx";
 import Icone from "./Icone.jsx";
 import Modal from "./Modal.jsx";
@@ -73,6 +73,13 @@ const CAMPOS = { texto: Texto, selecao: Selecao, data: Data, area: Area };
  * @param {boolean} [config.permiteCriar]   false esconde o botao de cadastrar:
  *                                    a tela so edita o que ja existe.
  * @param {boolean} [config.permiteExcluir]
+ * @param {Array} [config.acoesDetalhe]  Atalhos do menu de acoes para uma aba
+ *                                    da tela de detalhes: [{rotulo, icone, aba}]
+ *                                    (ex.: "Multas" abre <rota>/ID?aba=multas).
+ * @param {boolean} [config.detalhe]  true = "Visualizar" abre a tela de
+ *                                    detalhes em <rota atual>/ID (em vez do
+ *                                    pop-up), e ?editar=ID abre a edicao e
+ *                                    volta para os detalhes ao fechar.
  * @returns {Function} O componente React da tela.
  */
 export default function criarPagina(config) {
@@ -119,6 +126,9 @@ export default function criarPagina(config) {
      */
     const podeCriar = config.permiteCriar !== false;
     const [parametros, definirParametros] = useSearchParams();
+    const navegar = useNavigate();
+    const { pathname } = useLocation();
+    const rotaDetalhe = (idRegistro) => `${pathname.replace(/\/$/, "")}/${idRegistro}`;
 
     // Carrega as listas que alimentam os <select> declarados na configuração.
     // Roda uma vez so: essas listas mudam pouco.
@@ -208,6 +218,33 @@ export default function criarPagina(config) {
       limpo.delete("novo");
       definirParametros(limpo, { replace: true });
     }, [parametros, definirParametros, temFormulario, podeGerenciar, podeCriar, abrir]);
+
+    /*
+     * ?editar=ID (botao Editar da tela de detalhes) abre o pop-up de edicao
+     * direto. Ao fechar - salvando ou cancelando - volta para os detalhes,
+     * que e de onde a pessoa veio. Mesmo comportamento da tela de Veiculos.
+     */
+    const voltarParaDetalhe = useRef(null);
+    const jaAbriu = useRef(false);
+    useEffect(() => {
+      const idEditar = config.detalhe && temFormulario && podeGerenciar && parametros.get("editar");
+      if (!idEditar) return;
+      voltarParaDetalhe.current = idEditar;
+      api(`/${config.recurso}/${idEditar}`).then((r) => abrir(r)).catch(() => {});
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    useEffect(() => {
+      if (editando !== null) {
+        jaAbriu.current = true;
+        return;
+      }
+      if (jaAbriu.current && voltarParaDetalhe.current) {
+        const destino = voltarParaDetalhe.current;
+        voltarParaDetalhe.current = null;
+        navegar(rotaDetalhe(destino), { replace: true });
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editando]);
 
     /** Converte "dd/mm/yyyy" para "yyyy-mm-dd" se necessario. */
     function normalizarData(v) {
@@ -310,20 +347,30 @@ export default function criarPagina(config) {
 
     // A coluna de ações so existe quando a tela tem cadastro E o usuário tem
     // permissão para gerenciar.
+    // Com tela de detalhes (config.detalhe), quem so consulta tambem ganha a
+    // coluna, com o "Visualizar".
     const colunas = [...config.colunas];
-    if (temFormulario && podeGerenciar) {
+    const gerencia = temFormulario && podeGerenciar;
+    if (gerencia || config.detalhe) {
       colunas.push({
         chave: "ações",
         rotulo: "Ações",
         render: (registro) => (
           <Acoes
             acoes={[
-              { rotulo: "Visualizar", icone: "visualizar", aoClicar: () => setVendo(registro) },
-              { rotulo: "Editar", icone: "editar", aoClicar: () => abrir(registro) },
+              { rotulo: "Visualizar", icone: "visualizar",
+                aoClicar: () => (config.detalhe
+                  ? navegar(rotaDetalhe(registro[config.id]))
+                  : setVendo(registro)) },
+              ...(config.detalhe ? (config.acoesDetalhe || []).map((a) => ({
+                rotulo: a.rotulo, icone: a.icone,
+                aoClicar: () => navegar(`${rotaDetalhe(registro[config.id])}?aba=${a.aba}`),
+              })) : []),
+              ...(gerencia ? [{ rotulo: "Editar", icone: "editar", aoClicar: () => abrir(registro) }] : []),
               // Excluir aparece por padrao; a tela declara
               // permiteExcluir: false quando o registro nao deve sumir
               // (checklist e a auditoria de uma saida, por exemplo).
-              ...(config.permiteExcluir !== false
+              ...(gerencia && config.permiteExcluir !== false
                 ? [{ rotulo: "Excluir", perigo: true, icone: "lixo",
                      aoClicar: () => excluir(registro) }]
                 : []),

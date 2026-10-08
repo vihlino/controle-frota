@@ -236,13 +236,13 @@ export default function FormularioDocumento({ modo = "novo", documento, idVeicul
         {erro && <div className="login__erro">{erro}</div>}
         <form id="form-doc" className="formulario-grade" onSubmit={salvar}>
           {atualizando && (
-            <div className="doc-aviso">
+            <div className="doc-aviso doc-aviso--pequeno">
               <Icone nome="historico" tamanho={16} />
               <span>
-                Cadastre aqui o documento <strong>válido</strong>. A versão atual
+                Cadastre o documento <strong>válido</strong>. A versão atual
                 {d.numero_documento ? <> (nº <strong>{d.numero_documento}</strong>)</> : null}
-                {d.data_validade ? <>, com vencimento em <strong>{data(d.data_validade)}</strong>,</> : null}
-                {" "}não será apagada: vai para o histórico e continua disponível em Visualizar.
+                {d.data_validade ? <>, com vencimento em <strong>{data(d.data_validade)}</strong></> : null}, não
+                será apagada, vai para o histórico e continua disponível em Visualizar.
               </span>
             </div>
           )}

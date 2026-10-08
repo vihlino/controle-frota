@@ -43,7 +43,7 @@ router.get("/", autenticar, async (req, res, next) => {
         LIMIT 20`,
       [req.usuario.id_usuario]
     );
-    const calculados = await alertasCalculados();
+    const calculados = await alertasCalculados(req.usuario.id_usuario);
     const itens = [...calculados, ...rows];
 
     res.json({ itens, naoLidos: itens.length });
@@ -56,8 +56,39 @@ router.get("/", autenticar, async (req, res, next) => {
  * Avisos que nascem de uma data chegando perto, montados na hora.
  * @returns {Promise<Array>} no mesmo formato das linhas da tabela `alerta`.
  */
-async function alertasCalculados() {
+async function alertasCalculados(idUsuario) {
   const itens = [];
+
+  // --- Relatorio encaminhado para eu atestar (migracao 036) ---
+  // Some sozinho quando a pessoa atesta: a linha deixa de ser PENDENTE.
+  const atestes = await query(
+    `SELECT r.id_relatorio, r.nome, a.data_solicitacao, s.nome AS gerado_por,
+            to_char(r.periodo_inicio, 'DD/MM/YYYY') AS de,
+            to_char(r.periodo_fim, 'DD/MM/YYYY') AS ate
+       FROM atestacao a
+       JOIN relatorio r ON r.id_relatorio = a.id_relatorio
+       JOIN usuario u   ON u.id_usuario  = r.gerado_por
+       JOIN servidor s  ON s.id_servidor = u.id_servidor
+      WHERE a.id_usuario = $1 AND a.status = 'PENDENTE' AND r.status <> 'CANCELADO'
+      ORDER BY a.data_solicitacao DESC
+      LIMIT 20`,
+    [idUsuario]
+  );
+  for (const r of atestes.rows) {
+    itens.push({
+      id_alerta: `ateste-${r.id_relatorio}`,
+      modulo: "RELATORIOS",
+      tipo: "ATESTE_PENDENTE",
+      prioridade: "ALTA",
+      titulo: "Relatório para atestar",
+      mensagem: `${r.gerado_por} encaminhou o ${r.nome} (${r.de} a ${r.ate}) para você atestar.`,
+      entidade: "relatorio",
+      id_registro: r.id_relatorio,
+      link: `/frotas/relatorios/${r.id_relatorio}`,
+      status: "PENDENTE",
+      data_criacao: r.data_solicitacao,
+    });
+  }
 
   // --- CNH de condutor ---
   // condutor = TRUE porque o aviso existe para o gestor de FROTAS: a CNH
@@ -135,7 +166,9 @@ async function alertasCalculados() {
   }
 
   const ordem = { CRITICA: 1, ALTA: 2, MEDIA: 3, BAIXA: 4 };
-  return itens.sort((a, b) => ordem[a.prioridade] - ordem[b.prioridade]);
+  // O que esta parado esperando a propria pessoa (atestar) vem primeiro.
+  const primeiro = (i) => (i.tipo === "ATESTE_PENDENTE" ? 0 : 1);
+  return itens.sort((a, b) => primeiro(a) - primeiro(b) || ordem[a.prioridade] - ordem[b.prioridade]);
 }
 
 export default router;
