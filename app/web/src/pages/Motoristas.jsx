@@ -10,6 +10,7 @@
  * cadastro de servidor aparece aqui sozinho.
  */
 import criarPagina from "../components/criarPagina.jsx";
+import { ACAO_MULTA } from "../components/RegistrarMulta.jsx";
 import { CONFIG_SERVIDOR } from "./admin/Servidores.jsx";
 
 export default criarPagina({
@@ -27,8 +28,8 @@ export default criarPagina({
   rotuloSalvar: "Salvar",
   // "Visualizar" abre a tela de detalhes do motorista (08/10).
   detalhe: true,
-  // Menu de acoes: "Multas" abre a ficha direto na aba Multas (08/10).
-  acoesDetalhe: [{ rotulo: "Multas", icone: "alert-triangle", aba: "multas" }],
+  // Menu de acoes: "Registrar multa" abre a janela ali mesmo (08/10).
+  acoesJanela: [ACAO_MULTA],
 
   // Quem gerencia a frota cadastra motorista sem precisar da permissao de
   // Administracao. CONFIG_SERVIDOR exige ADMIN_GERENCIAR_SERVIDORES, o que

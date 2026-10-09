@@ -15,6 +15,7 @@
  * condicoes.
  */
 import criarPagina from "../components/criarPagina.jsx";
+import { ACAO_MULTA } from "../components/RegistrarMulta.jsx";
 import { CONFIG_SERVIDOR } from "./admin/Servidores.jsx";
 
 export default criarPagina({
@@ -30,8 +31,8 @@ export default criarPagina({
   permissaoGerenciar: "FROTAS_GERENCIAR_SERVIDORES",
   // "Visualizar" abre a tela de Detalhes do Fiscal (08/10).
   detalhe: true,
-  // Menu de acoes: "Multas" abre a ficha direto na aba Multas (08/10).
-  acoesDetalhe: [{ rotulo: "Multas", icone: "alert-triangle", aba: "multas" }],
+  // Menu de acoes: "Registrar multa" abre a janela ali mesmo (08/10).
+  acoesJanela: [ACAO_MULTA],
   /*
    * "FISCAL DE TRANSITO" sem acento e de proposito: e a chave que
    * unaccent_simples() produz no banco (ver o filtro cargo_nome em

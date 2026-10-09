@@ -4,6 +4,7 @@
  * quem ja tem login.
  */
 import criarPagina from "../../components/criarPagina.jsx";
+import { ACAO_MULTA } from "../../components/RegistrarMulta.jsx";
 import Selo from "../../components/Selo.jsx";
 import { data, diasAte } from "../../lib/formato.js";
 import { telefone } from "../../lib/mascaras.js";
@@ -220,6 +221,6 @@ export const CONFIG_SERVIDOR = {
 export default criarPagina({
   ...CONFIG_SERVIDOR,
   detalhe: true,
-  // Menu de acoes: "Multas" abre a ficha direto na aba Multas (08/10).
-  acoesDetalhe: [{ rotulo: "Multas", icone: "alert-triangle", aba: "multas" }],
+  // Menu de acoes: "Registrar multa" abre a janela ali mesmo (08/10).
+  acoesJanela: [ACAO_MULTA],
 });

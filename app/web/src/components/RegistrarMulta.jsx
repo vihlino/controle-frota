@@ -25,6 +25,21 @@ export const GRAVIDADES = [
   { valor: "GRAVE", rotulo: "Grave", pontos: 5, valorMulta: "195.23", tom: "laranja" },
   { valor: "GRAVISSIMA", rotulo: "Gravíssima", pontos: 7, valorMulta: "293.47", tom: "vermelho" },
 ];
+/*
+ * Opcao "Registrar multa" do menu de acoes das listas de Motoristas,
+ * Servidores e Fiscais (08/10): abre esta janela ali mesmo, com o condutor
+ * da linha. So para quem pode gerenciar multas.
+ */
+export const ACAO_MULTA = {
+  rotulo: "Registrar multa",
+  icone: "alert-triangle",
+  permissao: "FROTAS_GERENCIAR_MULTAS",
+  janela: (registro, fechar) => (
+    <RegistrarMulta servidor={registro} aoFechar={fechar}
+                    aoSalvar={() => alert(`Multa registrada para ${registro.nome}. Ela aparece na aba Multas dos detalhes.`)} />
+  ),
+};
+
 export const SITUACOES_MULTA = [
   { valor: "PENDENTE", rotulo: "Pendente", tom: "amarelo" },
   { valor: "EM_RECURSO", rotulo: "Em recurso", tom: "azul" },

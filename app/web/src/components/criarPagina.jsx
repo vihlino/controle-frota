@@ -73,9 +73,10 @@ const CAMPOS = { texto: Texto, selecao: Selecao, data: Data, area: Area };
  * @param {boolean} [config.permiteCriar]   false esconde o botao de cadastrar:
  *                                    a tela so edita o que ja existe.
  * @param {boolean} [config.permiteExcluir]
- * @param {Array} [config.acoesDetalhe]  Atalhos do menu de acoes para uma aba
- *                                    da tela de detalhes: [{rotulo, icone, aba}]
- *                                    (ex.: "Multas" abre <rota>/ID?aba=multas).
+ * @param {Array} [config.acoesJanela]  Opcoes extras do menu de acoes que abrem
+ *                                    uma janela ali mesmo na lista:
+ *                                    [{rotulo, icone, permissao, janela(registro, fechar)}]
+ *                                    (ex.: "Registrar multa" do motorista).
  * @param {boolean} [config.detalhe]  true = "Visualizar" abre a tela de
  *                                    detalhes em <rota atual>/ID (em vez do
  *                                    pop-up), e ?editar=ID abre a edicao e
@@ -110,6 +111,8 @@ export default function criarPagina(config) {
     const [erroForm, setErroForm] = useState("");
     const [salvando, setSalvando] = useState(false);
     const [vendo, setVendo] = useState(null);   // registro aberto em "Detalhes"
+    // Janela extra do menu de acoes (config.acoesJanela): { acao, registro }.
+    const [janelaExtra, setJanelaExtra] = useState(null);
     const { pedirSenha, pedirExclusao, elemento: modalSenha } = useConfirmacaoSenha();
 
     const podeGerenciar = !config.permissaoGerenciar || podeVer(config.permissaoGerenciar);
@@ -362,10 +365,12 @@ export default function criarPagina(config) {
                 aoClicar: () => (config.detalhe
                   ? navegar(rotaDetalhe(registro[config.id]))
                   : setVendo(registro)) },
-              ...(config.detalhe ? (config.acoesDetalhe || []).map((a) => ({
-                rotulo: a.rotulo, icone: a.icone,
-                aoClicar: () => navegar(`${rotaDetalhe(registro[config.id])}?aba=${a.aba}`),
-              })) : []),
+              ...(config.acoesJanela || [])
+                .filter((a) => !a.permissao || podeVer(a.permissao))
+                .map((a) => ({
+                  rotulo: a.rotulo, icone: a.icone,
+                  aoClicar: () => setJanelaExtra({ acao: a, registro }),
+                })),
               ...(gerencia ? [{ rotulo: "Editar", icone: "editar", aoClicar: () => abrir(registro) }] : []),
               // Excluir aparece por padrao; a tela declara
               // permiteExcluir: false quando o registro nao deve sumir
@@ -586,6 +591,7 @@ export default function criarPagina(config) {
         {exportando && (
           <ExportarLogsModal origem={config.exportarLogs} aoFechar={() => setExportando(false)} />
         )}
+        {janelaExtra && janelaExtra.acao.janela(janelaExtra.registro, () => setJanelaExtra(null))}
         {modalSenha}
       </PaginaLista>
     );
