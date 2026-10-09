@@ -11,6 +11,7 @@
  */
 import { Router } from "express";
 import { criarCrud } from "../crud.js";
+import { autenticar } from "../auth.js";
 
 const VER = "ADMIN_VISUALIZAR";
 
@@ -151,7 +152,9 @@ export const servidores = criarCrud({
   },
   permissoes: {
     ver: [VER, "FROTAS_VISUALIZAR", "FISCALIZACAO_VISUALIZAR"],
-    gerenciar: ["ADMIN_GERENCIAR_SERVIDORES", "FROTAS_GERENCIAR_SERVIDORES"],
+    // FISCALIZACAO_GERENCIAR_FISCAIS (038): a Fiscalizacao cadastra e edita
+    // os fiscais - o escopo acima ja a limita ao proprio setor.
+    gerenciar: ["ADMIN_GERENCIAR_SERVIDORES", "FROTAS_GERENCIAR_SERVIDORES", "FISCALIZACAO_GERENCIAR_FISCAIS"],
   },
 });
 
@@ -190,6 +193,21 @@ export const parametros = criarCrud({
 });
 
 const router = Router();
+
+/*
+ * Quem so tem a Fiscalizacao (sem Administracao e sem Frotas) cadastra e
+ * edita servidores apenas do PROPRIO setor (09/10): o setor do formulario e
+ * trocado pelo do usuario antes de chegar ao CRUD.
+ */
+function travarSetor(req, _res, next) {
+  const p = req.usuario?.permissoes || [];
+  if (!p.includes("ADMIN_VISUALIZAR") && !p.includes("FROTAS_VISUALIZAR") && req.body) {
+    req.body.id_setor = req.usuario?.id_setor ?? req.body.id_setor;
+  }
+  next();
+}
+router.post("/servidores", autenticar, travarSetor);
+router.put("/servidores/:id", autenticar, travarSetor);
 router.use("/setores", setores);
 router.use("/cargos", cargos);
 router.use("/servidores", servidores);

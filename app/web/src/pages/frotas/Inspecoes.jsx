@@ -129,7 +129,9 @@ export default function Inspeções() {
 
   useEffect(() => {
     api("/frotas/veiculos/opcoes").then(setVeículos).catch(() => {});
-    api("/usuarios?porPagina=200").then((r) => setUsuários(r.itens)).catch(() => {});
+    // Rota de Frotas (09/10): a de usuarios exige Administracao e o Gestor
+    // de Frotas ficava sem opcao nenhuma no campo Responsavel.
+    api("/frotas/responsaveis").then((r) => setUsuários(Array.isArray(r) ? r : [])).catch(() => {});
   }, []);
 
   /** A proxima inspecao, pela frequencia e pela data escolhidas. */

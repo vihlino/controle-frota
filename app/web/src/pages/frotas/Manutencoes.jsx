@@ -9,7 +9,7 @@
  * poluiam a tela. Os filtros de Situacao e Periodo respondem o mesmo.
  */
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
@@ -35,19 +35,25 @@ export default function Manutenções() {
   const navegar = useNavigate();
   const { podeVer } = useSessao();
   const [parametros] = useSearchParams();
+  // A mesma tela atende a Fiscalizacao (09/10): la so aparecem as OS das
+  // viaturas, e o registro so oferece viaturas.
+  const fiscalizacao = useLocation().pathname.startsWith("/fiscalizacao");
+  const base = fiscalizacao ? "/fiscalizacao/manutencoes" : "/frotas/manutencoes";
   const lista = useLista("frotas/manutencoes", {
     busca: "", veiculo: parametros.get("veiculo") || "", status: "", tipo: "", gravidade: "", dataDe: "", dataAte: "",
-  });
+    ...(fiscalizacao ? { viatura: "true" } : {}),
+  }, fiscalizacao ? { viatura: "true" } : {});
   const [veículos, setVeículos] = useState([]);
   // As janelas: registrar/editar (registrando = {os?, idVeiculo?}) e fechar.
   const [registrando, setRegistrando] = useState(null);
   const [fechando, setFechando] = useState(null);
   const { pedirExclusao, elemento: modalSenha } = useConfirmacaoSenha();
 
-  const podeGerenciar = podeVer("FROTAS_GERENCIAR_OS");
+  const podeGerenciar = podeVer("FROTAS_GERENCIAR_OS") || (fiscalizacao && podeVer("FISCALIZACAO_GERENCIAR_VIATURAS"));
 
   useEffect(() => {
-    api("/frotas/veiculos/opcoes").then(setVeículos).catch(() => {});
+    api(`/frotas/veiculos/opcoes${fiscalizacao ? "?viatura=true" : ""}`).then(setVeículos).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /*
@@ -68,7 +74,7 @@ export default function Manutenções() {
         .then((os) => (fechar || ENCERRADA.includes(os.status) ? setFechando(os) : setRegistrando({ os })))
         .catch((e) => alert(e.message));
     }
-    navegar("/frotas/manutencoes", { replace: true });
+    navegar(base, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -162,15 +168,15 @@ export default function Manutenções() {
         <Acoes
           acoes={[
             { rotulo: "Visualizar", icone: "visualizar",
-              aoClicar: () => navegar(`/frotas/manutencoes/${o.id_os}`) },
+              aoClicar: () => navegar(`${base}/${o.id_os}`) },
             ...(podeGerenciar && !ENCERRADA.includes(o.status)
               ? [{ rotulo: "Fechar OS", icone: "concluir", aoClicar: () => setFechando(o) }]
               : []),
             ...(podeGerenciar && o.status !== "CANCELADA"
               ? [{ rotulo: "Editar", icone: "editar", aoClicar: () => editar(o) }]
               : []),
-            { rotulo: "Ver veículo", icone: "kpi-car",
-              aoClicar: () => navegar(`/frotas/veiculos/${o.id_veiculo}`) },
+            ...(fiscalizacao ? [] : [{ rotulo: "Ver veículo", icone: "kpi-car",
+              aoClicar: () => navegar(`/frotas/veiculos/${o.id_veiculo}`) }]),
             ...(podeGerenciar
               ? [{ rotulo: "Excluir", perigo: true, icone: "lixo", aoClicar: () => excluir(o) }]
               : []),
@@ -182,9 +188,11 @@ export default function Manutenções() {
 
   return (
     <PaginaLista
-      trilha={[{ rotulo: "Frotas" }, { rotulo: "Manutenções" }]}
-      titulo="Manutenções"
-      descricao="Histórico das ordens de serviço da frota: registro e fechamento."
+      trilha={[{ rotulo: fiscalizacao ? "Fiscalização" : "Frotas" }, { rotulo: "Manutenções" }]}
+      titulo={fiscalizacao ? "Manutenções das Viaturas" : "Manutenções"}
+      descricao={fiscalizacao
+        ? "Ordens de serviço das viaturas da Fiscalização: registro e fechamento."
+        : "Histórico das ordens de serviço da frota: registro e fechamento."}
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={() => setRegistrando({})}>
@@ -202,7 +210,7 @@ export default function Manutenções() {
           <Texto rotulo="Buscar" id="busca" placeholder="Placa, nº da OS, descrição ou oficina"
                  value={lista.filtros.busca}
                  onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
-          <Selecao rotulo="Veículo" id="veiculo" vazio="Todos"
+          <Selecao rotulo={fiscalizacao ? "Viatura" : "Veículo"} id="veiculo" vazio="Todos"
                    opcoes={veículos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.modelo}` }))}
                    value={lista.filtros.veiculo}
                    onChange={(e) => lista.alterarFiltro("veiculo", e.target.value)} />
@@ -225,6 +233,7 @@ export default function Manutenções() {
         <RegistrarOs
           os={registrando.os}
           idVeiculo={registrando.idVeiculo}
+          soViaturas={fiscalizacao}
           aoFechar={() => setRegistrando(null)}
           aoSalvar={lista.recarregar}
         />

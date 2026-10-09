@@ -82,4 +82,25 @@ router.get("/", autenticar, exigePermissao("ADMIN_VISUALIZAR"), async (req, res,
   }
 });
 
+/*
+ * GET /api/sistema/suporte - O contato do suporte para a tela de Ajuda (09/10).
+ * Qualquer usuario logado le: e o "a quem eu peco ajuda". Os valores vem de
+ * Parametros do Sistema (migracao 039); vazio volta como "".
+ */
+router.get("/suporte", autenticar, async (req, res, next) => {
+  try {
+    const r = await query(
+      `SELECT chave, valor FROM parametro_sistema
+        WHERE chave IN ('suporte.email', 'suporte.telefone', 'suporte.horario') AND ativo`
+    );
+    const valor = (chave) => {
+      const v = r.rows.find((l) => l.chave === chave)?.valor;
+      return typeof v === "string" ? v.trim() : v == null ? "" : String(v).trim();
+    };
+    res.json({ email: valor("suporte.email"), telefone: valor("suporte.telefone"), horario: valor("suporte.horario") });
+  } catch (e) {
+    next(e);
+  }
+});
+
 export default router;

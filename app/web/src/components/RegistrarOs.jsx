@@ -34,7 +34,7 @@ const texto = (v) => (v === null || v === undefined ? "" : String(v));
  * vindos dos itens com ressalva. O veiculo fica travado no da inspecao, e a OS
  * nasce ligada a ela.
  */
-export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoFechar, aoSalvar }) {
+export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoFechar, aoSalvar, soViaturas = false }) {
   const editando = Boolean(os);
   const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
   const [veiculos, setVeiculos] = useState([]);
@@ -63,7 +63,9 @@ export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoF
   });
 
   useEffect(() => {
-    api("/frotas/veiculos/opcoes").then((r) => setVeiculos(Array.isArray(r) ? r : [])).catch(() => {});
+    // Na Fiscalizacao (09/10) so as viaturas.
+    api(`/frotas/veiculos/opcoes${soViaturas ? "?viatura=true" : ""}`)
+      .then((r) => setVeiculos(Array.isArray(r) ? r : [])).catch(() => {});
   }, []);
 
   const campo = (nome) => ({

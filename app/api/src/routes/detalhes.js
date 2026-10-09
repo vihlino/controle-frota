@@ -19,6 +19,27 @@ const verFrotas = exigePermissao("FROTAS_VISUALIZAR");
 // Ficha de motorista/servidor: Frotas (Motoristas) e Administracao (Servidores).
 const verPessoas = exigePermissao("FROTAS_VISUALIZAR", "ADMIN_VISUALIZAR");
 
+/*
+ * Usuarios ativos para os campos "Responsavel" (ex.: agendar inspecao). A
+ * lista de usuarios da Administracao exige ADMIN_VISUALIZAR, e o Gestor de
+ * Frotas ficava com o campo vazio e sem conseguir agendar (09/10).
+ */
+router.get("/responsaveis", autenticar,
+  exigePermissao("FROTAS_VISUALIZAR", "FISCALIZACAO_VISUALIZAR", "ADMIN_VISUALIZAR"),
+  async (_req, res, next) => {
+    try {
+      const { rows } = await query(
+        `SELECT u.id_usuario, s.nome, s.cargo_funcao AS cargo
+           FROM usuario u JOIN servidor s ON s.id_servidor = u.id_servidor
+          WHERE u.status = TRUE AND s.status = TRUE
+          ORDER BY s.nome`
+      );
+      res.json(rows);
+    } catch (e) {
+      next(e);
+    }
+  });
+
 // Itens verificados de uma inspecao, na ordem em que foram registrados.
 router.get("/inspecoes/:id/itens", autenticar, verFrotas, async (req, res, next) => {
   try {
@@ -160,10 +181,21 @@ const FILTRO_HISTORICO = {
                    AND COALESCE(a.dados_novos->>'id_documento', a.dados_anteriores->>'id_documento') = $1::text))`,
 };
 
-router.get("/historico/:tipo/:id", autenticar, verPessoas, async (req, res, next) => {
+router.get("/historico/:tipo/:id", autenticar,
+  exigePermissao("FROTAS_VISUALIZAR", "ADMIN_VISUALIZAR", "FISCALIZACAO_VISUALIZAR"),
+  async (req, res, next) => {
   try {
     const filtro = FILTRO_HISTORICO[req.params.tipo];
     if (!filtro) return res.status(404).json({ erro: "Histórico não encontrado." });
+    // Quem so tem a Fiscalizacao: so o historico das OS de viaturas (09/10).
+    const p = req.usuario?.permissoes || [];
+    if (!p.includes("FROTAS_VISUALIZAR") && !p.includes("ADMIN_VISUALIZAR")) {
+      if (req.params.tipo !== "os") return res.status(403).json({ erro: "Sem permissão para esta ação." });
+      const v = await query(
+        `SELECT ve.viatura FROM ordem_servico o JOIN veiculo ve ON ve.id_veiculo = o.id_veiculo
+          WHERE o.id_os = $1`, [Number(req.params.id)]);
+      if (!v.rows[0]?.viatura) return res.status(403).json({ erro: "Sem permissão para esta ação." });
+    }
     const { rows } = await query(
       `SELECT a.id_auditoria, a.data_hora, a.acao, a.entidade, a.id_registro, a.justificativa,
               COALESCE(s.nome, u.login) AS usuario,

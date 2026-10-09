@@ -9,6 +9,7 @@ import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import ChecklistQr from "./pages/ChecklistQr.jsx";
 import EmConstrucao from "./pages/EmConstrucao.jsx";
+import Ajuda from "./pages/Ajuda.jsx";
 
 import Veiculos from "./pages/frotas/Veiculos.jsx";
 import VeiculoDetalhe from "./pages/frotas/VeiculoDetalhe.jsx";
@@ -29,7 +30,6 @@ import ServicoDiario from "./pages/fiscalizacao/ServicoDiario.jsx";
 import Equipes from "./pages/fiscalizacao/Equipes.jsx";
 import Viaturas from "./pages/fiscalizacao/Viaturas.jsx";
 import Ocorrencias from "./pages/fiscalizacao/Ocorrencias.jsx";
-import ManutencoesFisc from "./pages/fiscalizacao/ManutencoesFisc.jsx";
 import ChecklistsFiscalizacao from "./pages/fiscalizacao/ChecklistsFiscalizacao.jsx";
 import Pontuacao from "./pages/fiscalizacao/Pontuacao.jsx";
 
@@ -131,7 +131,9 @@ export default function App() {
         <Route path="/fiscalizacao/equipes" element={<ComPermissao codigo={FISC}><Equipes /></ComPermissao>} />
         <Route path="/fiscalizacao/viaturas" element={<ComPermissao codigo={FISC}><Viaturas /></ComPermissao>} />
         <Route path="/fiscalizacao/ocorrencias" element={<ComPermissao codigo={FISC}><Ocorrencias /></ComPermissao>} />
-        <Route path="/fiscalizacao/manutencoes" element={<ComPermissao codigo={FISC}><ManutencoesFisc /></ComPermissao>} />
+        {/* Fiscalizacao usa a mesma tela de Frotas, so com as viaturas (09/10). */}
+        <Route path="/fiscalizacao/manutencoes" element={<ComPermissao codigo={FISC}><Manutencoes /></ComPermissao>} />
+        <Route path="/fiscalizacao/manutencoes/:id" element={<ComPermissao codigo={FISC}><ManutencaoDetalhe /></ComPermissao>} />
         <Route path="/fiscalizacao/checklists" element={<ComPermissao codigo={FISC}><ChecklistsFiscalizacao /></ComPermissao>} />
         <Route path="/fiscalizacao/fiscais" element={<ComPermissao codigo={FISC}><Fiscais /></ComPermissao>} />
         <Route path="/fiscalizacao/fiscais/:id" element={<ComPermissao codigo={FISC}><FiscalDetalhe /></ComPermissao>} />
@@ -154,6 +156,8 @@ export default function App() {
         <Route path="/auditoria/alteracoes" element={<ComPermissao codigo={AUDIT}><Alteracoes /></ComPermissao>} />
         <Route path="/auditoria/exportar" element={<Navigate to="/auditoria/acessos" replace />} />
 
+        {/* Central de Ajuda: todo usuario logado abre (09/10). */}
+        <Route path="/ajuda" element={<Ajuda />} />
         <Route path="*" element={<EmConstrucao />} />
       </Route>
     </Routes>

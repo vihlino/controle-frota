@@ -584,6 +584,34 @@ inspecoes.put(
 );
 
 // ---------- Manutencoes / Ordens de servico ----------
+
+/*
+ * FISCALIZACAO E AS OS (09/10)
+ *
+ * Quem so tem a Fiscalizacao (sem Frotas nem Administracao) ve e mexe apenas
+ * nas OS das VIATURAS. A coluna veiculo.viatura e calculada pelo banco a
+ * partir do setor do veiculo. O recorte usa uma subconsulta porque o UPDATE e
+ * o DELETE do CRUD consultam so a tabela ordem_servico, sem o JOIN.
+ */
+export function soViaturas(req) {
+  const p = req.usuario?.permissoes || [];
+  return !p.includes("FROTAS_VISUALIZAR") && !p.includes("ADMIN_VISUALIZAR");
+}
+const VIATURA_DA_OS =
+  "(SELECT v_os.viatura FROM veiculo v_os WHERE v_os.id_veiculo = ordem_servico.id_veiculo)";
+
+/** Barra veiculo que nao e viatura para quem so tem a Fiscalizacao. */
+async function conferirViatura(req, idVeiculo) {
+  if (!soViaturas(req)) return null;
+  const { rows } = await query("SELECT viatura FROM veiculo WHERE id_veiculo = $1", [Number(idVeiculo)]);
+  return rows[0]?.viatura ? null : "A Fiscalização só registra OS das viaturas.";
+}
+async function conferirViaturaDaOs(req, idOs) {
+  if (!soViaturas(req)) return null;
+  const { rows } = await query("SELECT id_veiculo FROM ordem_servico WHERE id_os = $1", [Number(idOs)]);
+  if (!rows[0]) return null;
+  return conferirViatura(req, rows[0].id_veiculo);
+}
 export const manutencoes = criarCrud({
   tabela: "ordem_servico",
   id: "id_os",
@@ -629,6 +657,8 @@ export const manutencoes = criarCrud({
     servidor: "COALESCE(ordem_servico.id_servidor_solicitante, u_sol.id_servidor)",
     tipo: "ordem_servico.tipo", gravidade: "ordem_servico.gravidade",
     origem: "ordem_servico.origem",
+    // Tela de Manutencoes da Fiscalizacao: so as viaturas.
+    viatura: "veiculo.viatura",
     dataDe: "ordem_servico.data_abertura", dataAte: "ordem_servico.data_abertura",
   },
   ordenaveis: {
@@ -645,7 +675,11 @@ export const manutencoes = criarCrud({
     "id_servidor_solicitante", "parte_veiculo", "momento",
   ],
   obrigatorios: ["id_veiculo", "origem", "gravidade", "id_solicitante", "tipo"],
-  permissoes: { ver: VER, gerenciar: "FROTAS_GERENCIAR_OS" },
+  permissoes: {
+    ver: [VER, "FISCALIZACAO_VISUALIZAR"],
+    gerenciar: ["FROTAS_GERENCIAR_OS", "FISCALIZACAO_GERENCIAR_VIATURAS"],
+  },
+  escopo: (req) => (soViaturas(req) ? { coluna: VIATURA_DA_OS, valor: true } : null),
   // Apagar a OS leva junto os itens e pecas dela (ficam na auditoria).
   filhos: [
     { tabela: "os_item", chave: "id_os" },
@@ -753,10 +787,13 @@ function dadosDoRegistro(corpo) {
 manutencoes.post(
   "/registro",
   autenticar,
-  exigePermissao("FROTAS_GERENCIAR_OS"),
+  exigePermissao("FROTAS_GERENCIAR_OS", "FISCALIZACAO_GERENCIAR_VIATURAS"),
   async (req, res, next) => {
     const { erro, dados } = dadosDoRegistro(req.body || {});
     if (erro) return res.status(400).json({ erro });
+    const erroViatura = (await conferirViatura(req, dados.id_veiculo))
+      || (req.params.id ? await conferirViaturaDaOs(req, req.params.id) : null);
+    if (erroViatura) return res.status(403).json({ erro: erroViatura });
     const itens = itensDaOs(req.body?.itens);
     const cliente = await pool.connect();
     try {
@@ -834,11 +871,14 @@ manutencoes.post(
 manutencoes.put(
   "/:id/registro",
   autenticar,
-  exigePermissao("FROTAS_GERENCIAR_OS"),
+  exigePermissao("FROTAS_GERENCIAR_OS", "FISCALIZACAO_GERENCIAR_VIATURAS"),
   async (req, res, next) => {
     const id = Number(req.params.id);
     const { erro, dados } = dadosDoRegistro(req.body || {});
     if (erro) return res.status(400).json({ erro });
+    const erroViatura = (await conferirViatura(req, dados.id_veiculo))
+      || (req.params.id ? await conferirViaturaDaOs(req, req.params.id) : null);
+    if (erroViatura) return res.status(403).json({ erro: erroViatura });
     const justificativa = String(req.body?.justificativa || "").trim();
     if (justificativa.length < 5) {
       return res.status(400).json({
@@ -904,9 +944,11 @@ manutencoes.put(
 manutencoes.post(
   "/:id/fechamento",
   autenticar,
-  exigePermissao("FROTAS_GERENCIAR_OS"),
+  exigePermissao("FROTAS_GERENCIAR_OS", "FISCALIZACAO_GERENCIAR_VIATURAS"),
   async (req, res, next) => {
     const id = Number(req.params.id);
+    const erroViatura = await conferirViaturaDaOs(req, id);
+    if (erroViatura) return res.status(403).json({ erro: erroViatura });
     const corpo = req.body || {};
     const f = {
       data_fechamento: dataOuNula(corpo.data_fechamento),

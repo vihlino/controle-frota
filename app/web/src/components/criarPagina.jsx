@@ -115,7 +115,9 @@ export default function criarPagina(config) {
     const [janelaExtra, setJanelaExtra] = useState(null);
     const { pedirSenha, pedirExclusao, elemento: modalSenha } = useConfirmacaoSenha();
 
-    const podeGerenciar = !config.permissaoGerenciar || podeVer(config.permissaoGerenciar);
+    // permissaoGerenciar aceita uma permissao ou uma lista (basta ter uma).
+    const podeGerenciar = !config.permissaoGerenciar
+      || [].concat(config.permissaoGerenciar).some((p) => podeVer(p));
     const temFormulario = !!config.formulario;
     /*
      * Tela que EDITA mas nao CRIA.
@@ -278,7 +280,9 @@ export default function criarPagina(config) {
         }
 
         if (editando === "novo") {
-          await api(`/${config.recurso}`, { method: "POST", body: corpo });
+          const novo = await api(`/${config.recurso}`, { method: "POST", body: corpo });
+          // Passo extra depois de gravar (ex.: integrantes da equipe).
+          if (config.aposSalvar) await config.aposSalvar(novo?.[config.id], formulario);
         } else {
           // So a EDICAO pede senha. Criar um registro novo nao destroi nada e
           // e a acao mais comum do dia - exigir senha ali seria atrito sem
@@ -302,6 +306,7 @@ export default function criarPagina(config) {
           }
           if (pedeMotivo) corpo = { ...corpo, justificativa: resposta.justificativa };
           await api(`/${config.recurso}/${editando}`, { method: "PUT", body: corpo });
+          if (config.aposSalvar) await config.aposSalvar(editando, formulario);
         }
         setEditando(null);
         lista.recarregar(); // atualiza a tabela com o que acabou de mudar
@@ -396,6 +401,36 @@ export default function criarPagina(config) {
       // O periodo nao e um campo comum: ele governa DOIS nomes de filtro
       // (de e ate) dentro de uma caixa so, entao nao passa pelo caminho
       // generico abaixo.
+      // Lista de marcar (ex.: fiscais da equipe): o valor e um array de ids.
+      if (c.tipo === "marcar") {
+        const lista = typeof c.opcoes === "string"
+          ? (opcoes[c.opcoes] || []).map(config.mapaOpcoes[c.opcoes])
+          : c.opcoes || [];
+        const marcados = (valores[c.nome] || []).map(String);
+        const trocar = (v) => aoMudar(c.nome, marcados.includes(v)
+          ? marcados.filter((x) => x !== v) : [...marcados, v]);
+        return (
+          <div className="campo" data-largo="sim" key={c.nome}>
+            <label>{c.rotulo}</label>
+            {lista.length === 0 ? <p className="campo__leitura">{c.vazio || "Nenhuma opção."}</p> : (
+              <div className="marcar-lista">
+                {lista.map((o) => (
+                  <label key={o.valor} className="marcar-lista__item" data-marcado={marcados.includes(String(o.valor))}>
+                    <input type="checkbox" checked={marcados.includes(String(o.valor))}
+                           onChange={() => trocar(String(o.valor))} />
+                    <span>
+                      <strong>{o.rotulo}</strong>
+                      {o.apoio && <small>{o.apoio}</small>}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {c.ajuda && <small className="campo__ajuda">{c.ajuda}</small>}
+          </div>
+        );
+      }
+
       if (c.tipo === "periodo") {
         return (
           <Periodo

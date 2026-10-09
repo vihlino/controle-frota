@@ -33,7 +33,7 @@ export const AJUDA_TELAS = {
   "/fiscalizacao/servico-diario":
     "Escala diária da fiscalização: as equipes de cada turno, as viaturas usadas e as ocorrências registradas no serviço.",
   "/fiscalizacao/fiscais":
-    "Servidores com o cargo de Fiscal de Trânsito. Para aparecer aqui, o servidor precisa ter esse cargo no cadastro.",
+    "Servidores com o cargo de Fiscal de Trânsito. Para aparecer aqui, o servidor precisa ter esse cargo no cadastro. Pela ficha do fiscal você vê as ocorrências, as multas e as equipes dele.",
   "/fiscalizacao/equipes":
     "Equipes da fiscalização e os fiscais que fazem parte de cada uma. As equipes são usadas na escala do Serviço Diário.",
   "/fiscalizacao/viaturas":
@@ -41,7 +41,7 @@ export const AJUDA_TELAS = {
   "/fiscalizacao/ocorrencias":
     "Ocorrências registradas pela fiscalização durante o serviço, com local, tipo e a equipe responsável.",
   "/fiscalizacao/manutencoes":
-    "Ordens de serviço das viaturas usadas pela fiscalização.",
+    "Ordens de serviço das viaturas. Registre a OS quando a viatura for para a oficina e faça o fechamento quando ela voltar. Os demais veículos da frota não aparecem aqui.",
   "/fiscalizacao/checklists":
     "Checklists das viaturas usadas em serviço pela fiscalização.",
   "/fiscalizacao/pontuacao":
@@ -71,6 +71,10 @@ export const AJUDA_TELAS = {
   "/auditoria/alteracoes":
     "O que mudou em cada registro, com o valor anterior e o novo, lado a lado. O botão Exportar gera o arquivo em PDF ou CSV, escolhendo o período.",
 };
+
+// A propria Central de Ajuda.
+AJUDA_TELAS["/ajuda"] =
+  "Passo a passo dos cadastros e o que cada tela faz. Aparece só o que o seu perfil pode abrir.";
 
 export function ajudaDaTela(caminho) {
   return AJUDA_TELAS[String(caminho || "").replace(/\/+$/, "")] || "";

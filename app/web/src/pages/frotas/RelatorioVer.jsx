@@ -11,6 +11,13 @@
  * Cabecalho (07/10): marca da CMTT a esquerda com os dados da companhia,
  * marca do SITRA a direita. Rodape: so as assinaturas dos escolhidos para
  * atestar (Atestado / Aguardando ateste).
+ *
+ * Baixar e Imprimir (09/10): "Baixar" abre o pop-up de formato (CSV ou PDF,
+ * components/BaixarRelatorio.jsx). "Imprimir" imprime so o documento, sem a
+ * data, o endereco e o titulo que o navegador poe no alto e no pe da folha:
+ * a margem da folha e zero (ai o navegador nao tem onde escrever) e o espaco
+ * de cima e de baixo vem da moldura .impressao-moldura, que se repete em
+ * cada pagina.
  */
 import { useEffect, useState } from "react";
 import { useLocation, useOutletContext, useParams, useNavigate } from "react-router-dom";
@@ -19,6 +26,7 @@ import Icone from "../../components/Icone.jsx";
 import Trilha from "../../components/Trilha.jsx";
 import Selo from "../../components/Selo.jsx";
 import Modal from "../../components/Modal.jsx";
+import BaixarRelatorio from "../../components/BaixarRelatorio.jsx";
 import { Area } from "../../components/Campos.jsx";
 import { api } from "../../lib/api.js";
 import { data, dataHora, dinheiro, hora, numero, simNao } from "../../lib/formato.js";
@@ -50,6 +58,7 @@ export default function RelatórioVer() {
   const [atestando, setAtestando] = useState(false);
   const [observacao, setObservacao] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [baixando, setBaixando] = useState(false);
 
   const podeAtestar = podeVer("RELATORIOS_ATESTAR");
 
@@ -68,38 +77,21 @@ export default function RelatórioVer() {
     definirCabecalho({ titulo: "", legenda: "" });
   }, [definirCabecalho]);
 
+  // So nesta tela a folha impressa tem margem zero (as outras telas que
+  // imprimem continuam com a margem normal): sem margem o navegador nao tem
+  // onde escrever data, endereco e titulo. A regra sai quando a tela fecha.
+  useEffect(() => {
+    const estilo = document.createElement("style");
+    estilo.setAttribute("data-impressao", "relatorio");
+    estilo.textContent = "@media print { @page { size: A4 landscape; margin: 0; } }";
+    document.head.appendChild(estilo);
+    return () => estilo.remove();
+  }, []);
+
   function carregar() {
     api(`/relatorios/${id}`).then(setRelatório).catch((e) => setErro(e.message));
   }
   useEffect(carregar, [id]);
-
-  /**
-   * Baixa o relatório como CSV - o mesmo conteudo que esta na tela, no arquivo
-   * que abre no Excel.
-   *
-   * O arquivo sai do SNAPSHOT que ja esta carregado, sem nova consulta ao
-   * servidor: e o mesmo material que foi selado na geracao e que sera
-   * atestado. Ponto e virgula como separador e BOM no comeco porque e assim
-   * que o Excel em portugues abre o arquivo sem embaralhar acento e coluna.
-   */
-  function baixarCsv() {
-    const escapar = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const linhas = [
-      conteudo.colunas.map((c) => escapar(c.rotulo)).join(";"),
-      ...conteudo.linhas.map((linha) =>
-        conteudo.colunas.map((c) => escapar(celula(linha[c.chave], c.tipo))).join(";")
-      ),
-    ];
-    const arquivo = new Blob(["\uFEFF" + linhas.join("\r\n")], {
-      type: "text/csv;charset=utf-8",
-    });
-    const endereco = URL.createObjectURL(arquivo);
-    const link = document.createElement("a");
-    link.href = endereco;
-    link.download = `${relatório.nome.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-")}-${relatório.periodo_inicio}-a-${relatório.periodo_fim}.csv`;
-    link.click();
-    URL.revokeObjectURL(endereco);
-  }
 
   async function atestar(e) {
     e.preventDefault();
@@ -123,6 +115,8 @@ export default function RelatórioVer() {
   // relatorio). A tela lia `conteudo_snapshot`, que nao existe: todo
   // relatorio aparecia com 0 registros e a tabela vazia.
   const conteudo = relatório.snapshot || relatório.conteudo_snapshot || { colunas: [], linhas: [] };
+  const situacao = { ATESTADO: "Atestado", GERADO: "Sem ateste", CANCELADO: "Cancelado" }[relatório.status]
+    || (atestacoes.length ? `Aguardando ateste (${feitos} de ${atestacoes.length})` : "Aguardando ateste");
 
   return (
     <>
@@ -145,11 +139,11 @@ export default function RelatórioVer() {
           <button className="botao" onClick={() => navegar(base)}>
             <Icone nome="seta-esquerda" tamanho={15} /> Voltar
           </button>
-          <button className="botao" onClick={baixarCsv}>
+          <button className="botao" onClick={() => setBaixando(true)}>
             <Icone nome="baixar" tamanho={15} /> Baixar
           </button>
           <button className="botao" onClick={() => window.print()}>
-            <Icone nome="arrow-up" tamanho={15} /> Imprimir / PDF
+            <Icone nome="imprimir" tamanho={15} /> Imprimir
           </button>
           {podeAtestarAgora && (
             <button className="botao botao--primario" onClick={() => setAtestando(true)}>
@@ -176,6 +170,11 @@ export default function RelatórioVer() {
         </div>
       )}
 
+      {/* Moldura so da impressao: o espaco de cima e de baixo de cada folha. */}
+      <table className="impressao-moldura">
+        <thead><tr><td><div className="impressao-moldura__espaco" /></td></tr></thead>
+        <tfoot><tr><td><div className="impressao-moldura__espaco" /></td></tr></tfoot>
+        <tbody><tr><td>
       <article className="documento">
         <header className="documento__cabecalho">
           <div className="documento__orgao">
@@ -190,8 +189,7 @@ export default function RelatórioVer() {
             {/* Versao com letras escuras: o relatorio e impresso em papel branco. */}
             <img src="/icons/logo-sitra-documento.png" alt="SITRA" className="documento__logo" />
             <Selo
-              texto={{ ATESTADO: "Atestado", GERADO: "Sem ateste", CANCELADO: "Cancelado" }[relatório.status]
-                || (atestacoes.length ? `Aguardando ateste (${feitos} de ${atestacoes.length})` : "Aguardando ateste")}
+              texto={situacao}
               tom={{ ATESTADO: "verde", GERADO: "azul", CANCELADO: "vermelho" }[relatório.status] || "amarelo"}
             />
           </div>
@@ -272,6 +270,13 @@ export default function RelatórioVer() {
           </footer>
         )}
       </article>
+        </td></tr></tbody>
+      </table>
+
+      {baixando && (
+        <BaixarRelatorio relatorio={relatório} conteudo={conteudo} celula={celula}
+                         situacao={situacao} aoFechar={() => setBaixando(false)} />
+      )}
 
       {atestando && (
         <Modal

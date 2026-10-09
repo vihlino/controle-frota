@@ -12,7 +12,7 @@
  * (fechamento). Editar abre o pop-up do Registro; Fechar OS, o do fechamento.
  */
 import { useEffect, useState } from "react";
-import { useOutletContext, useParams, useNavigate } from "react-router-dom";
+import { useLocation, useOutletContext, useParams, useNavigate } from "react-router-dom";
 import Cartao from "../../components/Cartao.jsx";
 import Icone from "../../components/Icone.jsx";
 import Trilha from "../../components/Trilha.jsx";
@@ -100,7 +100,12 @@ export default function ManutencaoDetalhe() {
   if (erro) return <Cartao><div className="vazio">{erro}</div></Cartao>;
   if (!os) return <div className="carregando">Carregando a OS...</div>;
 
-  const podeGerenciar = podeVer("FROTAS_GERENCIAR_OS");
+  // Na Fiscalizacao (09/10): volta para a lista de la e gerencia com a
+  // permissao das viaturas.
+  const { pathname } = useLocation();
+  const fiscalizacao = pathname.startsWith("/fiscalizacao");
+  const base = fiscalizacao ? "/fiscalizacao/manutencoes" : "/frotas/manutencoes";
+  const podeGerenciar = podeVer("FROTAS_GERENCIAR_OS") || (fiscalizacao && podeVer("FISCALIZACAO_GERENCIAR_VIATURAS"));
   const fechada = os.status === "RESOLVIDA";
   const aberta = !["RESOLVIDA", "CANCELADA"].includes(os.status);
   const origem = ORIGEM[os.origem] || { texto: os.origem };
@@ -134,8 +139,8 @@ export default function ManutencaoDetalhe() {
         <div>
           <Trilha
             itens={[
-              { rotulo: "Frotas" },
-              { rotulo: "Manutenções", para: "/frotas/manutencoes" },
+              { rotulo: fiscalizacao ? "Fiscalização" : "Frotas" },
+              { rotulo: "Manutenções", para: base },
               { rotulo: "Detalhes da OS" },
             ]}
           />
@@ -148,7 +153,7 @@ export default function ManutencaoDetalhe() {
           </div>
         </div>
         <div className="cabecalho-pagina__acoes esconder-impressao">
-          <button className="botao" onClick={() => navegar("/frotas/manutencoes")}>
+          <button className="botao" onClick={() => navegar(base)}>
             <Icone nome="seta-esquerda" tamanho={15} /> Voltar
           </button>
           {podeGerenciar && aberta && (
@@ -332,7 +337,7 @@ export default function ManutencaoDetalhe() {
       </div>
 
       {editando && (
-        <RegistrarOs os={os} aoFechar={() => setEditando(false)} aoSalvar={recarregar} />
+        <RegistrarOs os={os} aoFechar={() => setEditando(false)} aoSalvar={recarregar} soViaturas={fiscalizacao} />
       )}
       {fechando && (
         <FecharOs os={os} aoFechar={() => setFechando(false)} aoSalvar={recarregar} />

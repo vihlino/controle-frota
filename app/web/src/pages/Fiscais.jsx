@@ -28,7 +28,8 @@ export default criarPagina({
   rotuloAcao: "Novo fiscal",
   iconeAcao: "mais",
   rotuloSalvar: "Salvar",
-  permissaoGerenciar: "FROTAS_GERENCIAR_SERVIDORES",
+  // A Fiscalizacao cadastra e edita os proprios fiscais (09/10, migracao 038).
+  permissaoGerenciar: ["FROTAS_GERENCIAR_SERVIDORES", "FISCALIZACAO_GERENCIAR_FISCAIS"],
   // "Visualizar" abre a tela de Detalhes do Fiscal (08/10).
   detalhe: true,
   // Menu de acoes: "Registrar multa" abre a janela ali mesmo (08/10).

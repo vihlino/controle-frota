@@ -7,7 +7,7 @@
  * Isso e comodidade visual, nao seguranca: a protecao de verdade esta nas
  * rotas (App.jsx) e no servidor.
  */
-import { Link, NavLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import Icone from "./Icone.jsx";
 import { MENU } from "./menu.js";
 import { useSessao } from "../lib/sessao.jsx";
@@ -64,7 +64,8 @@ export default function Lateral() {
 
       {/* Rodape fixo da lateral. Nos mockups a Ajuda fica sempre ancorada em
           baixo, separada do menu - nao e mais um item da lista. */}
-      <Link to="/ajuda" className="lateral__ajuda" title="Ajuda">
+      <NavLink to="/ajuda" title="Ajuda"
+               className={({ isActive }) => `lateral__ajuda ${isActive ? "lateral__ajuda--ativo" : ""}`}>
         <Icone nome="ajuda" tamanho={20} monocromatico />
         {(
           <>
@@ -72,7 +73,7 @@ export default function Lateral() {
             <Icone nome="chevron-right" tamanho={15} className="lateral__ajuda-seta" monocromatico />
           </>
         )}
-      </Link>
+      </NavLink>
     </aside>
   );
 }

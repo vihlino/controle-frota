@@ -17,6 +17,7 @@ import { Router } from "express";
 import { criarCrud } from "../crud.js";
 import { query } from "../db.js";
 import { autenticar, exigePermissao } from "../auth.js";
+import { registrarAuditoria } from "../auditoria.js";
 
 const VER = "FISCALIZACAO_VISUALIZAR";
 
@@ -57,7 +58,14 @@ export const equipes = criarCrud({
   entidade: "equipe",
   select: `equipe.*,
            (SELECT COUNT(*)::int FROM equipe_servidor es
-             WHERE es.id_equipe = equipe.id_equipe) AS integrantes`,
+             WHERE es.id_equipe = equipe.id_equipe AND es.status AND es.data_fim IS NULL) AS integrantes,
+           -- Fiscais atuais da equipe (09/10): nomes para a lista e ids para o cadastro.
+           (SELECT string_agg(sx.nome, ', ' ORDER BY sx.nome)
+              FROM equipe_servidor es JOIN servidor sx ON sx.id_servidor = es.id_servidor
+             WHERE es.id_equipe = equipe.id_equipe AND es.status AND es.data_fim IS NULL) AS nomes_integrantes,
+           (SELECT COALESCE(json_agg(es.id_servidor::text ORDER BY es.id_servidor), '[]'::json)
+              FROM equipe_servidor es
+             WHERE es.id_equipe = equipe.id_equipe AND es.status AND es.data_fim IS NULL) AS fiscais`,
   from: "equipe",
   busca: ["equipe.numero", "equipe.tipo", "equipe.observacoes"],
   filtros: { status: "equipe.status", tipo: "equipe.tipo" },
@@ -187,6 +195,54 @@ export const pontuacaoItens = criarCrud({
     gerenciar: "FISCALIZACAO_GERENCIAR_PONTUACAO",
   },
 });
+
+/*
+ * Integrantes da equipe (09/10): a tela manda a lista inteira de fiscais.
+ * Quem saiu ganha data_fim = hoje (o historico continua valendo para as
+ * ocorrencias e a pontuacao daquele periodo); quem entrou comeca hoje.
+ */
+equipes.put("/:id/integrantes", autenticar, exigePermissao("FISCALIZACAO_GERENCIAR_EQUIPES"),
+  async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      const novos = [...new Set((Array.isArray(req.body?.servidores) ? req.body.servidores : [])
+        .map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+      const eq = await query("SELECT 1 FROM equipe WHERE id_equipe = $1", [id]);
+      if (!eq.rows[0]) return res.status(404).json({ erro: "Equipe não encontrada." });
+      const atuais = (await query(
+        `SELECT id_servidor FROM equipe_servidor
+          WHERE id_equipe = $1 AND status AND data_fim IS NULL`, [id]
+      )).rows.map((r) => Number(r.id_servidor));
+      const sairam = atuais.filter((s) => !novos.includes(s));
+      const entraram = novos.filter((s) => !atuais.includes(s));
+      if (sairam.length) {
+        await query(
+          `UPDATE equipe_servidor SET data_fim = CURRENT_DATE, status = FALSE
+            WHERE id_equipe = $1 AND id_servidor = ANY($2::bigint[]) AND status AND data_fim IS NULL`,
+          [id, sairam]
+        );
+      }
+      for (const s of entraram) {
+        // Saiu e voltou no mesmo dia: reaproveita a linha de hoje.
+        await query(
+          `INSERT INTO equipe_servidor (id_equipe, id_servidor, data_inicio, status)
+           VALUES ($1, $2, CURRENT_DATE, TRUE)
+           ON CONFLICT (id_equipe, id_servidor, data_inicio)
+           DO UPDATE SET data_fim = NULL, status = TRUE`,
+          [id, s]
+        );
+      }
+      if (sairam.length || entraram.length) {
+        await registrarAuditoria({
+          idUsuario: req.usuario.id_usuario, acao: "EDITAR", entidade: "equipe_servidor",
+          idRegistro: id, dadosAnteriores: { fiscais: atuais }, dadosNovos: { fiscais: novos },
+        });
+      }
+      res.json({ ok: true, entraram, sairam });
+    } catch (e) {
+      next(e);
+    }
+  });
 
 const router = Router();
 

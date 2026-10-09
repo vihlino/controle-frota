@@ -90,7 +90,7 @@ export default function FiscalDetalhe() {
     definirParametros(p, { replace: true });
     window.scrollTo({ top: 0 });
   };
-  const podeEditar = podeVer("FROTAS_GERENCIAR_SERVIDORES");
+  const podeEditar = podeVer("FROTAS_GERENCIAR_SERVIDORES") || podeVer("FISCALIZACAO_GERENCIAR_FISCAIS");
 
   useEffect(() => {
     definirCabecalho({ titulo: "", legenda: "" });
