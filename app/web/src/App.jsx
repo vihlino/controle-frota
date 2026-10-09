@@ -109,9 +109,9 @@ export default function App() {
         {/* Agendar virou pop-up na propria lista; o endereco antigo leva ate ele. */}
         <Route path="/frotas/inspecoes/nova" element={<Navigate to="/frotas/inspecoes?agendar=1" replace />} />
         <Route path="/frotas/inspecoes/:id" element={<ComPermissao codigo={FROTAS}><InspecaoDetalhe /></ComPermissao>} />
-        <Route path="/frotas/manutencoes" element={<ComPermissao codigo={FROTAS}><Manutencoes /></ComPermissao>} />
+        <Route path="/frotas/manutencoes" element={<ComPermissao codigo={FROTAS}><Manutencoes key="frotas" /></ComPermissao>} />
         <Route path="/frotas/manutencoes/agendar" element={<Navigate to="/frotas/manutencoes?registrar=1" replace />} />
-        <Route path="/frotas/manutencoes/:id" element={<ComPermissao codigo={FROTAS}><ManutencaoDetalhe /></ComPermissao>} />
+        <Route path="/frotas/manutencoes/:id" element={<ComPermissao codigo={FROTAS}><ManutencaoDetalhe key="frotas" /></ComPermissao>} />
         <Route path="/frotas/documentos" element={<ComPermissao codigo={FROTAS}><Documentos /></ComPermissao>} />
         <Route path="/frotas/documentos/novo" element={<Navigate to="/frotas/documentos?novo=1" replace />} />
         <Route path="/frotas/documentos/:id" element={<ComPermissao codigo={FROTAS}><DocumentoDetalhe /></ComPermissao>} />
@@ -122,26 +122,29 @@ export default function App() {
         <Route path="/frotas/servidores" element={<ComPermissao codigo={FROTAS}><Servidores /></ComPermissao>} />
         <Route path="/frotas/motoristas/:id" element={<ComPermissao codigo={FROTAS}><ServidorDetalhe /></ComPermissao>} />
         <Route path="/frotas/servidores/:id" element={<ComPermissao codigo={FROTAS}><ServidorDetalhe /></ComPermissao>} />
-        <Route path="/frotas/relatorios" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><Relatorios /></ComPermissao>} />
+        <Route path="/frotas/relatorios" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><Relatorios key="frotas" /></ComPermissao>} />
         {/* Sem trava de perfil: quem foi escolhido para atestar abre o
             relatório pelo sino mesmo sem ver a lista. A API decide. */}
-        <Route path="/frotas/relatorios/:id" element={<RelatorioVer />} />
+        <Route path="/frotas/relatorios/:id" element={<RelatorioVer key="frotas" />} />
 
         <Route path="/fiscalizacao/servico-diario" element={<ComPermissao codigo={FISC}><ServicoDiario /></ComPermissao>} />
         <Route path="/fiscalizacao/equipes" element={<ComPermissao codigo={FISC}><Equipes /></ComPermissao>} />
         <Route path="/fiscalizacao/viaturas" element={<ComPermissao codigo={FISC}><Viaturas /></ComPermissao>} />
         <Route path="/fiscalizacao/ocorrencias" element={<ComPermissao codigo={FISC}><Ocorrencias /></ComPermissao>} />
-        {/* Fiscalizacao usa a mesma tela de Frotas, so com as viaturas (09/10). */}
-        <Route path="/fiscalizacao/manutencoes" element={<ComPermissao codigo={FISC}><Manutencoes /></ComPermissao>} />
-        <Route path="/fiscalizacao/manutencoes/:id" element={<ComPermissao codigo={FISC}><ManutencaoDetalhe /></ComPermissao>} />
+        {/* Fiscalizacao usa a mesma tela de Frotas, so com as viaturas (09/10).
+            O key diferente obriga o React a montar a tela de novo ao trocar de
+            Frotas para Fiscalizacao (e vice-versa): sem ele a tela era
+            reaproveitada e ficava com a lista do modulo anterior. */}
+        <Route path="/fiscalizacao/manutencoes" element={<ComPermissao codigo={FISC}><Manutencoes key="fiscalizacao" /></ComPermissao>} />
+        <Route path="/fiscalizacao/manutencoes/:id" element={<ComPermissao codigo={FISC}><ManutencaoDetalhe key="fiscalizacao" /></ComPermissao>} />
         <Route path="/fiscalizacao/checklists" element={<ComPermissao codigo={FISC}><ChecklistsFiscalizacao /></ComPermissao>} />
         <Route path="/fiscalizacao/fiscais" element={<ComPermissao codigo={FISC}><Fiscais /></ComPermissao>} />
         <Route path="/fiscalizacao/fiscais/:id" element={<ComPermissao codigo={FISC}><FiscalDetalhe /></ComPermissao>} />
         {/* Rota antiga: quem tiver o link salvo continua chegando na tela certa. */}
         <Route path="/fiscalizacao/motoristas" element={<Navigate to="/fiscalizacao/fiscais" replace />} />
         <Route path="/fiscalizacao/pontuacao" element={<ComPermissao codigo="FISCALIZACAO_GERENCIAR_PONTUACAO"><Pontuacao /></ComPermissao>} />
-        <Route path="/fiscalizacao/relatorios" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><Relatorios /></ComPermissao>} />
-        <Route path="/fiscalizacao/relatorios/:id" element={<RelatorioVer />} />
+        <Route path="/fiscalizacao/relatorios" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><Relatorios key="fiscalizacao" /></ComPermissao>} />
+        <Route path="/fiscalizacao/relatorios/:id" element={<RelatorioVer key="fiscalizacao" />} />
 
         <Route path="/admin/usuarios" element={<ComPermissao codigo={ADMIN}><Usuarios /></ComPermissao>} />
         <Route path="/admin/servidores" element={<ComPermissao codigo={ADMIN}><Servidores /></ComPermissao>} />
