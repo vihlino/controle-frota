@@ -6,9 +6,13 @@
  *
  * As situações seguem as cores definidas: Regular (verde), Em manutenção
  * (amarelo), Indisponivel (vermelho).
+ *
+ * 18/10: a mesma tela e a de VIATURAS da Fiscalizacao (/fiscalizacao/viaturas):
+ * mesmas colunas e o mesmo menu de acoes, so com as viaturas (veiculos do
+ * setor Fiscalizacao) e com as telas da Fiscalizacao como destino.
  */
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
@@ -24,13 +28,19 @@ import { useSessao } from "../../lib/sessao.jsx";
 export default function Veículos() {
   const navegar = useNavigate();
   const { podeVer } = useSessao();
-  const lista = useLista("frotas/veiculos", { busca: "", setor: "", status: "" });
+  const fiscalizacao = useLocation().pathname.startsWith("/fiscalizacao");
+  const base = fiscalizacao ? "/fiscalizacao/viaturas" : "/frotas/veiculos";
+  // O filtro fixo vai tambem nos iniciais: o useLista so manda para a API o
+  // que esta em `filtros`; o terceiro argumento so impede o "Limpar" de tira-lo.
+  const fixos = fiscalizacao ? { viatura: "true" } : {};
+  const lista = useLista("frotas/veiculos", { busca: "", setor: "", status: "", ...fixos }, fixos);
   const [setores, setSetores] = useState([]);
   // null | "novo" | o veiculo em edicao. A janela e o FormularioVeiculo.
   const [editando, setEditando] = useState(null);
   const { pedirExclusao, elemento: modalSenha } = useConfirmacaoSenha();
 
-  const podeGerenciar = podeVer("FROTAS_GERENCIAR_VEICULOS");
+  const podeGerenciar = podeVer("FROTAS_GERENCIAR_VEICULOS")
+    || (fiscalizacao && podeVer("FISCALIZACAO_GERENCIAR_VIATURAS"));
   const [parametros, definirParametros] = useSearchParams();
 
   /*
@@ -55,7 +65,7 @@ export default function Veículos() {
     if (jaAbriu.current && voltarParaDetalhe.current) {
       const destino = voltarParaDetalhe.current;
       voltarParaDetalhe.current = null;
-      navegar(`/frotas/veiculos/${destino}`, { replace: true });
+      navegar(`${base}/${destino}`, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editando]);
@@ -86,8 +96,8 @@ export default function Veículos() {
 
   async function excluir(v) {
     const resposta = await pedirExclusao({
-      titulo: "Excluir veículo",
-      oQue: `o veículo ${v.placa}`,
+      titulo: fiscalizacao ? "Excluir viatura" : "Excluir veículo",
+      oQue: `${fiscalizacao ? "a viatura" : "o veículo"} ${v.placa}`,
     });
     if (!resposta.ok) return;
     try {
@@ -117,8 +127,8 @@ export default function Veículos() {
       render: (v) => (
         <button
           className="botao-icone"
-          title="QR Code do veículo"
-          onClick={() => navegar(`/frotas/veiculos/${v.id_veiculo}/qrcode`)}
+          title={fiscalizacao ? "QR Code da viatura" : "QR Code do veículo"}
+          onClick={() => navegar(fiscalizacao ? `${base}/${v.id_veiculo}?aba=qrcode` : `/frotas/veiculos/${v.id_veiculo}/qrcode`)}
         >
           <Icone nome="codigo-qr" tamanho={18} />
         </button>
@@ -130,16 +140,19 @@ export default function Veículos() {
         <Acoes
           acoes={[
             { rotulo: "Visualizar", icone: "visualizar",
-              aoClicar: () => navegar(`/frotas/veiculos/${v.id_veiculo}`) },
+              aoClicar: () => navegar(`${base}/${v.id_veiculo}`) },
             ...(podeGerenciar
               ? [{ rotulo: "Editar", icone: "editar", aoClicar: () => abrirEdicao(v) }]
               : []),
+            // Na Fiscalizacao os destinos sao as telas da Fiscalizacao (os
+            // checklists de viatura e as OS das viaturas); os documentos
+            // ficam na aba Documentos dos detalhes da viatura.
             { rotulo: "Histórico", icone: "historico",
-              aoClicar: () => navegar(`/frotas/checklists?veiculo=${v.id_veiculo}`) },
+              aoClicar: () => navegar(fiscalizacao ? `/fiscalizacao/checklists?veiculo=${v.id_veiculo}` : `/frotas/checklists?veiculo=${v.id_veiculo}`) },
             { rotulo: "Documentos", icone: "documento",
-              aoClicar: () => navegar(`/frotas/documentos?veiculo=${v.id_veiculo}`) },
+              aoClicar: () => navegar(fiscalizacao ? `${base}/${v.id_veiculo}?aba=documentos` : `/frotas/documentos?veiculo=${v.id_veiculo}`) },
             { rotulo: "Manutenções", icone: "kpi-wrench",
-              aoClicar: () => navegar(`/frotas/manutencoes?veiculo=${v.id_veiculo}`) },
+              aoClicar: () => navegar(fiscalizacao ? `/fiscalizacao/manutencoes?veiculo=${v.id_veiculo}` : `/frotas/manutencoes?veiculo=${v.id_veiculo}`) },
             ...(podeGerenciar
               ? [{ rotulo: "Excluir", perigo: true, icone: "lixo",
                    aoClicar: () => excluir(v) }]
@@ -152,21 +165,21 @@ export default function Veículos() {
 
   return (
     <PaginaLista
-      trilha={[{ rotulo: "Frotas" }, { rotulo: "Veículos" }]}
-      titulo="Veículos"
-      descricao="Gerencie os veículos da frota."
+      trilha={[{ rotulo: fiscalizacao ? "Fiscalização" : "Frotas" }, { rotulo: fiscalizacao ? "Viaturas" : "Veículos" }]}
+      titulo={fiscalizacao ? "Viaturas" : "Veículos"}
+      descricao={fiscalizacao ? "Os veículos do setor de Fiscalização." : "Gerencie os veículos da frota."}
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={abrirNovo}>
-            <Icone nome="mais" tamanho={15} /> Novo veículo
+            <Icone nome="mais" tamanho={15} /> {fiscalizacao ? "Nova viatura" : "Novo veículo"}
           </button>
         )
       }
       lista={lista}
       colunas={colunas}
       chaveDe={(v) => v.id_veiculo}
-      unidade="veículos"
-      vazio="Nenhum veículo encontrado com esses filtros."
+      unidade={fiscalizacao ? "viaturas" : "veículos"}
+      vazio={fiscalizacao ? "Nenhuma viatura encontrada com esses filtros." : "Nenhum veículo encontrado com esses filtros."}
       filtros={
         <>
           <Texto
@@ -175,12 +188,14 @@ export default function Veículos() {
             value={lista.filtros.busca}
             onChange={(e) => lista.alterarFiltro("busca", e.target.value)}
           />
-          <Selecao
-            rotulo="Setor" id="setor" vazio="Todos"
-            opcoes={setores.map((s) => ({ valor: s.id_setor, rotulo: s.nome }))}
-            value={lista.filtros.setor}
-            onChange={(e) => lista.alterarFiltro("setor", e.target.value)}
-          />
+          {!fiscalizacao && (
+            <Selecao
+              rotulo="Setor" id="setor" vazio="Todos"
+              opcoes={setores.map((s) => ({ valor: s.id_setor, rotulo: s.nome }))}
+              value={lista.filtros.setor}
+              onChange={(e) => lista.alterarFiltro("setor", e.target.value)}
+            />
+          )}
           <Selecao
             rotulo="Situação" id="situação" vazio="Todas"
             opcoes={SITUACOES}
@@ -193,6 +208,7 @@ export default function Veículos() {
       {editando && (
         <FormularioVeiculo
           veiculo={editando === "novo" ? null : editando}
+          soViatura={fiscalizacao}
           aoFechar={() => setEditando(null)}
           aoSalvar={() => lista.recarregar()}
         />

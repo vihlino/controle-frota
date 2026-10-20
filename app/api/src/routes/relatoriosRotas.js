@@ -35,13 +35,36 @@ import { MODELOS, calcularHash } from "../relatorios.js";
 
 const router = Router();
 
+/*
+ * Modulos de relatorio que a pessoa pode ver (18/10): Frotas com a
+ * permissao de Frotas, Fiscalizacao com a da Fiscalizacao (o administrador
+ * tem as duas). `?modulo=` na consulta escolhe um deles.
+ */
+function modulosDe(req) {
+  const p = req.usuario?.permissoes || [];
+  const m = [];
+  if (p.includes("FROTAS_VISUALIZAR")) m.push("FROTAS");
+  if (p.includes("FISCALIZACAO_VISUALIZAR")) m.push("FISCALIZACAO");
+  return m;
+}
+function moduloPedido(req) {
+  const pedido = String(req.query.modulo || "").toUpperCase();
+  const meus = modulosDe(req);
+  if (pedido) return meus.includes(pedido) ? [pedido] : null;
+  return meus;
+}
+
 // Catalogo dos tipos disponiveis - alimenta a tela "Gerar relatorio".
-router.get("/tipos", autenticar, exigePermissao("RELATORIOS_VISUALIZAR"), (_req, res) => {
+router.get("/tipos", autenticar, exigePermissao("RELATORIOS_VISUALIZAR"), (req, res) => {
+  const modulos = moduloPedido(req);
+  if (!modulos) return res.status(403).json({ erro: "Sem acesso aos relatórios deste módulo." });
   res.json(
-    Object.entries(MODELOS).map(([tipo, m]) => ({
-      tipo, nome: m.nome, descricao: m.descricao, modulo: m.modulo,
-      colunas: m.colunas.map((c) => c.rotulo),
-    }))
+    Object.entries(MODELOS)
+      .filter(([, m]) => modulos.includes(m.modulo))
+      .map(([tipo, m]) => ({
+        tipo, nome: m.nome, descricao: m.descricao, modulo: m.modulo,
+        colunas: m.colunas.map((c) => c.rotulo),
+      }))
   );
 });
 
@@ -69,6 +92,11 @@ router.get("/", autenticar, exigePermissao("RELATORIOS_VISUALIZAR"), async (req,
 
     const condicoes = [];
     const valores = [];
+    // Cada menu mostra so os relatorios do seu modulo (18/10).
+    const modulos = moduloPedido(req);
+    if (!modulos) return res.status(403).json({ erro: "Sem acesso aos relatórios deste módulo." });
+    valores.push(modulos);
+    condicoes.push(`r.modulo = ANY($${valores.length}::text[])`);
     if (req.query.tipo) {
       valores.push(req.query.tipo);
       condicoes.push(`r.tipo = $${valores.length}`);
@@ -154,6 +182,9 @@ router.post("/", autenticar, exigePermissao("RELATORIOS_GERAR"), async (req, res
     const { tipo, periodo_inicio, periodo_fim } = req.body;
     const modelo = MODELOS[tipo];
     if (!modelo) return res.status(400).json({ erro: "Tipo de relatório inválido." });
+    if (!modulosDe(req).includes(modelo.modulo)) {
+      return res.status(403).json({ erro: "Sem acesso aos relatórios deste módulo." });
+    }
     if (!periodo_inicio || !periodo_fim) {
       return res.status(400).json({ erro: "Informe o período inicial e final." });
     }
@@ -274,6 +305,14 @@ router.get("/:id", autenticar, async (req, res, next) => {
     );
     const relatorio = rows[0];
     if (!relatorio) return res.status(404).json({ erro: "Relatório não encontrado." });
+    // Relatorio de outro modulo so abre para quem foi escolhido para atestar.
+    if (!modulosDe(req).includes(relatorio.modulo)) {
+      const escolhido = await query(
+        "SELECT 1 FROM atestacao WHERE id_relatorio = $1 AND id_usuario = $2",
+        [Number(req.params.id), req.usuario.id_usuario]
+      );
+      if (!escolhido.rows[0]) return res.status(403).json({ erro: "Seu perfil não tem acesso a este relatório." });
+    }
 
     const atestacoes = await query(
       `SELECT a.ordem, a.id_usuario, a.status, a.data_solicitacao, a.data_atestacao,

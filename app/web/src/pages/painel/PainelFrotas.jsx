@@ -7,6 +7,8 @@ import VeiculoCel from "../../components/VeiculoCel.jsx";
 import { dataHora, hora, numero, porcentagem } from "../../lib/formato.js";
 
 const ROTULOS_OS = {
+  // OS pedida pela Fiscalizacao esperando o Frotas completar (18/10).
+  PENDENTE:      { titulo: "Solicitadas", descricao: "Pedidas pela Fiscalização, para completar" },
   EM_ANALISE:    { titulo: "OS em aberto",       descricao: "Ordens de serviço abertas" },
   EM_MANUTENCAO: { titulo: "Em execução",        descricao: "Serviços em andamento" },
   AGUARDANDO_PECAS:    { titulo: "Aguardando peças",   descricao: "Aguardando chegada de peças" },

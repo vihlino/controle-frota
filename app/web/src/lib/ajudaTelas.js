@@ -31,20 +31,22 @@ export const AJUDA_TELAS = {
 
   // Fiscalizacao
   "/fiscalizacao/servico-diario":
-    "Escala diária da fiscalização: as equipes de cada turno, as viaturas usadas e as ocorrências registradas no serviço.",
+    "Os serviços por turno. Cada linha é uma equipe no serviço, com o código (SD), os fiscais, a viatura, a saída e o retorno (do checklist da viatura) e as ocorrências atendidas. Clique no código para ver os detalhes.",
   "/fiscalizacao/fiscais":
     "Servidores com o cargo de Fiscal de Trânsito. Para aparecer aqui, o servidor precisa ter esse cargo no cadastro. Pela ficha do fiscal você vê as ocorrências, as multas e as equipes dele.",
   "/fiscalizacao/equipes":
     "Equipes da fiscalização e os fiscais que fazem parte de cada uma. As equipes são usadas na escala do Serviço Diário.",
   "/fiscalizacao/viaturas":
-    "Veículos usados pela fiscalização, com a situação de cada um.",
+    "Viaturas da fiscalização (veículos do setor Fiscalização), com as mesmas colunas e ações da tela de Veículos. Em Visualizar estão os checklists, manutenções, ocorrências e sinistros da viatura.",
   "/fiscalizacao/ocorrencias":
-    "Ocorrências registradas pela fiscalização durante o serviço, com local, tipo e a equipe responsável.",
+    "Ocorrências registradas pela fiscalização durante o serviço, com local, tipo e a equipe responsável. Em Visualizar estão o atendimento, a distribuição e o histórico.",
   "/fiscalizacao/manutencoes":
     "Ordens de serviço das viaturas. Registre a OS quando a viatura for para a oficina e faça o fechamento quando ela voltar. Os demais veículos da frota não aparecem aqui.",
   "/fiscalizacao/checklists":
-    "Checklists das viaturas usadas em serviço pela fiscalização.",
+    "Checklists das viaturas usadas em serviço pela fiscalização. Em Visualizar estão a saída, a chegada, os fiscais e as ocorrências do serviço.",
   "/fiscalizacao/pontuacao":
+    "A pontuação dos fiscais no período, com multas, ocorrências e checklists. Os itens que valem pontos ficam em \"Itens de pontuação\". Tela restrita ao gestor.",
+  "/fiscalizacao/pontuacao/itens":
     "Itens de pontuação da fiscalização e o valor de cada um. Tela restrita ao gestor.",
   "/fiscalizacao/relatorios":
     "Gere relatórios da fiscalização por período. Os relatórios gerados ficam guardados aqui para consultar e atestar.",

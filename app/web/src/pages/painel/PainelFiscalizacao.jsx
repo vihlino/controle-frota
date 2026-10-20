@@ -7,6 +7,7 @@ import VeiculoCel from "../../components/VeiculoCel.jsx";
 import { data, hora, numero } from "../../lib/formato.js";
 
 const ROTULOS_OS = {
+  PENDENTE: { titulo: "Solicitadas", descricao: "Esperando o Frotas completar" },
   EM_ANALISE:           { titulo: "OS em aberto",        descricao: "Ordens de serviço abertas" },
   EM_MANUTENCAO:        { titulo: "Em execução",         descricao: "Serviços em andamento" },
   AGUARDANDO_PECAS:     { titulo: "Aguardando peças",    descricao: "Aguardando chegada de peças" },
@@ -53,7 +54,7 @@ export default function PainelFiscalizacao({ dados }) {
               <tbody>
                 {(servicosHoje || []).map((s) => (
                   <tr key={s.id_servico_diario}>
-                    <td>{s.turno}</td>
+                    <td>{{ DIURNO: "Diurno", NOTURNO: "Noturno" }[s.turno] || s.turno}</td>
                     <td>{hora(s.hora_inicio)}</td>
                     <td>{s.coordenador}</td>
                     <td>{s.n_equipes}</td>

@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "seed": "node src/seed.js",
     "seed:demo": "node src/seedDemo.js",
+    "seed:fisc": "node src/seedFiscalizacao.js",
     "backup": "node src/backup.js",
     "restaurar": "node src/restaurar.js"
   },

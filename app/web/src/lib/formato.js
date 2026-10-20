@@ -69,6 +69,15 @@ const ROTULOS_STATUS = {
   VALIDO: { texto: "Válido", tom: "verde" },
   VENCENDO: { texto: "Vencendo", tom: "laranja" },
   VENCIDO: { texto: "Vencido", tom: "vermelho" },
+  // Ocorrencias e servico diario (17/10): apareciam com o codigo cru na lista.
+  PENDENTE: { texto: "Pendente", tom: "amarelo" },
+  ATRIBUIDA: { texto: "Atribuída", tom: "azul" },
+  EM_ANDAMENTO: { texto: "Em andamento", tom: "azul" },
+  FINALIZADA: { texto: "Finalizada", tom: "verde" },
+  INTERCORRENCIA: { texto: "Intercorrência", tom: "vermelho" },
+  EM_SERVICO: { texto: "Em serviço", tom: "azul" },
+  // Equipe no servico diario (servico_equipe), 18/10.
+  ATIVA: { texto: "Ativa", tom: "verde" },
 };
 
 export function status(valor) {

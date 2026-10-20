@@ -34,7 +34,11 @@ const VAZIO = {
   status: "DISPONIVEL",
 };
 
-export default function FormularioVeiculo({ veiculo = null, aoFechar, aoSalvar }) {
+/*
+ * soViatura (18/10): aberto pela tela de Viaturas. O setor fica travado em
+ * Fiscalizacao - e o setor que faz do veiculo uma viatura.
+ */
+export default function FormularioVeiculo({ veiculo = null, aoFechar, aoSalvar, soViatura = false }) {
   const editando = veiculo ? veiculo.id_veiculo : "novo";
   const [formulario, setFormulario] = useState(() =>
     veiculo ? { ...VAZIO, ...veiculo, id_setor: veiculo.id_setor } : VAZIO);
@@ -44,7 +48,15 @@ export default function FormularioVeiculo({ veiculo = null, aoFechar, aoSalvar }
   const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
 
   useEffect(() => {
-    api("/setores").then(setSetores).catch(() => {});
+    api("/setores").then((lista) => {
+      setSetores(lista);
+      if (soViatura) {
+        const sem = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+        const fisc = (Array.isArray(lista) ? lista : []).find((s) => sem(s.nome) === "FISCALIZACAO");
+        if (fisc) setFormulario((f) => ({ ...f, id_setor: fisc.id_setor }));
+      }
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const campo = (nome) => ({
@@ -94,7 +106,7 @@ export default function FormularioVeiculo({ veiculo = null, aoFechar, aoSalvar }
   return (
     <>
       <Modal
-        titulo={editando === "novo" ? "Novo veículo" : "Editar veículo"}
+        titulo={editando === "novo" ? (soViatura ? "Nova viatura" : "Novo veículo") : (soViatura ? "Editar viatura" : "Editar veículo")}
         legenda="Os campos marcados são obrigatórios."
         aoFechar={aoFechar}
         rodape={
@@ -155,7 +167,7 @@ export default function FormularioVeiculo({ veiculo = null, aoFechar, aoSalvar }
             aparece na tela de Viaturas, e todos aparecem em Frotas. Quem
             cadastra responde uma pergunta so, e as duas telas concordam
             sem ninguem ter que lembrar de marcar nada. */}
-        <Selecao rotulo="Setor *" id="id_setor" required vazio="Selecione"
+        <Selecao rotulo="Setor *" id="id_setor" required vazio="Selecione" disabled={soViatura}
                  opcoes={setores.map((s) => ({ valor: s.id_setor, rotulo: s.nome }))}
                  {...campo("id_setor")} />
         <Selecao rotulo="Vínculo" id="vinculo" vazio="Selecione"

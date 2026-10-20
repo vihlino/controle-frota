@@ -17,7 +17,8 @@ import Icone from "../components/Icone.jsx";
 import Trilha from "../components/Trilha.jsx";
 import Selo from "../components/Selo.jsx";
 import { api } from "../lib/api.js";
-import { data, dataHora, hora, numero } from "../lib/formato.js";
+import { data, dataHora, hora, numero, rotulo } from "../lib/formato.js";
+import FiltroPeriodo, { dentroDoPeriodo } from "../components/FiltroPeriodo.jsx";
 import { cpf as mascaraCpf, telefone as mascaraTelefone } from "../lib/mascaras.js";
 import { useSessao } from "../lib/sessao.jsx";
 import { iniciais, situacaoCnh, Item, Linhas } from "./ServidorDetalhe.jsx";
@@ -32,6 +33,7 @@ const SITUACAO_OCORRENCIA = {
   PENDENTE: { texto: "Pendente", tom: "amarelo" },
   ATRIBUIDA: { texto: "Atribuída", tom: "azul" },
   EM_ATENDIMENTO: { texto: "Em atendimento", tom: "azul" },
+  EM_ANDAMENTO: { texto: "Em andamento", tom: "azul" },
   FINALIZADA: { texto: "Finalizada", tom: "verde" },
   INTERCORRENCIA: { texto: "Intercorrência", tom: "vermelho" },
 };
@@ -99,6 +101,13 @@ export default function FiscalDetalhe() {
   // Editar abre a janela aqui mesmo (08/10); ao salvar, a ficha recarrega.
   const [editando, setEditando] = useState(false);
   const [recarga, setRecarga] = useState(0);
+  // Periodo das abas Checklists, Ocorrencias e Pontuacao (18/10).
+  const [periodos, setPeriodos] = useState({});
+  const periodoDe = (aba) => periodos[aba] || { de: "", ate: "" };
+  const filtroDe = (aba) => (
+    <FiltroPeriodo id={`periodo-${aba}`} de={periodoDe(aba).de} ate={periodoDe(aba).ate}
+                   aoMudar={(v) => setPeriodos((p) => ({ ...p, [aba]: v }))} />
+  );
   useEffect(() => {
     api(`/fiscalizacao/fiscais/${id}/ficha`).then(setF).catch((e) => setErro(e.message));
   }, [id, recarga]);
@@ -111,7 +120,11 @@ export default function FiscalDetalhe() {
   const cargo = f.cargo || f.cargo_funcao;
   const vePontos = Array.isArray(f.pontuacao);
   const equipeAtual = (f.equipes || []).find((e) => e.atual);
-  const abrirOcorrencia = (o) => navegar(`/fiscalizacao/ocorrencias?busca=${encodeURIComponent(o.protocolo)}`);
+  const abrirOcorrencia = (o) => navegar(`/fiscalizacao/ocorrencias/${o.id_ocorrencia}`);
+  // Checklist de viatura: abre a janela de Visualizar da lista (18/10).
+  const abrirChecklist = (c) => navegar(`/fiscalizacao/checklists/${c.id_checklist}`);
+  const abrirSinistro = (x) => navegar(`/frotas/sinistros/${x.id_sinistro}`);
+  const noPeriodo = (aba, lista, campo) => (lista || []).filter((l) => dentroDoPeriodo(l[campo], periodoDe(aba).de, periodoDe(aba).ate));
 
   // Historico de atividades: ocorrencias, checklists, pontuacao, servicos
   // coordenados e alteracoes do cadastro, numa linha do tempo so.
@@ -146,15 +159,26 @@ export default function FiscalDetalhe() {
     })),
   ].sort((a, b) => String(b.quando).localeCompare(String(a.quando)));
 
+  // Ordem pedida pelo Cesar (18/10).
   const ABAS = [
     { chave: "geral", rotulo: "Visão Geral", icone: "user" },
     { chave: "cnh", rotulo: "CNH", icone: "cnh" },
-    { chave: "ocorrencias", rotulo: "Ocorrências", icone: "fisc-ocorrencias", total: r.ocorrencias },
-    { chave: "checklists", rotulo: "Checklists", icone: "checklist", total: r.checklists },
     { chave: "multas", rotulo: "Multas", icone: "alert-triangle", total: r.multas },
-    ...(vePontos ? [{ chave: "pontuacao", rotulo: "Pontuação", icone: "fisc-bolt" }] : []),
     { chave: "equipes", rotulo: "Equipes", icone: "equipe", total: (f.equipes || []).length },
+    { chave: "checklists", rotulo: "Checklists", icone: "checklist", total: r.checklists },
+    { chave: "ocorrencias", rotulo: "Ocorrências", icone: "fisc-ocorrencias", total: r.ocorrencias },
+    { chave: "sinistros", rotulo: "Sinistros", icone: "sinistro", total: r.sinistros },
+    ...(vePontos ? [{ chave: "pontuacao", rotulo: "Pontuação", icone: "fisc-bolt" }] : []),
     { chave: "historico", rotulo: "Histórico", icone: "historico" },
+  ];
+  const COL_SINISTRO = [
+    { rotulo: "Nº do Sinistro", render: (x) => vazio(x.numero) },
+    { rotulo: "Data", render: (x) => data(x.data) },
+    { rotulo: "Viatura", render: (x) => (
+      <span className="celula-dupla"><strong>{x.placa}</strong><span>{x.marca} {x.modelo}</span></span>
+    ) },
+    { rotulo: "Tipo", render: (x) => rotulo("tipoSinistro", x.tipo) },
+    { rotulo: "Situação", render: (x) => <Selo valor={x.status} /> },
   ];
 
   const COL_OCORRENCIA = [
@@ -211,8 +235,13 @@ export default function FiscalDetalhe() {
       Ver todos ({numero(total || 0)})
     </button>
   );
-  const totalPositivo = vePontos ? f.pontuacao.filter((p) => Number(p.pontos_aplicados) > 0).reduce((t, p) => t + Number(p.pontos_aplicados), 0) : 0;
-  const totalNegativo = vePontos ? f.pontuacao.filter((p) => Number(p.pontos_aplicados) < 0).reduce((t, p) => t + Number(p.pontos_aplicados), 0) : 0;
+  // Com período escolhido, Positivos/Negativos (e o cartão "No período")
+  // somam só as linhas do período - o mesmo que a tabela mostra.
+  const pontosVisiveis = vePontos ? noPeriodo("pontuacao", f.pontuacao, "data_registro") : [];
+  const comPeriodoPontos = Boolean(periodoDe("pontuacao").de || periodoDe("pontuacao").ate);
+  const soma = (l) => l.reduce((t, p) => t + Number(p.pontos_aplicados), 0);
+  const totalPositivo = soma(pontosVisiveis.filter((p) => Number(p.pontos_aplicados) > 0));
+  const totalNegativo = soma(pontosVisiveis.filter((p) => Number(p.pontos_aplicados) < 0));
 
   const cards = [
     { chave: "ocorrencias", rotulo: "Ocorrências", valor: numero(r.ocorrencias_6m || 0), icone: "fisc-ocorrencias", tom: "vermelho" },
@@ -364,11 +393,11 @@ export default function FiscalDetalhe() {
                       colunas={COL_OCORRENCIA.filter((c) => c.rotulo !== "Equipe")}
                       aoAbrir={abrirOcorrencia} vazio="Nenhuma ocorrência atendida." />
             </Cartao>
-            <Cartao titulo={<><Icone nome="checklist" tamanho={18} /> Últimos Checklists de Viatura</>}
+            <Cartao titulo={<><Icone nome="checklist" tamanho={18} /> Checklists</>}
                     acao={verTodos("checklists", r.checklists)}>
               <Tabela linhas={(f.checklists || []).slice(0, 5)}
                       colunas={COL_CHECKLIST.filter((c) => c.rotulo !== "KM rodado")}
-                      vazio="Nenhum checklist de viatura." />
+                      aoAbrir={abrirChecklist} vazio="Nenhum checklist de viatura." />
             </Cartao>
           </div>
 
@@ -421,30 +450,42 @@ export default function FiscalDetalhe() {
       )}
 
       {aba === "ocorrencias" && (
-        <Cartao titulo={<><Icone nome="fisc-ocorrencias" tamanho={18} /> Ocorrências atendidas pelas equipes do fiscal</>}>
-          <Tabela linhas={f.ocorrencias || []} colunas={COL_OCORRENCIA} aoAbrir={abrirOcorrencia}
-                  vazio="Nenhuma ocorrência atendida." />
+        <Cartao titulo={<><Icone nome="fisc-ocorrencias" tamanho={18} /> Ocorrências Atendidas {filtroDe("ocorrencias")}</>}>
+          <Tabela linhas={noPeriodo("ocorrencias", f.ocorrencias, "data")} colunas={COL_OCORRENCIA} aoAbrir={abrirOcorrencia}
+                  vazio="Nenhuma ocorrência atendida no período." />
         </Cartao>
       )}
 
       {aba === "checklists" && (
-        <Cartao titulo={<><Icone nome="checklist" tamanho={18} /> Checklists de viatura</>}>
-          <Tabela linhas={f.checklists || []} colunas={COL_CHECKLIST} vazio="Nenhum checklist de viatura." />
+        <Cartao titulo={<><Icone nome="checklist" tamanho={18} /> Checklists {filtroDe("checklists")}</>}>
+          <Tabela linhas={noPeriodo("checklists", f.checklists, "data_abertura")} colunas={COL_CHECKLIST}
+                  aoAbrir={abrirChecklist} vazio="Nenhum checklist de viatura no período." />
         </Cartao>
       )}
 
       {aba === "pontuacao" && vePontos && (
-        <Cartao titulo={<><Icone nome="fisc-bolt" tamanho={18} /> Pontuação</>}>
+        <Cartao titulo={<><Icone nome="fisc-bolt" tamanho={18} /> Pontuação {filtroDe("pontuacao")}</>}>
           <div className="fd-pontos-resumo">
             <div><span>Total</span><Pontos valor={r.pontos} /></div>
-            <div><span>Últimos 6 meses</span><Pontos valor={r.pontos_6m} /></div>
+            {comPeriodoPontos
+              ? <div><span>No período</span><Pontos valor={soma(pontosVisiveis)} /></div>
+              : <div><span>Últimos 6 meses</span><Pontos valor={r.pontos_6m} /></div>}
             <div><span>Positivos</span><Pontos valor={totalPositivo} /></div>
             <div><span>Negativos</span><Pontos valor={totalNegativo} /></div>
           </div>
-          <Tabela linhas={f.pontuacao} colunas={COL_PONTOS} vazio="Nenhum registro de pontuação." />
+          <Tabela linhas={pontosVisiveis} colunas={COL_PONTOS}
+                  vazio="Nenhum registro de pontuação no período." />
           <p className="vd2-nota" style={{ marginTop: 10 }}>
             Pontuação lançada para a equipe vale para todos os fiscais que estavam nela naquele dia.
           </p>
+        </Cartao>
+      )}
+
+      {aba === "sinistros" && (
+        <Cartao titulo={<><Icone nome="sinistro" tamanho={18} /> Sinistros como condutor</>}>
+          <Tabela linhas={f.sinistros || []} colunas={COL_SINISTRO}
+                  aoAbrir={podeVer("FROTAS_VISUALIZAR") ? abrirSinistro : undefined}
+                  vazio="Nenhum sinistro registrado." />
         </Cartao>
       )}
 

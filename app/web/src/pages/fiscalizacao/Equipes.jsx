@@ -14,8 +14,17 @@ const TIPOS = [
   { valor: "FIXA", rotulo: "Fixa" },
   { valor: "TEMPORARIA", rotulo: "Temporária" },
 ];
+// Turno da equipe (18/10), escolhido no cadastro.
+export const TURNOS_EQUIPE = [
+  { valor: "DIURNO", rotulo: "Diurno (06:00 às 19:00)", curto: "Diurno", horario: "06:00 às 19:00" },
+  { valor: "NOTURNO", rotulo: "Noturno (19:00 às 23:59)", curto: "Noturno", horario: "19:00 às 23:59" },
+];
 
-export default criarPagina({
+/*
+ * A configuracao fica exportada: a tela de Detalhes da Equipe (09/10) usa a
+ * mesma para o Editar, com os mesmos campos e os fiscais para marcar.
+ */
+export const CONFIG_EQUIPE = {
   recurso: "fiscalizacao/equipes",
   id: "id_equipe",
   singular: "equipe",
@@ -28,6 +37,8 @@ export default criarPagina({
   iconeAcao: "fisc-servidores",
   permissaoGerenciar: "FISCALIZACAO_GERENCIAR_EQUIPES",
   permiteExcluir: true,
+  // "Visualizar" abre a tela de Detalhes da Equipe (09/10).
+  detalhe: true,
   descreverExclusao: (e) => `a equipe ${e.numero}`,
   // Fiscais (cargo Fiscal de Transito, ativos) para marcar no cadastro (09/10).
   opcoes: { fiscais: "/admin/servidores/opcoes?cargo_nome=FISCAL%20DE%20TRANSITO&status=true" },
@@ -36,7 +47,13 @@ export default criarPagina({
   },
   colunas: [
     { chave: "numero", rotulo: "Número", ordenavel: true },
-    { chave: "tipo", rotulo: "Tipo", ordenavel: true },
+    { chave: "tipo", rotulo: "Tipo", ordenavel: true,
+      render: (e) => (TIPOS.find((t) => t.valor === e.tipo)?.rotulo || e.tipo) },
+    { chave: "turno", rotulo: "Turno",
+      render: (e) => {
+        const t = TURNOS_EQUIPE.find((x) => x.valor === e.turno);
+        return t ? <span className="celula-dupla"><strong>{t.curto}</strong><span>{t.horario}</span></span> : "-";
+      } },
     { chave: "integrantes", cortar: true, rotulo: "Fiscais",
       render: (e) => (e.nomes_integrantes
         ? <span className="celula-cortada" title={e.nomes_integrantes}>{e.nomes_integrantes}</span>
@@ -59,6 +76,8 @@ export default criarPagina({
   formulario: [
     { nome: "numero", rotulo: "Número da equipe *", obrigatorio: true, dica: "Ex.: EQ-04" },
     { nome: "tipo", rotulo: "Tipo *", tipo: "selecao", opcoes: TIPOS, obrigatorio: true, padrao: "FIXA" },
+    { nome: "turno", rotulo: "Turno *", tipo: "selecao", obrigatorio: true, padrao: "DIURNO",
+      opcoes: TURNOS_EQUIPE.map(({ valor, rotulo }) => ({ valor, rotulo })) },
     { nome: "observacoes", rotulo: "Observações", tipo: "area", largo: true,
       dica: "Ex.: Equipe reforçada para o feriado" },
     { secao: "Fiscais da equipe" },
@@ -67,9 +86,14 @@ export default criarPagina({
       ajuda: "Quem sai da equipe continua no histórico até hoje; quem entra começa a contar a partir de hoje." },
   ],
   // Os fiscais vao em rota propria, depois de gravar a equipe.
-  aposSalvar: (id, f) => api(`/fiscalizacao/equipes/${id}/integrantes`, {
-    method: "PUT", body: { servidores: (f.fiscais || []).map(Number) },
-  }),
-  // "fiscais" nao e coluna da equipe: vai so pelo aposSalvar.
-  aoSalvar: ({ fiscais, ...f }) => ({ ...f, status: true }),
-});
+  aposSalvar: async (id, f) => {
+    await api(`/fiscalizacao/equipes/${id}/integrantes`, {
+      method: "PUT", body: { servidores: (f.fiscais || []).map(Number) },
+    });
+    if (f.turno) await api(`/fiscalizacao/equipes/${id}/turno`, { method: "PUT", body: { turno: f.turno } });
+  },
+  // "fiscais" e "turno" nao sao colunas da equipe: vao so pelo aposSalvar.
+  aoSalvar: ({ fiscais, turno, ...f }) => ({ ...f, status: true }),
+};
+
+export default criarPagina(CONFIG_EQUIPE);

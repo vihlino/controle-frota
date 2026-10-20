@@ -244,7 +244,12 @@ export default function ChecklistQr() {
       // ha nada faria a tela parecer lenta para todo mundo.
       api(`/qrcode/inspecao/${encodeURIComponent(token)}/${encodeURIComponent(m)}`)
         .then((i) => {
-          setInspecao(i || null);
+          // Sem inspecao pendente a API responde null, e o api() devolve {}
+          // nesse caso - objeto vazio e "verdadeiro", e a janela "Deseja
+          // fazer a inspecao periodica?" abria para todo condutor (17/10).
+          // So conta como inspecao a resposta que tem o id.
+          i = i && i.id_inspecao ? i : null;
+          setInspecao(i);
           // A lista vem da FREQUENCIA: a semanal confere 14 itens, a mensal
           // 21 (ver lib/itensInspecao.js). Antes era uma lista unica, e a
           // inspecao semanal pedia o mesmo trabalho da mensal.
@@ -538,7 +543,7 @@ export default function ChecklistQr() {
         <Modal
           titulo={
             inspecaoAberta
-              ? `Inspeção ${(ROTULO_FREQUENCIA[inspecao.tipo] || inspecao.tipo).toLowerCase()}`
+              ? `Inspeção ${String(ROTULO_FREQUENCIA[inspecao.tipo] || inspecao.tipo || "periódica").toLowerCase()}`
               : "Deseja fazer a inspeção periódica?"
           }
           legenda={

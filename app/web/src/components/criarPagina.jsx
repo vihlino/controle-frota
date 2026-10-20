@@ -104,6 +104,9 @@ export default function criarPagina(config) {
     const lista = useLista(config.recurso, filtrosIniciais, config.filtrosFixos || {});
 
     const [opcoes, setOpcoes] = useState({});        // listas dos selects
+    // Copia das listas para o abrir() (que nao muda): o novoPadrao le dela.
+    const opcoesRef = useRef({});
+    opcoesRef.current = opcoes;
     const [editando, setEditando] = useState(null);  // null | "novo" | id
     // Telas de Auditoria: config.exportarLogs = "acessos" | "acoes" | "alteracoes".
     const [exportando, setExportando] = useState(false);
@@ -204,7 +207,10 @@ export default function criarPagina(config) {
           }
         }
       }
-      setFormulario(reg ? { ...base, ...reg } : base);
+      // novoPadrao(listas): valores iniciais do cadastro NOVO que dependem das
+      // listas (ex.: Novo fiscal ja vem com o setor e o cargo de fiscal).
+      const extra = !reg && config.novoPadrao ? config.novoPadrao(opcoesRef.current) || {} : {};
+      setFormulario(reg ? { ...base, ...reg } : { ...base, ...extra });
       setErroForm("");
       setEditando(registro ? registro[config.id] : "novo");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -236,6 +242,19 @@ export default function criarPagina(config) {
       if (!idEditar) return;
       voltarParaDetalhe.current = idEditar;
       api(`/${config.recurso}/${idEditar}`).then((r) => abrir(r)).catch(() => {});
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    /*
+     * ?ver=ID abre a janela de Visualizar direto (18/10): e o clique num
+     * checklist de viatura na ficha do fiscal, que nao tem tela de detalhe.
+     */
+    useEffect(() => {
+      const idVer = !config.detalhe && parametros.get("ver");
+      if (!idVer) return;
+      const limpo = new URLSearchParams(parametros);
+      limpo.delete("ver");
+      definirParametros(limpo, { replace: true });
+      api(`/${config.recurso}/${idVer}`).then((r) => setVendo(r)).catch(() => {});
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
     useEffect(() => {
@@ -615,7 +634,7 @@ export default function criarPagina(config) {
             <dl className="lista-dados">
               {camposDoFormulario().map((c) => (
                 <div className="lista-dados__linha" key={c.nome}>
-                  <dt>{c.rotulo.replace(" *", "")}</dt>
+                  <dt>{String(c.rotulo || c.nome).replace(" *", "")}</dt>
                   <dd>{valorLegivel(c, vendo)}</dd>
                 </div>
               ))}

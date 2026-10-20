@@ -2,13 +2,15 @@
  * MultasPessoa.jsx - Aba "Multas" dos detalhes do Motorista, do Servidor e do
  * Fiscal (08/10). Resumo (total, em aberto, pontos em 12 meses, valor em
  * aberto), a lista das multas do condutor e o botao "Registrar multa".
- * Clicar numa linha abre a multa (edicao, com os anexos).
+ * Clicar numa linha abre os Detalhes da multa (18/10), com "Atualizar
+ * situação" e "Editar".
  */
 import { useEffect, useState } from "react";
 import Cartao from "./Cartao.jsx";
 import Icone from "./Icone.jsx";
 import Selo from "./Selo.jsx";
 import RegistrarMulta, { GRAVIDADES, SITUACOES_MULTA } from "./RegistrarMulta.jsx";
+import DetalheMulta from "./DetalheMulta.jsx";
 import { api } from "../lib/api.js";
 import { data, dinheiro, numero } from "../lib/formato.js";
 import { useSessao } from "../lib/sessao.jsx";
@@ -29,7 +31,8 @@ export default function MultasPessoa({ servidor, aoMudar }) {
   const podeGerenciar = podeVer("FROTAS_GERENCIAR_MULTAS");
   const [multas, setMultas] = useState(null);
   const [erro, setErro] = useState("");
-  const [janela, setJanela] = useState(null); // null | "nova" | multa
+  const [janela, setJanela] = useState(null); // null | "nova" | multa (edicao)
+  const [vendo, setVendo] = useState(null);   // multa aberta nos Detalhes
   const [recarga, setRecarga] = useState(0);
 
   useEffect(() => {
@@ -87,7 +90,7 @@ export default function MultasPessoa({ servidor, aoMudar }) {
                   </thead>
                   <tbody>
                     {multas.map((m) => (
-                      <tr key={m.id_multa} className="vd-tabela__linha" onClick={() => setJanela(m)}>
+                      <tr key={m.id_multa} className="vd-tabela__linha" onClick={() => setVendo(m)}>
                         <td>{vazio(m.numero_auto)}</td>
                         <td>{data(m.data)}</td>
                         <td>{m.placa}</td>
@@ -117,6 +120,16 @@ export default function MultasPessoa({ servidor, aoMudar }) {
           </>
         )}
       </Cartao>
+
+      {vendo && !janela && (
+        <DetalheMulta
+          multa={vendo}
+          servidor={servidor}
+          aoFechar={() => setVendo(null)}
+          aoEditar={(m) => { setVendo(null); setJanela(m); }}
+          aoMudar={recarregar}
+        />
+      )}
 
       {janela && (
         <RegistrarMulta

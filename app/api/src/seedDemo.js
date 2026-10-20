@@ -156,7 +156,7 @@ async function semearFiscalizacao(cliente, { fiscais, coordenadores, usuarios, k
   // --- servico diario, ocorrencias e checklists de viatura ---
   /*
    * Vinte dias de turno diurno e noturno. Os horarios sao fixos porque o banco
-   * exige: validar_horario_servico_diario recusa diurno que nao comece 07:00 e
+   * exige: validar_horario_servico_diario recusa diurno que nao comece 06:00 (07:00 ate a migracao 041) e
    * noturno que nao comece 19:00.
    */
   const VIA = [
@@ -225,7 +225,7 @@ async function semearFiscalizacao(cliente, { fiscais, coordenadores, usuarios, k
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id_servico_diario`,
         [
           dataRelativa(-dia), turno, coordenador, usuarios[0],
-          turno === "DIURNO" ? "07:00" : "19:00",
+          turno === "DIURNO" ? "06:00" : "19:00",
           encerrado ? (turno === "DIURNO" ? "19:00" : "07:00") : null,
           encerrado ? "ENCERRADO" : "EM_SERVICO",
           encerrado ? usuarios[0] : null,

@@ -1,166 +1,170 @@
 /**
- * ServiçoDiário.jsx - A escala diaria da fiscalização.
- * Cada linha e um turno, com o coordenador responsavel, e mostra quantas
- * equipes e quantas ocorrências aquele serviço teve.
+ * ServicoDiario.jsx - Servico Diario da Fiscalizacao (desenho do Cesar, 18/10
+ * e 20/10).
+ *
+ * Uma linha por EQUIPE no servico, com o codigo dela (SD-AAAA-NNNNN). O
+ * servico e o dia + turno, com o coordenador. Fiscais, viatura, saida e
+ * retorno vem do checklist da viatura que a equipe fez naquele servico; sem
+ * checklist, os fiscais sao os da equipe no dia e a viatura fica "-".
+ * "Visualizar" abre os Detalhes do Servico Diario.
+ *
+ * Do desenho ficaram de fora o que o SITRA nao tem (roteiro/local de atuacao,
+ * previsao de retorno, abas Mapa e Escala de Fiscais) e todos os cartoes do
+ * topo (pedido do Cesar, 20/10).
  */
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
-import Modal from "../../components/Modal.jsx";
-import { Selecao, Data, Texto, Periodo } from "../../components/Campos.jsx";
+import Acoes from "../../components/Acoes.jsx";
+import { useConfirmacaoSenha } from "../../components/ConfirmarSenha.jsx";
+import { Selecao, Periodo } from "../../components/Campos.jsx";
 import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
 import { data, hora, numero } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
+import JanelaServico, { TURNOS_SERVICO, ROTULO_TURNO, mudarSituacaoServico } from "./JanelaServico.jsx";
 
-// Os valores tem que ser os mesmos que a tabela `servico_diario` aceita
-// (chk_servico_turno e chk_servico_status). A tela oferecia tres turnos e a
-// situacao "Em andamento"; o banco so conhece dois turnos, e recusava o
-// cadastro inteiro com "violates check constraint chk_servico_status".
-const TURNOS = [
-  { valor: "DIURNO", rotulo: "Diurno" },
-  { valor: "NOTURNO", rotulo: "Noturno" },
-];
+// Situacao da LINHA (equipe no servico), calculada pela API.
 const SITUACOES = [
-  { valor: "ABERTO", rotulo: "Aberto" },
+  { valor: "ABERTO", rotulo: "Em aberto" },
   { valor: "EM_SERVICO", rotulo: "Em serviço" },
   { valor: "ENCERRADO", rotulo: "Encerrado" },
+  { valor: "CANCELADA", rotulo: "Cancelada" },
 ];
 
-export default function ServiçoDiário() {
-  const { podeVer, usuario } = useSessao();
-  const lista = useLista("fiscalizacao/servico-diario", {
-    busca: "", status: "", turno: "", dataDe: "", dataAte: "",
+export default function ServicoDiario() {
+  const navegar = useNavigate();
+  const { podeVer } = useSessao();
+  const lista = useLista("fiscalizacao/servico-diario/painel", {
+    busca: "", dataDe: "", dataAte: "", turno: "", equipe: "", fiscal: "", veiculo: "", status: "",
   });
-  const [servidores, setServidores] = useState([]);
-  const [criando, setCriando] = useState(false);
-  const [formulario, setFormulario] = useState({
-    data: "", turno: "DIURNO", id_coordenador: "", hora_inicio: "07:00",
-  });
-  const [erroForm, setErroForm] = useState("");
-  const [salvando, setSalvando] = useState(false);
+  const [equipes, setEquipes] = useState([]);
+  const [fiscais, setFiscais] = useState([]);
+  const [viaturas, setViaturas] = useState([]);
+  // Janela de cadastro: null | { id?: id_servico_diario }
+  const [janela, setJanela] = useState(null);
+  const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
 
   const podeGerenciar = podeVer("FISCALIZACAO_GERENCIAR_SERVICO");
   const [parametros, definirParametros] = useSearchParams();
 
   useEffect(() => {
-    api("/admin/servidores/opcoes")
-      // Array.isArray: uma resposta fora do formato esperado faria
-      // `servidores.map` derrubar a tela inteira, e o .catch abaixo nao pega
-      // isso - ele so ve falha de rede.
-      .then((r) => setServidores(Array.isArray(r) ? r : []))
-      .catch(() => {});
+    const comoLista = (r) => (Array.isArray(r) ? r : []);
+    api("/fiscalizacao/equipes/opcoes?status=true").then((r) => setEquipes(comoLista(r))).catch(() => {});
+    api("/admin/servidores/opcoes?cargo_nome=FISCAL%20DE%20TRANSITO&status=true").then((r) => setFiscais(comoLista(r))).catch(() => {});
+    api("/frotas/veiculos/opcoes?viatura=true").then((r) => setViaturas(comoLista(r))).catch(() => {});
   }, []);
 
-  // ?novo=1: o atalho "+ Servico Diario" do painel abre a janela de cadastro
-  // direto. O parametro e consumido para a janela nao reabrir a cada F5.
+  // ?novo=1: o atalho "+ Servico Diario" do painel abre a janela direto.
   useEffect(() => {
     if (!parametros.get("novo") || !podeGerenciar) return;
-    setCriando(true);
+    setJanela({});
     const limpo = new URLSearchParams(parametros);
     limpo.delete("novo");
     definirParametros(limpo, { replace: true });
   }, [parametros, definirParametros, podeGerenciar]);
 
-  async function salvar(e) {
-    e.preventDefault();
-    setSalvando(true);
-    setErroForm("");
-    try {
-      await api("/fiscalizacao/servico-diario", {
-        method: "POST",
-        body: {
-          ...formulario,
-          id_coordenador: Number(formulario.id_coordenador),
-          criado_por: usuario.id_usuario,
-          status: "ABERTO",
-        },
-      });
-      setCriando(false);
-      lista.recarregar();
-    } catch (e) {
-      setErroForm(e.message);
-    } finally {
-      setSalvando(false);
-    }
+  const abrir = (l) => navegar(`/fiscalizacao/servico-diario/${l.id_servico_equipe}`);
+  async function mudarSituacao(l, acao) {
+    if (await mudarSituacaoServico(pedirSenha, l, acao)) lista.recarregar();
   }
 
-  const campo = (nome) => ({
-    value: formulario[nome] ?? "",
-    onChange: (e) => setFormulario((f) => ({ ...f, [nome]: e.target.value })),
-  });
-
   const colunas = [
-    { chave: "data", rotulo: "Data", ordenavel: true, render: (s) => data(s.data) },
-    { chave: "turno", rotulo: "Turno", ordenavel: true },
-    { chave: "coordenador", rotulo: "Coordenador", ordenavel: true },
-    { chave: "hora_inicio", rotulo: "Inicio", render: (s) => hora(s.hora_inicio) },
-    { chave: "hora_encerramento", rotulo: "Encerramento", render: (s) => hora(s.hora_encerramento) },
-    { chave: "equipes", rotulo: "Equipes", render: (s) => numero(s.equipes) },
-    { chave: "ocorrencias", rotulo: "Ocorrências", render: (s) => numero(s.ocorrencias) },
-    { chave: "status", rotulo: "Situação", ordenavel: true, render: (s) => <Selo valor={s.status} /> },
+    {
+      chave: "codigo", rotulo: "Nº",
+      render: (l) => (l.codigo
+        ? <button type="button" className="pt-nome sd-codigo" onClick={() => abrir(l)}>{l.codigo}</button>
+        : <span className="texto-apagado">—</span>),
+    },
+    { chave: "data", rotulo: "Data", render: (l) => data(l.data) },
+    {
+      chave: "turno", rotulo: "Turno",
+      render: (l) => (
+        <span className="celula-dupla">
+          <strong>{ROTULO_TURNO[l.turno] || l.turno}</strong>
+          <span title="Coordenador do serviço">{l.coordenador}</span>
+        </span>
+      ),
+    },
+    { chave: "equipe", rotulo: "Equipe", render: (l) => l.equipe || <span className="texto-apagado">Sem equipe</span> },
+    {
+      chave: "fiscais", rotulo: "Fiscais", classe: "coluna-flexivel",
+      render: (l) => (l.fiscais?.length ? (
+        <span className="celula-lista">{l.fiscais.map((n) => <span key={n}>{n}</span>)}</span>
+      ) : "—"),
+    },
+    {
+      chave: "viatura", rotulo: "Viatura",
+      render: (l) => (l.placa ? (
+        <span className="celula-dupla"><strong>{l.placa}</strong><span>{l.marca} {l.modelo}</span></span>
+      ) : "—"),
+    },
+    { chave: "hora_saida", rotulo: "Saída", render: (l) => (l.hora_saida ? hora(l.hora_saida) : "—") },
+    { chave: "hora_chegada", rotulo: "Retorno", render: (l) => (l.hora_chegada ? hora(l.hora_chegada) : "—") },
+    { chave: "situacao", rotulo: "Situação", render: (l) => <Selo valor={l.situacao} /> },
+    { chave: "ocorrencias", rotulo: "Ocorrências", render: (l) => numero(l.ocorrencias) },
+    {
+      chave: "acoes", rotulo: "Ações",
+      render: (l) => (
+        <Acoes acoes={[
+          l.id_servico_equipe && { rotulo: "Visualizar", icone: "visualizar", aoClicar: () => abrir(l) },
+          l.id_equipe && { rotulo: "Ver equipe", icone: "equipe", aoClicar: () => navegar(`/fiscalizacao/equipes/${l.id_equipe}`) },
+          l.id_checklist && { rotulo: "Ver checklist", icone: "checklist", aoClicar: () => navegar(`/fiscalizacao/checklists/${l.id_checklist}`) },
+          l.id_veiculo && { rotulo: "Ver viatura", icone: "fisc-viatura", aoClicar: () => navegar(`/fiscalizacao/viaturas/${l.id_veiculo}`) },
+          podeGerenciar && l.status_servico === "ABERTO" && { rotulo: "Iniciar serviço", icone: "concluidas", aoClicar: () => mudarSituacao(l, "INICIAR") },
+          podeGerenciar && l.status_servico === "EM_SERVICO" && { rotulo: "Encerrar serviço", icone: "historico", aoClicar: () => mudarSituacao(l, "ENCERRAR") },
+          podeGerenciar && l.status_servico !== "ENCERRADO" && { rotulo: "Editar serviço", icone: "editar", aoClicar: () => setJanela({ id: l.id_servico_diario }) },
+        ].filter(Boolean)} />
+      ),
+    },
   ];
+
+  const opc = (l, v, r) => l.map((x) => ({ valor: x[v], rotulo: r(x) }));
 
   return (
     <PaginaLista
       trilha={[{ rotulo: "Fiscalização" }, { rotulo: "Serviço Diário" }]}
       titulo="Serviço Diário"
-      descricao="Escalas diarias da fiscalização, com equipes e ocorrências do turno."
+      descricao="Os serviços por turno: cada linha é uma equipe no serviço, com o código, os fiscais, a viatura, a saída e o retorno."
       acao={
         podeGerenciar && (
-          <button className="botao botao--primario" onClick={() => setCriando(true)}>
-            <Icone nome="calendar" tamanho={15} /> Novo serviço diário
+          <button className="botao botao--primario" onClick={() => setJanela({})}>
+            <Icone nome="mais" tamanho={15} /> Novo serviço diário
           </button>
         )
       }
       lista={lista}
       colunas={colunas}
-      chaveDe={(s) => s.id_servico_diario}
+      chaveDe={(l) => `${l.id_servico_diario}-${l.id_equipe ?? 0}`}
       unidade="serviços"
-      vazio="Nenhum serviço diário registrado."
+      vazio="Nenhum serviço diário com esses filtros."
       filtros={
         <>
-          <Texto rotulo="Buscar" id="busca" placeholder="Coordenador ou turno"
-                 value={lista.filtros.busca}
-                 onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
-          <Selecao rotulo="Turno" id="turno" vazio="Todos" opcoes={TURNOS}
-                   value={lista.filtros.turno}
-                   onChange={(e) => lista.alterarFiltro("turno", e.target.value)} />
-          <Selecao rotulo="Situação" id="status" vazio="Todas" opcoes={SITUACOES}
-                   value={lista.filtros.status}
-                   onChange={(e) => lista.alterarFiltro("status", e.target.value)} />
           <Periodo id="periodo" de={lista.filtros.dataDe} ate={lista.filtros.dataAte}
                    aoMudarDe={(v) => lista.alterarFiltro("dataDe", v)}
                    aoMudarAte={(v) => lista.alterarFiltro("dataAte", v)} />
+          <Selecao rotulo="Turno" id="turno" vazio="Todos" opcoes={TURNOS_SERVICO}
+                   value={lista.filtros.turno} onChange={(e) => lista.alterarFiltro("turno", e.target.value)} />
+          <Selecao rotulo="Equipe" id="equipe" vazio="Todas"
+                   opcoes={opc(equipes, "id_equipe", (e) => e.numero)}
+                   value={lista.filtros.equipe} onChange={(e) => lista.alterarFiltro("equipe", e.target.value)} />
+          <Selecao rotulo="Fiscal" id="fiscal" vazio="Todos"
+                   opcoes={opc(fiscais, "id_servidor", (s) => s.nome)}
+                   value={lista.filtros.fiscal} onChange={(e) => lista.alterarFiltro("fiscal", e.target.value)} />
+          <Selecao rotulo="Viatura" id="veiculo" vazio="Todas"
+                   opcoes={opc(viaturas, "id_veiculo", (v) => `${v.placa} - ${v.modelo}`)}
+                   value={lista.filtros.veiculo} onChange={(e) => lista.alterarFiltro("veiculo", e.target.value)} />
+          <Selecao rotulo="Situação" id="status" vazio="Todas" opcoes={SITUACOES}
+                   value={lista.filtros.status} onChange={(e) => lista.alterarFiltro("status", e.target.value)} />
         </>
       }
     >
-      {criando && (
-        <Modal
-          titulo="Novo serviço diário"
-          aoFechar={() => setCriando(false)}
-          rodape={
-            <>
-              <button className="botao" onClick={() => setCriando(false)}>Cancelar</button>
-              <button className="botao botao--primario" form="form-serviço" disabled={salvando}>
-                <Icone nome="salvar" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Criar serviço"}
-              </button>
-            </>
-          }
-        >
-          {erroForm && <div className="login__erro">{erroForm}</div>}
-          <form id="form-serviço" className="formulario-grade" onSubmit={salvar}>
-            <Data rotulo="Data *" id="data" required {...campo("data")} />
-            <Selecao rotulo="Turno *" id="form-turno" required opcoes={TURNOS} {...campo("turno")} />
-            <Selecao rotulo="Coordenador *" id="id_coordenador" required vazio="Selecione"
-                     opcoes={servidores.map((s) => ({ valor: s.id_servidor, rotulo: s.nome }))}
-                     {...campo("id_coordenador")} />
-            <Texto rotulo="Hora de início" id="hora_inicio" type="time" {...campo("hora_inicio")}  placeholder="Ex.: 07:00"/>
-          </form>
-        </Modal>
+      {janela && (
+        <JanelaServico idServico={janela.id} aoFechar={() => setJanela(null)} aoSalvar={() => lista.recarregar()} />
       )}
+      {modalSenha}
     </PaginaLista>
   );
 }

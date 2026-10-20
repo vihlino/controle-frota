@@ -4330,3 +4330,135 @@ button { font: inherit; cursor: pointer; }
   .impressao-moldura__espaco { height: 11mm; }
   html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* ---------- Detalhes da Equipe (09/10) ---------- */
+.eq-linha1 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: var(--e-5); align-items: start; }
+.eq-linha1 > .cartao { margin-bottom: 0; min-width: 0; }
+.eq-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.eq-avatar { color: #8a5a00; }
+.eq-fiscal { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+.eq-fiscal__avatar {
+  flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--amarelo-suave); color: #8a5a00; font-size: 11px; font-weight: 700;
+}
+@media (max-width: 1300px) { .eq-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1100px) { .eq-linha1 { grid-template-columns: minmax(0, 1fr); } }
+
+/* Menu de acoes da lista centralizado na coluna (09/10): o botao e flex
+   (bloco), entao o text-align da celula nao o centralizava - em listas com
+   poucas colunas (Equipes) a coluna fica larga e o botao ia para a esquerda. */
+.tabela td.coluna-acoes .acoes__botao { margin: 0 auto; }
+
+/* ---------- Periodo ao lado do titulo nas fichas (18/10) ---------- */
+.cartao__titulo .ficha-periodo { margin-left: 14px; font-weight: 400; }
+.ficha-periodo { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; }
+.ficha-periodo .campo-periodo { min-width: 0; width: auto; padding: 4px 8px; font-size: 13px; height: 34px; }
+.ficha-periodo .campo-periodo input { width: 128px; font-size: 13px; }
+.ficha-periodo__limpar {
+  display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px;
+  border: 1px solid var(--borda); border-radius: var(--raio-full); background: var(--superficie); cursor: pointer;
+}
+.ficha-periodo__limpar:hover { background: var(--superficie-2); }
+@media (max-width: 700px) {
+  .cartao__titulo { flex-wrap: wrap; }
+  .cartao__titulo .ficha-periodo { margin-left: 0; }
+}
+
+/* ---------- Detalhes da multa (18/10) ---------- */
+.multa-det__topo {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;
+  background: var(--superficie-2); border: 1px solid var(--borda); border-radius: var(--raio);
+  padding: 14px 16px; margin-bottom: 6px;
+}
+.multa-det__topo > div { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; min-width: 0; }
+.multa-det__topo strong { font-size: 16px; }
+.multa-det__rotulo { font-size: var(--t-xs); text-transform: uppercase; letter-spacing: .04em; color: var(--texto-2); }
+.multa-det__lista { margin: 0 0 6px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; }
+.multa-det__linha { display: grid; grid-template-columns: 170px 1fr; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--borda); font-size: 13.5px; }
+.multa-det__linha dt { color: var(--texto-2); }
+.multa-det__linha dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
+.multa-det__atualizar { background: var(--marca-fraca); border: 1px solid var(--marca-suave); border-radius: var(--raio); padding: 4px 16px 14px; margin: 10px 0; }
+@media (max-width: 700px) {
+  .multa-det__topo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .multa-det__lista { grid-template-columns: 1fr; }
+  .multa-det__linha { grid-template-columns: 130px 1fr; }
+}
+
+/* ---------------------------------------------------------------------------
+ * Telas dos desenhos do Cesar (18/10): Servico Diario, Detalhes da Equipe,
+ * da Viatura, da Ocorrencia e do Checklist, e Pontuacao.
+ * ------------------------------------------------------------------------- */
+.celula-lista { display: flex; flex-direction: column; gap: 2px; line-height: 1.35; }
+.texto-apagado { color: var(--texto-3); font-style: italic; }
+/* Detalhes da Viatura: tres cartoes no topo e o corpo em tres colunas. */
+.vt-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.vt-corpo { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 1.1fr); gap: var(--e-5); align-items: start; }
+.vt-corpo > .cartao { margin-bottom: 0; min-width: 0; }
+.vt-corpo .cartao__titulo { display: inline-flex; align-items: center; gap: 8px; }
+@media (max-width: 1350px) { .vt-corpo { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .vt-corpo > :first-child { grid-row: span 2; } }
+@media (max-width: 900px) { .vt-corpo, .vt-kpis { grid-template-columns: 1fr; } .vt-corpo > :first-child { grid-row: auto; } }
+/* Detalhes da Ocorrencia: descricao/atendimento a esquerda, situacao e historico a direita. */
+.oc-corpo { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: var(--e-5); align-items: start; }
+.oc-corpo .cartao__titulo { display: inline-flex; align-items: center; gap: 8px; }
+@media (max-width: 1100px) { .oc-corpo { grid-template-columns: 1fr; } }
+/* Detalhes do Checklist: numeros embaixo da tabela de equipamentos. */
+.ck-numeros {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--e-3);
+  margin-top: var(--e-4); padding: var(--e-3) var(--e-4); border-radius: 10px; background: var(--superficie-2);
+}
+.ck-numeros > div { display: flex; align-items: center; gap: 10px; color: var(--texto-2); }
+.ck-numeros span { display: flex; flex-direction: column; }
+.ck-numeros small { font-size: 12px; color: var(--texto-3); }
+.ck-numeros strong { font-size: 15px; color: var(--texto); }
+/* Pontuacao: lista dos fiscais e o painel de detalhes ao lado. */
+.pt-corpo { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: var(--e-5); align-items: start; }
+.pt-corpo > .cartao { margin-bottom: 0; min-width: 0; }
+.pt-corpo .cartao__titulo { display: inline-flex; align-items: center; gap: 8px; }
+@media (max-width: 1200px) { .pt-corpo { grid-template-columns: 1fr; } }
+.pt-titulo { display: inline-flex; align-items: center; gap: 8px; }
+.pt-titulo small { font-weight: 400; color: var(--texto-2); margin-left: 6px; }
+.pt-posicao {
+  display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 8px;
+  background: var(--superficie-3); font-size: 12.5px; font-weight: 600;
+}
+.pt-nome { background: none; border: 0; padding: 0; font: inherit; color: var(--texto); cursor: pointer; text-align: left; }
+.pt-nome:hover { text-decoration: underline; }
+.pt-nome[data-ativo="true"] { font-weight: 600; color: var(--marca-texto); }
+.pt-chip { display: inline-block; min-width: 56px; padding: 3px 10px; border-radius: 8px; background: var(--superficie-2); }
+.pt-pessoa {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center;
+  padding: var(--e-3); border: 1px solid var(--borda); border-radius: 12px;
+}
+.pt-pessoa > div:nth-child(2) { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pt-pessoa > div:nth-child(2) span { font-size: 12.5px; color: var(--texto-2); }
+.pt-avatar {
+  width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--amarelo-suave); color: #8a5a00; font-weight: 600;
+}
+.pt-total { display: flex; flex-direction: column; align-items: center; padding: 6px 12px; border-radius: 10px; background: var(--superficie-2); }
+.pt-total small { font-size: 11.5px; color: var(--texto-2); }
+.pt-pontos--grande { font-size: 24px; }
+.pt-numeros { margin: var(--e-4) 0; display: flex; flex-direction: column; }
+.pt-numeros > div { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--borda); }
+.pt-numeros dt { display: inline-flex; align-items: center; gap: 8px; color: var(--texto-2); }
+.pt-numeros dd { margin: 0; font-weight: 600; }
+.pt-lancamentos { list-style: none; margin: 0 0 var(--e-4); padding: 0; }
+.pt-lancamentos li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--borda); }
+.pt-lancamentos li span { display: flex; flex-direction: column; min-width: 0; }
+.pt-lancamentos small { font-size: 12px; color: var(--texto-2); }
+.pt-ficha { width: 100%; justify-content: center; }
+.pt-corpo .cartao__titulo { text-transform: none; letter-spacing: 0; font-size: 15.5px; font-weight: 700; gap: 9px; }
+.pt-numeros, .pt-lancamentos { font-size: 14px; }
+.pt-lancamentos strong { font-size: 13.5px; font-weight: 600; }
+.pt-pessoa strong { font-size: 15px; }
+/* Servico Diario: codigo clicavel na lista; detalhes com a segunda linha em tres cartoes. */
+.sd-codigo { font-weight: 600; white-space: nowrap; }
+.sd-linha2 { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--e-5); align-items: start; margin-top: var(--e-5); }
+.sd-linha2 > .cartao { margin-bottom: 0; min-width: 0; }
+@media (max-width: 1350px) { .sd-linha2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .sd-linha2 > :first-child { grid-column: 1 / -1; } }
+@media (max-width: 900px) { .sd-linha2 { grid-template-columns: 1fr; } }
+.sd-numeros { margin: 0; }
+.sd-viatura { display: flex; align-items: center; gap: 14px; margin-bottom: var(--e-3); }
+.sd-viatura__icone { width: 64px; height: 64px; border-radius: 14px; display: grid; place-items: center; background: var(--amarelo-suave); color: #8a5a00; flex: none; }
+.sd-viatura > div { display: flex; flex-direction: column; gap: 2px; }
+.sd-viatura > div > span:not(.sd-pessoa__nome) { font-size: 13px; color: var(--texto-2); }

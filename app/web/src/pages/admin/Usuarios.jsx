@@ -42,7 +42,10 @@ export default function Usuários() {
       // Array.isArray: uma resposta fora do formato esperado faria
       // `servidores.map` derrubar a tela inteira, e o .catch abaixo nao pega
       // isso - ele so ve falha de rede.
-      .then((r) => setServidores(Array.isArray(r) ? r : []))
+      // So quem pode receber acesso (17/10): servidor ativo e ainda sem
+      // usuario. Antes a lista trazia todos, e escolher alguem que ja tinha
+      // acesso so dava "Ja existe usuario com esse login ou servidor".
+      .then((r) => setServidores(Array.isArray(r) ? r.filter((s) => s.status && !s.tem_usuario) : []))
       .catch(() => {});
   }, []);
 

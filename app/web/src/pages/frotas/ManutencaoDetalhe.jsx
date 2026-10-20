@@ -57,10 +57,12 @@ function Linhas({ linhas }) {
 
 /** As etapas da OS, na ordem em que acontecem. */
 function etapasDaOs(os) {
-  const ordem = { EM_ANALISE: 1, EM_MANUTENCAO: 2, RESOLVIDA: 4 }[os.status] ?? 1;
+  const ordem = { PENDENTE: 0, EM_ANALISE: 1, EM_MANUTENCAO: 2, RESOLVIDA: 4 }[os.status] ?? 1;
   const estado = (n) => (os.status === "RESOLVIDA" || n < ordem ? "feito" : n === ordem ? "atual" : "pendente");
   const lista = [
-    { titulo: "OS registrada", quando: dataHora(os.data_abertura), estado: "feito" },
+    { titulo: os.origem === "FISCALIZACAO" ? "OS solicitada pela Fiscalização" : "OS registrada", quando: dataHora(os.data_abertura), estado: "feito" },
+    // Solicitacao da Fiscalizacao (18/10): espera o Frotas completar.
+    ...(os.origem === "FISCALIZACAO" ? [{ titulo: "Completada pelo Frotas", quando: os.status === "PENDENTE" ? "Aguardando oficina, responsável e custo" : null, estado: os.status === "PENDENTE" ? "atual" : "feito" }] : []),
     { titulo: "Em análise", estado: estado(1) },
     { titulo: "Em manutenção na oficina", quando: os.data_agendada ? `Agendada para ${data(os.data_agendada)}` : null, estado: estado(2) },
     { titulo: "Serviço finalizado", quando: os.data_conclusao ? data(os.data_conclusao) : null, estado: estado(3) },
@@ -81,6 +83,7 @@ export default function ManutencaoDetalhe() {
   const navegar = useNavigate();
   const { definirCabecalho } = useOutletContext();
   const { podeVer } = useSessao();
+  const { pathname } = useLocation();
   const [os, setOs] = useState(null);
   const [erro, setErro] = useState("");
   const [recarga, setRecarga] = useState(0);
@@ -101,11 +104,14 @@ export default function ManutencaoDetalhe() {
   if (!os) return <div className="carregando">Carregando a OS...</div>;
 
   // Na Fiscalizacao (09/10): volta para a lista de la e gerencia com a
-  // permissao das viaturas.
-  const { pathname } = useLocation();
+  // permissao das viaturas. (O useLocation fica no alto, junto dos outros
+  // hooks: abaixo dos "return" de carregando ele mudava a ordem dos hooks.)
   const fiscalizacao = pathname.startsWith("/fiscalizacao");
   const base = fiscalizacao ? "/fiscalizacao/manutencoes" : "/frotas/manutencoes";
-  const podeGerenciar = podeVer("FROTAS_GERENCIAR_OS") || (fiscalizacao && podeVer("FISCALIZACAO_GERENCIAR_VIATURAS"));
+  // 18/10: na Fiscalizacao a OS so e acompanhada; editar, completar e
+  // fechar sao do Frotas.
+  const podeGerenciar = !fiscalizacao && podeVer("FROTAS_GERENCIAR_OS");
+  const pendente = os.status === "PENDENTE";
   const fechada = os.status === "RESOLVIDA";
   const aberta = !["RESOLVIDA", "CANCELADA"].includes(os.status);
   const origem = ORIGEM[os.origem] || { texto: os.origem };
@@ -156,14 +162,14 @@ export default function ManutencaoDetalhe() {
           <button className="botao" onClick={() => navegar(base)}>
             <Icone nome="seta-esquerda" tamanho={15} /> Voltar
           </button>
-          {podeGerenciar && aberta && (
+          {podeGerenciar && aberta && !pendente && (
             <button className="botao botao--primario" onClick={() => setFechando(true)}>
               <Icone nome="concluir" tamanho={15} monocromatico /> Fechar OS
             </button>
           )}
           {podeGerenciar && os.status !== "CANCELADA" && (
-            <button className="botao" onClick={() => setEditando(true)}>
-              <Icone nome="editar" tamanho={15} /> Editar
+            <button className={pendente ? "botao botao--primario" : "botao"} onClick={() => setEditando(true)}>
+              <Icone nome="editar" tamanho={15} monocromatico={pendente} /> {pendente ? "Completar OS" : "Editar"}
             </button>
           )}
         </div>
@@ -195,13 +201,14 @@ export default function ManutencaoDetalhe() {
                 <button type="button" className="selo selo--link" data-tom="azul"
                         onClick={() => navegar(origem.link(os.id_registro_origem))}>{origem.texto}</button>
               ) : <Selo key="o" texto={origem.texto} tom="azul" />],
-              ["Solicitante", os.solicitante],
+              ["Responsável pela OS", os.solicitante],
+              ["Data do ocorrido", os.data_ocorrido ? data(os.data_ocorrido) : null],
               ["Setor", os.setor],
               ["Prioridade", <Selo key="p" texto={rotulo("gravidade", os.gravidade)} tom={TOM_PRIORIDADE[os.gravidade]} />],
               ["Status", <Selo key="s" valor={os.status} />],
               ["Oficina responsável", [os.oficina, os.responsavel_oficina, os.telefone_oficina].filter(Boolean).join(" · ")],
               ["Previsão de conclusão", os.prazo_previsto ? data(os.prazo_previsto) : os.data_agendada ? `Agendada para ${data(os.data_agendada)}` : null],
-              ["Quilometragem", os.quilometragem != null ? `${numero(os.quilometragem)} km` : null],
+              ["KM atual (no registro)", os.quilometragem != null ? `${numero(os.quilometragem)} km` : null],
               ...(fechada ? [
                 ["Fechada em", `${data(os.data_fechamento)}${os.fechada_por_nome ? ` por ${os.fechada_por_nome}` : ""}`],
                 ["KM no fechamento", os.km_fechamento != null ? `${numero(os.km_fechamento)} km` : null],
@@ -226,10 +233,18 @@ export default function ManutencaoDetalhe() {
               <p className="ficha-texto">{os.servico_realizado || "—"}</p>
             </>
           )}
-          {!fechada && aberta && podeGerenciar && (
+          {!fechada && aberta && podeGerenciar && !pendente && (
             <div className="insp-nota insp-nota--pequena">
               <Icone nome="informacao" tamanho={14} />
               <span>Quando o serviço voltar da oficina, use <strong>Fechar OS</strong> para registrar o que foi feito.</span>
+            </div>
+          )}
+          {pendente && (
+            <div className="insp-nota insp-nota--pequena">
+              <Icone nome="informacao" tamanho={14} />
+              <span>{podeGerenciar
+                ? <>Solicitada pela Fiscalização. Use <strong>Completar OS</strong> para informar a oficina, o responsável e o custo.</>
+                : "Solicitação enviada ao Frotas. A OS segue para a oficina quando o Frotas completar o registro."}</span>
             </div>
           )}
         </Cartao>

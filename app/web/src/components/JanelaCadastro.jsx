@@ -9,6 +9,9 @@
  *
  * So edita (o cadastro de um novo continua na lista). Pede a senha antes de
  * gravar, como no resto do sistema, e o motivo quando a configuracao exige.
+ *
+ * 09/10: tambem entende o campo "marcar" (lista de caixas, ex.: fiscais da
+ * equipe) e chama o aposSalvar da configuracao, como a lista faz.
  */
 import { useEffect, useState } from "react";
 import Modal from "./Modal.jsx";
@@ -86,6 +89,7 @@ export default function JanelaCadastro({ config, id, aoFechar, aoSalvar }) {
       }
       if (pedeMotivo) corpo = { ...corpo, justificativa: resposta.justificativa };
       await api(`/${config.recurso}/${id}`, { method: "PUT", body: corpo });
+      if (config.aposSalvar) await config.aposSalvar(id, formulario);
       aoSalvar?.();
       aoFechar();
     } catch (e) {
@@ -96,6 +100,36 @@ export default function JanelaCadastro({ config, id, aoFechar, aoSalvar }) {
   }
 
   function renderCampo(c) {
+    // Lista de marcar (ex.: fiscais da equipe): o valor e um array de ids.
+    if (c.tipo === "marcar") {
+      const lista = typeof c.opcoes === "string"
+        ? (opcoes[c.opcoes] || []).map(config.mapaOpcoes[c.opcoes])
+        : c.opcoes || [];
+      const marcados = (formulario[c.nome] || []).map(String);
+      const trocar = (v) => setFormulario((f) => ({
+        ...f, [c.nome]: marcados.includes(v) ? marcados.filter((x) => x !== v) : [...marcados, v],
+      }));
+      return (
+        <div className="campo" data-largo="sim" key={c.nome}>
+          <label>{c.rotulo}</label>
+          {lista.length === 0 ? <p className="campo__leitura">{c.vazio || "Nenhuma opção."}</p> : (
+            <div className="marcar-lista">
+              {lista.map((o) => (
+                <label key={o.valor} className="marcar-lista__item" data-marcado={marcados.includes(String(o.valor))}>
+                  <input type="checkbox" checked={marcados.includes(String(o.valor))}
+                         onChange={() => trocar(String(o.valor))} />
+                  <span>
+                    <strong>{o.rotulo}</strong>
+                    {o.apoio && <small>{o.apoio}</small>}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+          {c.ajuda && <small className="campo__ajuda">{c.ajuda}</small>}
+        </div>
+      );
+    }
     const Componente = CAMPOS[c.tipo] || Texto;
     const listaOpcoes = c.opcoes
       ? typeof c.opcoes === "function"

@@ -111,9 +111,30 @@ const RESTRICOES = {
     "Inspeção finalizada precisa de data, hora e resultado do encerramento.",
 };
 
+/*
+ * Duplicidade com mensagem propria (17/10): a generica dizia "Ja existe outro
+ * servico_diario com esses dados. Confira se o nome..." - nome da tabela e um
+ * "nome" que o servico diario nem tem.
+ */
+const DUPLICADOS = {
+  uq_servico_diario_data_turno: "Já existe um serviço diário para essa data e esse turno.",
+  equipe_numero_key: "Já existe uma equipe com esse número.",
+  veiculo_placa_key: "Já existe um veículo com essa placa.",
+  veiculo_renavam_key: "Já existe um veículo com esse Renavam.",
+  veiculo_chassi_key: "Já existe um veículo com esse chassi.",
+  servidor_cpf_key: "Já existe um servidor com esse CPF.",
+  servidor_matricula_key: "Já existe um servidor com essa matrícula.",
+  pontuacao_item_codigo_key: "Já existe um item de pontuação com esse código.",
+  setor_nome_key: "Já existe um setor com esse nome.",
+  ux_cargo_nome_setor: "Já existe um cargo com esse nome neste setor.",
+  ux_cargo_nome_global: "Já existe um cargo com esse nome.",
+  perfil_nome_key: "Já existe um perfil com esse nome.",
+};
+
 function mensagemDeConflito(e, entidade) {
   if (e.code === "23505") {
-    return `Já existe outro ${entidade || "registro"} com esses dados. Confira se o nome já não está cadastrado.`;
+    return DUPLICADOS[e.constraint]
+      || `Já existe outro ${String(entidade || "registro").replace(/_/g, " ")} com esses dados. Confira se ele já não está cadastrado.`;
   }
   // 23514 = CHECK violado: o valor nao esta na lista que a coluna aceita.
   if (e.code === "23514") {

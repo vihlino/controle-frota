@@ -4,6 +4,14 @@
  * A gestao nao executa a manutencao: registra a OS que foi para a oficina,
  * para nao esquecer e para achar depois sem papel. Editar uma OS ainda
  * aberta reabre esta mesma janela, preenchida, e pede justificativa e senha.
+ *
+ * 18/10 - SOLICITACAO DA FISCALIZACAO (`solicitacao`): a Fiscalizacao nao
+ * registra a oficina, o custo ou as pecas - ela pede o servico da viatura.
+ * A janela mostra so veiculo, prioridade, data do ocorrido, KM atual, tipo,
+ * descricao, observacoes e itens; a OS nasce "Pendente" e o Frotas completa
+ * (a mesma janela, em "Completar OS", sem pedir justificativa).
+ * Nas duas: Responsavel, Data e Horario da OS vem sozinhos (quem esta
+ * registrando, agora).
  */
 import { useEffect, useState } from "react";
 import Modal from "./Modal.jsx";
@@ -13,7 +21,8 @@ import CampoDinheiro from "./CampoDinheiro.jsx";
 import { useConfirmacaoSenha } from "./ConfirmarSenha.jsx";
 import { Texto, Selecao, Data, Area } from "./Campos.jsx";
 import { api } from "../lib/api.js";
-import { numero, numeroOs } from "../lib/formato.js";
+import { data as dataBr, hora as horaBr, numero, numeroOs } from "../lib/formato.js";
+import { useSessao } from "../lib/sessao.jsx";
 
 export const TIPOS_OS = [
   { valor: "PREVENTIVA", rotulo: "Preventiva" },
@@ -34,8 +43,12 @@ const texto = (v) => (v === null || v === undefined ? "" : String(v));
  * vindos dos itens com ressalva. O veiculo fica travado no da inspecao, e a OS
  * nasce ligada a ela.
  */
-export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoFechar, aoSalvar, soViaturas = false }) {
+export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoFechar, aoSalvar, soViaturas = false, solicitacao = false }) {
   const editando = Boolean(os);
+  const { usuario } = useSessao();
+  // Frotas completando a OS que a Fiscalizacao solicitou.
+  const completando = editando && os.status === "PENDENTE";
+  const [agora] = useState(() => new Date());
   const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
   const [veiculos, setVeiculos] = useState([]);
   const [erro, setErro] = useState("");
@@ -54,6 +67,7 @@ export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoF
     pecas_necessarias: texto(os?.pecas_necessarias),
     observacoes: texto(os?.observacoes),
     quilometragem: texto(os?.quilometragem),
+    data_ocorrido: soData(os?.data_ocorrido),
   }));
   // O KM vem do veiculo escolhido ate a pessoa digitar outro.
   const [kmDigitado, setKmDigitado] = useState(editando);
@@ -83,9 +97,15 @@ export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoF
   async function salvar(e) {
     e.preventDefault();
     setErro("");
-    const corpo = { ...formulario, id_veiculo: Number(formulario.id_veiculo), itens };
+    const corpo = { ...formulario, id_veiculo: Number(formulario.id_veiculo), itens, ...(solicitacao ? { solicitacao: true } : {}) };
     let justificativa;
-    if (editando) {
+    if (completando) {
+      const ok = await pedirSenha({
+        titulo: "Completar OS",
+        aviso: "Confirme sua senha para completar a OS solicitada pela Fiscalização.",
+      });
+      if (!ok) return;
+    } else if (editando) {
       const resposta = await pedirSenha({
         titulo: "Salvar alterações",
         aviso: "A alteração da OS fica registrada na auditoria, com o que estava antes.",
@@ -118,8 +138,12 @@ export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoF
   return (
     <>
       <Modal
-        titulo={editando ? (os.numero ? `Editar Registro ${numeroOs(os.numero)}` : "Editar Registro da OS") : "Registrar OS"}
-        legenda={inspecao && !editando ? `Vinculada à inspeção ${inspecao.numero || ""}`.trim() : undefined}
+        titulo={completando ? `Completar OS${os.numero ? ` ${numeroOs(os.numero)}` : ""}`
+          : editando ? (os.numero ? `Editar Registro ${numeroOs(os.numero)}` : "Editar Registro da OS")
+            : "Registrar OS"}
+        legenda={inspecao && !editando ? `Vinculada à inspeção ${inspecao.numero || ""}`.trim()
+          : solicitacao ? "A OS vai para o Frotas completar com a oficina, o responsável e o custo."
+            : completando ? "Solicitada pela Fiscalização. Preencha a oficina e o que mais souber; a OS passa para Em análise." : undefined}
         aoFechar={aoFechar}
         rodape={
           <>
@@ -132,16 +156,28 @@ export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoF
       >
         {erro && <div className="login__erro">{erro}</div>}
         <form id="form-registrar-os" className="formulario-grade" onSubmit={salvar}>
+          {/* Preenchidos sozinhos (18/10): quem registra, e quando. */}
+          <Texto rotulo="Responsável pela OS" id="os-responsavel" disabled readOnly
+                 value={editando ? (os.solicitante || "—") : (usuario?.nome || "")} />
+          <Texto rotulo="Data da OS" id="os-data-abertura" disabled readOnly
+                 value={editando && os.data_abertura ? dataBr(os.data_abertura) : agora.toLocaleDateString("pt-BR")} />
+          <Texto rotulo="Horário da OS" id="os-hora-abertura" disabled readOnly
+                 value={editando && os.data_abertura ? horaBr(String(os.data_abertura).slice(11, 16))
+                   : agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} />
           <Selecao rotulo="Veículo *" id="os-veiculo" required vazio="Selecione"
                    disabled={Boolean(inspecao)}
                    opcoes={veiculos.map((v) => ({
                      valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
                    }))}
                    {...campo("id_veiculo")} />
-          <Data rotulo="Data agendada *" id="os-data" required {...campo("data_agendada")} />
+          {(solicitacao || formulario.data_ocorrido) && (
+            <Data rotulo={solicitacao ? "Data do ocorrido *" : "Data do ocorrido"} id="os-ocorrido"
+                  required={solicitacao} {...campo("data_ocorrido")} />
+          )}
+          {!solicitacao && <Data rotulo="Data agendada *" id="os-data" required {...campo("data_agendada")} />}
           <Selecao rotulo="Prioridade *" id="os-prioridade" required opcoes={PRIORIDADES_OS}
                    {...campo("gravidade")} />
-          <Texto rotulo="KM no registro" id="os-km" type="number" min="0" step="1"
+          <Texto rotulo="KM atual" id="os-km" type="number" min="0" step="1"
                  inputMode="numeric" placeholder="Selecione o veículo"
                  ajuda={veiculo ? `Último KM registrado do veículo: ${numero(veiculo.quilometragem_atual)} km.` : undefined}
                  value={formulario.quilometragem}
@@ -151,23 +187,31 @@ export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoF
                  }} />
           <Selecao rotulo="Tipo de manutenção *" id="os-tipo" required opcoes={TIPOS_OS}
                    {...campo("tipo")} />
-          <Texto rotulo="Oficina / Fornecedor *" id="os-oficina" required
-                 placeholder="Nome da oficina" {...campo("oficina")} />
-          <Texto rotulo="Responsável pela oficina" id="os-resp-oficina"
-                 placeholder="Nome do responsável" {...campo("responsavel_oficina")} />
-          <Texto rotulo="Telefone da oficina" id="os-telefone"
-                 placeholder="(00) 00000-0000" {...campo("telefone_oficina")} />
+          {!solicitacao && (
+            <>
+              <Texto rotulo="Oficina / Fornecedor *" id="os-oficina" required
+                     placeholder="Nome da oficina" {...campo("oficina")} />
+              <Texto rotulo="Responsável pela oficina" id="os-resp-oficina"
+                     placeholder="Nome do responsável" {...campo("responsavel_oficina")} />
+              <Texto rotulo="Telefone da oficina" id="os-telefone"
+                     placeholder="(00) 00000-0000" {...campo("telefone_oficina")} />
+            </>
+          )}
           <Area rotulo="Descrição / Serviço a ser realizado *" id="os-descricao" largo required
                 minLength={5} placeholder="Descreva o serviço ou manutenção a ser realizado..."
                 {...campo("descricao")} />
 
-          <h3 className="modal-secao">Informações complementares (opcional)</h3>
-          <CampoDinheiro rotulo="Custo estimado" id="os-custo" valor={formulario.custo_estimado}
-                         aoMudar={(v) => setFormulario((f) => ({ ...f, custo_estimado: v }))} />
-          <Data rotulo="Prazo previsto" id="os-prazo" {...campo("prazo_previsto")} />
-          <Area rotulo="Peças necessárias" id="os-pecas" largo
-                placeholder="Liste as peças necessárias (se houver)..."
-                {...campo("pecas_necessarias")} />
+          {!solicitacao && (
+            <>
+              <h3 className="modal-secao">Informações complementares (opcional)</h3>
+              <CampoDinheiro rotulo="Custo estimado" id="os-custo" valor={formulario.custo_estimado}
+                             aoMudar={(v) => setFormulario((f) => ({ ...f, custo_estimado: v }))} />
+              <Data rotulo="Prazo previsto" id="os-prazo" {...campo("prazo_previsto")} />
+              <Area rotulo="Peças necessárias" id="os-pecas" largo
+                    placeholder="Liste as peças necessárias (se houver)..."
+                    {...campo("pecas_necessarias")} />
+            </>
+          )}
           <Area rotulo="Observações" id="os-obs" largo placeholder="Observações adicionais..."
                 {...campo("observacoes")} />
 

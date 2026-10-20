@@ -16,6 +16,22 @@ import { autenticar, exigePermissao } from "../auth.js";
 
 const router = Router();
 const verFrotas = exigePermissao("FROTAS_VISUALIZAR");
+/*
+ * Detalhes do veiculo: Frotas, ou a Fiscalizacao quando o veiculo e uma
+ * VIATURA (tela de Viaturas, 18/10).
+ */
+async function verVeiculo(req, res, next) {
+  const p = req.usuario?.permissoes || [];
+  if (p.includes("FROTAS_VISUALIZAR")) return next();
+  if (!p.includes("FISCALIZACAO_VISUALIZAR")) return res.status(403).json({ erro: "Sem permissão para esta ação." });
+  try {
+    const { rows } = await query("SELECT viatura FROM veiculo WHERE id_veiculo = $1", [Number(req.params.id)]);
+    if (!rows[0]?.viatura) return res.status(404).json({ erro: "Viatura não encontrada." });
+    next();
+  } catch (e) {
+    next(e);
+  }
+}
 // Ficha de motorista/servidor: Frotas (Motoristas) e Administracao (Servidores).
 const verPessoas = exigePermissao("FROTAS_VISUALIZAR", "ADMIN_VISUALIZAR");
 
@@ -58,7 +74,7 @@ router.get("/inspecoes/:id/itens", autenticar, verFrotas, async (req, res, next)
 
 // Historico completo de um veiculo: checklists, inspecoes, OS e sinistros
 // reunidos numa linha do tempo unica.
-router.get("/veiculos/:id/historico", autenticar, verFrotas, async (req, res, next) => {
+router.get("/veiculos/:id/historico", autenticar, verVeiculo, async (req, res, next) => {
   try {
     const id = Number(req.params.id);
     const { rows } = await query(
@@ -105,7 +121,7 @@ router.get("/veiculos/:id/historico", autenticar, verFrotas, async (req, res, ne
 });
 
 // Resumo do veiculo para a tela de detalhes: contagens de cada modulo.
-router.get("/veiculos/:id/resumo", autenticar, verFrotas, async (req, res, next) => {
+router.get("/veiculos/:id/resumo", autenticar, verVeiculo, async (req, res, next) => {
   try {
     const id = Number(req.params.id);
     const { rows } = await query(

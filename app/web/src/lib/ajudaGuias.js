@@ -195,8 +195,8 @@ export const GUIAS = [
     ver: ["FROTAS_VISUALIZAR"],
     fazer: ["FROTAS_GERENCIAR_OS"],
     passos: [
-      "Clique em \"Registrar OS\".",
-      "Escolha o Veículo e preencha Data agendada, Prioridade, Tipo de manutenção, Oficina / Fornecedor e a Descrição do serviço.",
+      "Clique em \"Registrar OS\". Responsável pela OS, Data e Horário da OS são preenchidos sozinhos.",
+      "Escolha o Veículo e preencha Data agendada, Prioridade, KM atual, Tipo de manutenção, Oficina / Fornecedor e a Descrição do serviço.",
       "Se quiser, preencha as informações complementares (custo estimado, prazo, peças) e os itens a verificar. Clique em Salvar: a OS fica \"Em análise\".",
       "Quando o veículo voltar, abra Ações › \"Fechar OS\" (ou o botão na ficha da OS).",
       "Informe a Data de fechamento, confirme a Quilometragem atual e descreva o Serviço realizado. Custo final e peças trocadas são opcionais.",
@@ -204,6 +204,7 @@ export const GUIAS = [
     ],
     dicas: [
       "OS também nascem do checklist (quadro \"Abrir OS\" do condutor) e da análise de uma inspeção.",
+      "OS pedida pela Fiscalização chega \"Pendente\" e avisa no sino. Abra a OS, clique em \"Completar OS\", preencha Data agendada, Oficina, responsável, custo e peças e salve: ela passa para \"Em análise\".",
       "Corrigir uma OS já fechada pede senha e justificativa.",
     ],
   },
@@ -250,6 +251,8 @@ export const GUIAS = [
     dicas: [
       "As multas ficam na aba Multas da ficha da pessoa, com os pontos dos últimos 12 meses e o valor em aberto.",
       "Também dá para registrar pela própria aba Multas, no botão \"Registrar multa\".",
+      "Clique numa multa da aba Multas para ver os detalhes. Lá estão \"Atualizar situação\" (Pendente, Em recurso, Paga, Cancelada) e \"Editar\".",
+      "Multa pendente ou em recurso que vence em até 30 dias aparece no sino.",
     ],
   },
   {
@@ -273,6 +276,7 @@ export const GUIAS = [
     ],
     dicas: [
       "O filtro \"Aguardando meu ateste\" mostra só o que está com você.",
+      "Relatórios de Frotas mostram só os veículos da frota; os da Fiscalização mostram viaturas, checklists das viaturas, ocorrências, serviços diários e pontuação. Quem tem os dois módulos escolhe em \"Dados de\".",
       "O ateste não pode ser desfeito.",
     ],
   },
@@ -314,13 +318,14 @@ export const GUIAS = [
     fazer: ["FISCALIZACAO_GERENCIAR_EQUIPES"],
     passos: [
       "Clique em \"Nova equipe\".",
-      "Preencha o Número da equipe (ex.: EQ-04) e o Tipo (Fixa ou Temporária).",
+      "Preencha o Número da equipe (ex.: EQ-04), o Tipo (Fixa ou Temporária) e o Turno: Diurno (06:00 às 19:00) ou Noturno (19:00 às 23:59).",
       "Em \"Fiscais da equipe\", marque os fiscais que fazem parte dela.",
       "Clique em Salvar. Os nomes aparecem na coluna Fiscais da lista.",
       "Para trocar alguém, abra Ações › Editar, marque ou desmarque os fiscais e salve.",
     ],
     dicas: [
       "Quem sai da equipe continua no histórico até o dia da saída; quem entra começa a contar a partir de hoje.",
+      "Trocar o turno também fica no histórico da equipe, com a data da troca.",
     ],
   },
   {
@@ -336,11 +341,11 @@ export const GUIAS = [
     fazer: ["FISCALIZACAO_GERENCIAR_VIATURAS"],
     passos: [
       "Clique em \"Nova viatura\".",
-      "Preencha Placa, Marca, Modelo, anos, Tipo, Cor e Combustível.",
+      "Preencha Placa, Marca, Modelo, anos, Tipo, Cor e Combustível. O Setor já vem como Fiscalização.",
       "Clique em Salvar. A viatura também aparece em Veículos, no setor Fiscalização.",
     ],
     dicas: [
-      "O QR Code da viatura é gerado na ficha do veículo, como em qualquer veículo da frota.",
+      "Em Ações estão Visualizar, Histórico, Documentos, Manutenções, Editar e Excluir. O botão do QR Code abre a aba QR Code dos detalhes da viatura.",
     ],
   },
   {
@@ -349,18 +354,20 @@ export const GUIAS = [
     icone: "kpi-wrench",
     titulo: "Manutenção das viaturas",
     pergunta: "Como registrar a manutenção de uma viatura?",
-    resumo: "Registrar e fechar OS das viaturas pela Fiscalização.",
+    resumo: "Pedir e acompanhar a OS das viaturas; quem completa e fecha é o Frotas.",
     onde: "Fiscalização › Manutenções",
     para: "/fiscalizacao/manutencoes",
     ver: ["FISCALIZACAO_VISUALIZAR"],
     fazer: ["FROTAS_GERENCIAR_OS", "FISCALIZACAO_GERENCIAR_VIATURAS"],
     passos: [
-      "Clique em \"Registrar OS\". Só as viaturas aparecem na lista de veículos.",
-      "Preencha Data agendada, Prioridade, Tipo de manutenção, Oficina e a Descrição do serviço e clique em Salvar.",
-      "Quando a viatura voltar, abra Ações › \"Fechar OS\", informe a data, o KM e o serviço realizado e salve.",
+      "Clique em \"Registrar OS\". Responsável, Data e Horário da OS são preenchidos sozinhos. Só as viaturas aparecem na lista.",
+      "Preencha Veículo, Prioridade, Data do ocorrido, KM atual, Tipo de manutenção e a Descrição do serviço. Observações e itens a verificar são opcionais.",
+      "Clique em Salvar. A OS fica \"Pendente\" e vai para o Frotas completar com a oficina, o responsável, o custo e as peças.",
+      "Acompanhe pela lista ou pelos detalhes da OS: depois de completada ela segue Em análise, Em manutenção, Resolvida.",
     ],
     dicas: [
       "Nesta tela aparecem só as OS das viaturas. As dos demais veículos ficam com Frotas.",
+      "A Fiscalização não fecha nem edita OS: isso é feito pelo Frotas.",
     ],
   },
   {
@@ -369,15 +376,21 @@ export const GUIAS = [
     icone: "calendar",
     titulo: "Abrir o serviço diário",
     pergunta: "Como abrir o serviço diário?",
-    resumo: "A escala do turno da fiscalização.",
+    resumo: "O serviço do turno, com o coordenador e as equipes.",
     onde: "Fiscalização › Serviço Diário",
     para: "/fiscalizacao/servico-diario",
     ver: ["FISCALIZACAO_VISUALIZAR"],
     fazer: ["FISCALIZACAO_GERENCIAR_SERVICO"],
     passos: [
       "Clique em \"Novo serviço diário\".",
-      "Escolha a Data, o Turno (Diurno ou Noturno) e o Coordenador. Ajuste a Hora de início se precisar.",
-      "Clique em \"Criar serviço\". O serviço fica Aberto.",
+      "Escolha a Data, o Turno (Diurno 06:00 às 19:00 ou Noturno 19:00 às 23:59) e o Coordenador.",
+      "Marque as equipes do serviço (as do turno escolhido já vêm marcadas) e clique em Salvar. O serviço fica Em aberto.",
+      "Na hora de começar, abra Ações › \"Iniciar serviço\"; no fim do turno, Ações › \"Encerrar serviço\".",
+    ],
+    dicas: [
+      "Cada linha da lista é uma equipe no serviço, com o código dela (ex.: SD-2026-00156). Viatura, saída e retorno aparecem quando a equipe faz o checklist da viatura.",
+      "Clique no código (ou Ações › Visualizar) para abrir os Detalhes do Serviço Diário: equipe, viatura, ocorrências, checklists, horários e histórico.",
+      "Para trocar as equipes, use Ações › \"Editar serviço\". Equipe que já trabalhou no serviço fica como Cancelada, sem sumir.",
     ],
   },
   {
@@ -393,25 +406,28 @@ export const GUIAS = [
     fazer: ["FISCALIZACAO_GERENCIAR_OCORRENCIAS"],
     passos: [
       "Clique em \"Nova ocorrência\".",
-      "Escolha o Tipo e preencha Data, Hora, Local e a Descrição. O Protocolo é opcional.",
+      "Escolha o Serviço diário (dia e turno) em que ela foi atendida.",
+      "Escolha o Tipo (QRU ou Programada) e preencha Data, Hora, Local e a Descrição. O Protocolo é opcional.",
       "Clique em Salvar. A ocorrência fica Pendente.",
+      "Para finalizar, abra Ações › Editar, mude a Situação para Finalizada e descreva o atendimento.",
     ],
   },
   {
     id: "pontuacao",
     modulo: "fiscalizacao",
     icone: "fisc-bolt",
-    titulo: "Itens de pontuação",
-    pergunta: "Como cadastrar os itens de pontuação?",
-    resumo: "Os itens que valem pontos para os fiscais.",
+    titulo: "Pontuação e itens de pontuação",
+    pergunta: "Como ver a pontuação e cadastrar os itens?",
+    resumo: "A pontuação dos fiscais e os itens que valem pontos.",
     onde: "Fiscalização › Pontuação",
     para: "/fiscalizacao/pontuacao",
     ver: ["FISCALIZACAO_GERENCIAR_PONTUACAO"],
     fazer: ["FISCALIZACAO_GERENCIAR_PONTUACAO"],
     passos: [
-      "Clique em \"Novo item\".",
-      "Preencha o Código, o Nome do item e o Valor em pontos. Se quiser, explique o item em Documentação.",
-      "Clique em Salvar.",
+      "A tela mostra os fiscais pela pontuação no período. Escolha o Período e, se quiser, a Equipe.",
+      "Clique no nome do fiscal para ver os detalhes ao lado: pontos positivos, penalidades e os lançamentos.",
+      "Para cadastrar itens, clique em \"Itens de pontuação\" › \"Novo item\", preencha o Código, o Nome e o Valor em pontos e salve.",
+      "\"Gerar relatório\" abre o Relatório de Pontuação.",
     ],
   },
 

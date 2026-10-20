@@ -40,5 +40,17 @@ export default criarPagina({
    * routes/admin.js). Escrever "Fiscal de Trânsito" aqui nao acharia nada.
    */
   filtrosFixos: { cargo_nome: "FISCAL DE TRANSITO" },
+  // Novo fiscal ja vem com o setor Fiscalizacao e o cargo Fiscal de Transito
+  // (17/10): sem isso, quem esquecia de escolher o cargo cadastrava a pessoa
+  // e ela nao aparecia na lista de Fiscais.
+  novoPadrao: (listas) => {
+    const sem = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    const cargo = (listas.cargos || []).find((c) => sem(c.nome) === "FISCAL DE TRANSITO");
+    const setor = (listas.setores || []).find((s) => sem(s.nome) === "FISCALIZACAO");
+    return {
+      ...(setor ? { id_setor: setor.id_setor } : {}),
+      ...(cargo ? { id_cargo: cargo.id_cargo } : {}),
+    };
+  },
   colunas: CONFIG_SERVIDOR.colunas.filter((c) => c.chave !== "tem_usuario"),
 });

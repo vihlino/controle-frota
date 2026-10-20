@@ -24,6 +24,7 @@ import { data, dinheiro, numero, numeroOs, rotulo } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
 
 const SITUACOES = [
+  { valor: "PENDENTE", rotulo: "Pendente (solicitada)" },
   { valor: "EM_ANALISE", rotulo: "Em análise" },
   { valor: "EM_MANUTENCAO", rotulo: "Em manutenção" },
   { valor: "RESOLVIDA", rotulo: "Resolvida" },
@@ -49,7 +50,12 @@ export default function Manutenções() {
   const [fechando, setFechando] = useState(null);
   const { pedirExclusao, elemento: modalSenha } = useConfirmacaoSenha();
 
-  const podeGerenciar = podeVer("FROTAS_GERENCIAR_OS") || (fiscalizacao && podeVer("FISCALIZACAO_GERENCIAR_VIATURAS"));
+  // 18/10: so o Frotas edita, fecha e exclui. Na Fiscalizacao a OS e
+  // SOLICITADA (nasce Pendente para o Frotas completar) e so acompanhada.
+  const podeGerenciar = !fiscalizacao && podeVer("FROTAS_GERENCIAR_OS");
+  const podeRegistrar = fiscalizacao
+    ? podeVer("FROTAS_GERENCIAR_OS") || podeVer("FISCALIZACAO_GERENCIAR_VIATURAS")
+    : podeGerenciar;
 
   useEffect(() => {
     api(`/frotas/veiculos/opcoes${fiscalizacao ? "?viatura=true" : ""}`).then(setVeículos).catch(() => {});
@@ -169,11 +175,11 @@ export default function Manutenções() {
           acoes={[
             { rotulo: "Visualizar", icone: "visualizar",
               aoClicar: () => navegar(`${base}/${o.id_os}`) },
-            ...(podeGerenciar && !ENCERRADA.includes(o.status)
+            ...(podeGerenciar && !ENCERRADA.includes(o.status) && o.status !== "PENDENTE"
               ? [{ rotulo: "Fechar OS", icone: "concluir", aoClicar: () => setFechando(o) }]
               : []),
             ...(podeGerenciar && o.status !== "CANCELADA"
-              ? [{ rotulo: "Editar", icone: "editar", aoClicar: () => editar(o) }]
+              ? [{ rotulo: o.status === "PENDENTE" ? "Completar OS" : "Editar", icone: "editar", aoClicar: () => editar(o) }]
               : []),
             ...(fiscalizacao ? [] : [{ rotulo: "Ver veículo", icone: "kpi-car",
               aoClicar: () => navegar(`/frotas/veiculos/${o.id_veiculo}`) }]),
@@ -191,10 +197,10 @@ export default function Manutenções() {
       trilha={[{ rotulo: fiscalizacao ? "Fiscalização" : "Frotas" }, { rotulo: "Manutenções" }]}
       titulo={fiscalizacao ? "Manutenções das Viaturas" : "Manutenções"}
       descricao={fiscalizacao
-        ? "Ordens de serviço das viaturas da Fiscalização: registro e fechamento."
+        ? "Ordens de serviço das viaturas: a Fiscalização solicita e acompanha; o Frotas completa e fecha."
         : "Histórico das ordens de serviço da frota: registro e fechamento."}
       acao={
-        podeGerenciar && (
+        podeRegistrar && (
           <button className="botao botao--primario" onClick={() => setRegistrando({})}>
             <Icone nome="kpi-wrench" tamanho={15} /> Registrar OS
           </button>
@@ -234,6 +240,7 @@ export default function Manutenções() {
           os={registrando.os}
           idVeiculo={registrando.idVeiculo}
           soViaturas={fiscalizacao}
+          solicitacao={fiscalizacao && !registrando.os}
           aoFechar={() => setRegistrando(null)}
           aoSalvar={lista.recarregar}
         />

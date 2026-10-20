@@ -675,9 +675,11 @@ export const manutencoes = criarCrud({
     "id_servidor_solicitante", "parte_veiculo", "momento",
   ],
   obrigatorios: ["id_veiculo", "origem", "gravidade", "id_solicitante", "tipo"],
+  // Editar, fechar e excluir sao do Frotas (18/10): a Fiscalizacao so
+  // SOLICITA a OS (rota /registro) e acompanha.
   permissoes: {
     ver: [VER, "FISCALIZACAO_VISUALIZAR"],
-    gerenciar: ["FROTAS_GERENCIAR_OS", "FISCALIZACAO_GERENCIAR_VIATURAS"],
+    gerenciar: "FROTAS_GERENCIAR_OS",
   },
   escopo: (req) => (soViaturas(req) ? { coluna: VIATURA_DA_OS, valor: true } : null),
   // Apagar a OS leva junto os itens e pecas dela (ficam na auditoria).
@@ -749,9 +751,16 @@ async function carregarOs(cliente, id) {
   return rows[0] || null;
 }
 
-/** Valida e monta os campos do REGISTRO. Devolve { erro } ou { dados }. */
-function dadosDoRegistro(corpo) {
+/**
+ * Valida e monta os campos do REGISTRO. Devolve { erro } ou { dados }.
+ *
+ * `solicitacao` (18/10): OS pedida pela Fiscalizacao. Ela informa o veiculo,
+ * a prioridade, a data do ocorrido, o tipo, a descricao e os itens; oficina,
+ * responsavel, custo e pecas ficam para o Frotas completar.
+ */
+function dadosDoRegistro(corpo, solicitacao = false) {
   const dados = {
+    data_ocorrido: dataOuNula(corpo.data_ocorrido),
     id_veiculo: Number(corpo.id_veiculo),
     tipo: String(corpo.tipo || ""),
     gravidade: String(corpo.gravidade || ""),
@@ -767,9 +776,23 @@ function dadosDoRegistro(corpo) {
     quilometragem: numeroOuNulo(corpo.quilometragem),
   };
   if (dados.quilometragem !== null && (!Number.isInteger(dados.quilometragem) || dados.quilometragem < 0)) {
-    return { erro: "KM do registro inválido: use só números inteiros." };
+    return { erro: "KM atual inválido: use só números inteiros." };
   }
   if (!Number.isInteger(dados.id_veiculo) || dados.id_veiculo <= 0) return { erro: "Selecione o veículo." };
+  if (solicitacao) {
+    if (!dados.data_ocorrido) return { erro: "Informe a data do ocorrido." };
+    if (!PRIORIDADES_OS.includes(dados.gravidade)) return { erro: "Selecione a prioridade." };
+    if (!TIPOS_OS.includes(dados.tipo)) return { erro: "Selecione o tipo de manutenção." };
+    if (!dados.descricao || dados.descricao.length < 5) {
+      return { erro: "Descreva o serviço a ser realizado (pelo menos 5 caracteres)." };
+    }
+    // O que e do Frotas nao entra na solicitacao.
+    Object.assign(dados, {
+      oficina: null, responsavel_oficina: null, telefone_oficina: null,
+      custo_estimado: null, prazo_previsto: null, pecas_necessarias: null,
+    });
+    return { dados };
+  }
   if (!dados.data_agendada) return { erro: "Informe a data agendada." };
   if (!PRIORIDADES_OS.includes(dados.gravidade)) return { erro: "Selecione a prioridade." };
   if (!TIPOS_OS.includes(dados.tipo)) return { erro: "Selecione o tipo de manutenção." };
@@ -789,7 +812,12 @@ manutencoes.post(
   autenticar,
   exigePermissao("FROTAS_GERENCIAR_OS", "FISCALIZACAO_GERENCIAR_VIATURAS"),
   async (req, res, next) => {
-    const { erro, dados } = dadosDoRegistro(req.body || {});
+    // Quem nao gerencia OS do Frotas (a Fiscalizacao) so SOLICITA; a tela da
+    // Fiscalizacao tambem manda solicitacao=true, para o administrador que
+    // abre a OS por la seguir o mesmo caminho.
+    const solicitacao = req.body?.solicitacao === true
+      || !(req.usuario?.permissoes || []).includes("FROTAS_GERENCIAR_OS");
+    const { erro, dados } = dadosDoRegistro(req.body || {}, solicitacao);
     if (erro) return res.status(400).json({ erro });
     const erroViatura = (await conferirViatura(req, dados.id_veiculo))
       || (req.params.id ? await conferirViaturaDaOs(req, req.params.id) : null);
@@ -829,14 +857,16 @@ manutencoes.post(
         `INSERT INTO ordem_servico
            (id_veiculo, origem, id_registro_origem, gravidade, id_solicitante, tipo, status,
             data_agendada, oficina, responsavel_oficina, telefone_oficina, descricao,
-            custo_estimado, prazo_previsto, pecas_necessarias, observacoes, quilometragem)
-         VALUES ($1, $15, $16, $2, $3, $4, 'EM_ANALISE', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            custo_estimado, prazo_previsto, pecas_necessarias, observacoes, quilometragem,
+            data_ocorrido)
+         VALUES ($1, $15, $16, $2, $3, $4, $17, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $18)
          RETURNING *`,
         [dados.id_veiculo, dados.gravidade, req.usuario.id_usuario, dados.tipo, dados.data_agendada,
          dados.oficina, dados.responsavel_oficina, dados.telefone_oficina, dados.descricao,
          dados.custo_estimado, dados.prazo_previsto, dados.pecas_necessarias, dados.observacoes,
          dados.quilometragem ?? v[0].quilometragem_atual,
-         insp ? "INSPECAO" : "FROTAS", insp ? idInspecao : null]
+         insp ? "INSPECAO" : solicitacao ? "FISCALIZACAO" : "FROTAS", insp ? idInspecao : null,
+         solicitacao ? "PENDENTE" : "EM_ANALISE", dados.data_ocorrido]
       );
       await gravarItensOs(cliente, rows[0].id_os, itens);
 
@@ -871,7 +901,8 @@ manutencoes.post(
 manutencoes.put(
   "/:id/registro",
   autenticar,
-  exigePermissao("FROTAS_GERENCIAR_OS", "FISCALIZACAO_GERENCIAR_VIATURAS"),
+  // So o Frotas edita/completa a OS (18/10).
+  exigePermissao("FROTAS_GERENCIAR_OS"),
   async (req, res, next) => {
     const id = Number(req.params.id);
     const { erro, dados } = dadosDoRegistro(req.body || {});
@@ -880,11 +911,6 @@ manutencoes.put(
       || (req.params.id ? await conferirViaturaDaOs(req, req.params.id) : null);
     if (erroViatura) return res.status(403).json({ erro: erroViatura });
     const justificativa = String(req.body?.justificativa || "").trim();
-    if (justificativa.length < 5) {
-      return res.status(400).json({
-        erro: "Escreva a justificativa da alteração (o motivo fica registrado na auditoria).",
-      });
-    }
     const itens = itensDaOs(req.body?.itens);
     const cliente = await pool.connect();
     try {
@@ -896,6 +922,14 @@ manutencoes.put(
       }
       // Os dados do REGISTRO continuam corrigiveis depois do fechamento (a
       // ficha tem uma aba para cada); so a OS cancelada nao muda mais.
+      // Completar a OS solicitada pela Fiscalizacao nao e "alterar historico":
+      // nao pede justificativa, e a OS passa para Em analise (18/10).
+      if (antes.status !== "PENDENTE" && justificativa.length < 5) {
+        await cliente.query("ROLLBACK");
+        return res.status(400).json({
+          erro: "Escreva a justificativa da alteração (o motivo fica registrado na auditoria).",
+        });
+      }
       if (antes.status === "CANCELADA") {
         await cliente.query("ROLLBACK");
         return res.status(409).json({ erro: "OS cancelada não pode ser alterada." });
@@ -905,12 +939,15 @@ manutencoes.put(
             SET id_veiculo = $2, gravidade = $3, tipo = $4, data_agendada = $5, oficina = $6,
                 responsavel_oficina = $7, telefone_oficina = $8, descricao = $9,
                 custo_estimado = $10, prazo_previsto = $11, pecas_necessarias = $12,
-                observacoes = $13, quilometragem = COALESCE($14, quilometragem)
+                observacoes = $13, quilometragem = COALESCE($14, quilometragem),
+                data_ocorrido = COALESCE($15, data_ocorrido),
+                status = CASE WHEN status = 'PENDENTE' THEN 'EM_ANALISE' ELSE status END
           WHERE id_os = $1
           RETURNING *`,
         [id, dados.id_veiculo, dados.gravidade, dados.tipo, dados.data_agendada, dados.oficina,
          dados.responsavel_oficina, dados.telefone_oficina, dados.descricao, dados.custo_estimado,
-         dados.prazo_previsto, dados.pecas_necessarias, dados.observacoes, dados.quilometragem]
+         dados.prazo_previsto, dados.pecas_necessarias, dados.observacoes, dados.quilometragem,
+         dados.data_ocorrido]
       );
       await gravarItensOs(cliente, id, itens);
       await cliente.query("COMMIT");
@@ -920,7 +957,7 @@ manutencoes.put(
         acao: "EDITAR",
         entidade: "ordem_servico",
         idRegistro: id,
-        justificativa,
+        justificativa: justificativa || (antes.status === "PENDENTE" ? "Solicitação da Fiscalização completada pelo Frotas." : undefined),
         dadosAnteriores: antes,
         dadosNovos: { ...rows[0], itens },
       });
@@ -944,7 +981,8 @@ manutencoes.put(
 manutencoes.post(
   "/:id/fechamento",
   autenticar,
-  exigePermissao("FROTAS_GERENCIAR_OS", "FISCALIZACAO_GERENCIAR_VIATURAS"),
+  // Fechar OS e so do Frotas (18/10).
+  exigePermissao("FROTAS_GERENCIAR_OS"),
   async (req, res, next) => {
     const id = Number(req.params.id);
     const erroViatura = await conferirViaturaDaOs(req, id);
@@ -996,6 +1034,10 @@ manutencoes.post(
       if (antes.status === "CANCELADA") {
         await cliente.query("ROLLBACK");
         return res.status(409).json({ erro: "OS cancelada não pode ser fechada." });
+      }
+      if (antes.status === "PENDENTE") {
+        await cliente.query("ROLLBACK");
+        return res.status(409).json({ erro: "Complete o registro da OS (oficina, responsável, custo) antes de fechar." });
       }
       const corrigindo = antes.status === "RESOLVIDA";
       if (corrigindo && justificativa.length < 5) {
@@ -1126,7 +1168,12 @@ export const documentos = criarCrud({
     "categoria", "id_responsavel", "arquivo_url", "orgao_emissor",
   ],
   obrigatorios: ["id_veiculo", "tipo_documento"],
-  permissoes: { ver: VER, gerenciar: "FROTAS_GERENCIAR_DOCUMENTOS" },
+  // A Fiscalizacao le os documentos das VIATURAS (aba Documentos dos
+  // detalhes da viatura, 18/10); cadastrar e alterar continua com o Frotas.
+  permissoes: { ver: [VER, "FISCALIZACAO_VISUALIZAR"], gerenciar: "FROTAS_GERENCIAR_DOCUMENTOS" },
+  escopo: (req) => (soViaturas(req)
+    ? { coluna: "(SELECT v_d.viatura FROM veiculo v_d WHERE v_d.id_veiculo = documento_veiculo.id_veiculo)", valor: true }
+    : null),
   // A lista mostra so a versao ATUAL de cada documento; as substituidas
   // ficam no historico, na tela de Visualizar (migracao 033).
   condicaoFixa: "documento_veiculo.substituido_em IS NULL",
@@ -1232,8 +1279,22 @@ documentos.get("/:id/ficha", autenticar, exigePermissao(VER), async (req, res, n
 });
 
 /** Lista os arquivos de um documento (sem o conteudo). */
-documentos.get("/:id/arquivos", autenticar, exigePermissao(VER), async (req, res, next) => {
+/** Quem so ve a Fiscalizacao: so documento de viatura (18/10). */
+async function barrarDocumentoNaoViatura(req, res, idDocumento, idArquivo) {
+  if (!soViaturas(req)) return false;
+  const { rows } = await query(
+    `SELECT v.viatura FROM documento_veiculo d JOIN veiculo v ON v.id_veiculo = d.id_veiculo
+      WHERE d.id_documento = COALESCE($1, (SELECT a.id_documento FROM documento_arquivo a WHERE a.id_arquivo = $2))`,
+    [idDocumento ?? null, idArquivo ?? null]
+  );
+  if (rows[0]?.viatura) return false;
+  res.status(404).json({ erro: "Documento não encontrado." });
+  return true;
+}
+
+documentos.get("/:id/arquivos", autenticar, exigePermissao(VER, "FISCALIZACAO_VISUALIZAR"), async (req, res, next) => {
   try {
+    if (await barrarDocumentoNaoViatura(req, res, Number(req.params.id), null)) return;
     const { rows } = await query(
       `SELECT a.id_arquivo, a.nome, a.tipo, a.bytes, a.criado_em,
               (SELECT s.nome FROM usuario u JOIN servidor s ON s.id_servidor = u.id_servidor
@@ -1292,8 +1353,9 @@ documentos.post(
 );
 
 /** Abre o arquivo (o navegador mostra PDF e imagem na propria aba). */
-documentos.get("/arquivos/:idArquivo", autenticar, exigePermissao(VER), async (req, res, next) => {
+documentos.get("/arquivos/:idArquivo", autenticar, exigePermissao(VER, "FISCALIZACAO_VISUALIZAR"), async (req, res, next) => {
   try {
+    if (await barrarDocumentoNaoViatura(req, res, null, Number(req.params.idArquivo))) return;
     const { rows } = await query(
       "SELECT nome, tipo, conteudo FROM documento_arquivo WHERE id_arquivo = $1",
       [Number(req.params.idArquivo)]

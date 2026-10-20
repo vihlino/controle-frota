@@ -5,7 +5,7 @@ import criarPagina from "../../components/criarPagina.jsx";
 import Selo from "../../components/Selo.jsx";
 import { data, hora, numero } from "../../lib/formato.js";
 
-export default criarPagina({
+export const CONFIG_CHECKLIST_FISC = {
   recurso: "fiscalizacao/checklists",
   id: "id_checklist",
   singular: "checklist",
@@ -82,7 +82,7 @@ export default criarPagina({
     },
 
     { secao: "Observações" },
-    { nome: "observacoes", tipo: "area", largo: true,
+    { nome: "observacoes", rotulo: "Observações", tipo: "area", largo: true,
       dica: "Ex.: viatura devolvida com o tanque cheio" },
 
   ],
@@ -98,4 +98,7 @@ export default criarPagina({
     },
     { nome: "periodo", rotulo: "Período", tipo: "periodo", de: "dataDe", ate: "dataAte" },
   ],
-});
+};
+
+// 18/10: "Visualizar" abre os Detalhes do Checklist (/fiscalizacao/checklists/:id).
+export default criarPagina({ ...CONFIG_CHECKLIST_FISC, detalhe: true });

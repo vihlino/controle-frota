@@ -15,6 +15,7 @@
  * A ficha de Fiscais vai ser diferente e nao usa esta tela.
  */
 import { useEffect, useState } from "react";
+import FiltroPeriodo from "../components/FiltroPeriodo.jsx";
 import { useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import Cartao from "../components/Cartao.jsx";
 import Icone from "../components/Icone.jsx";
@@ -165,6 +166,7 @@ export default function ServidorDetalhe() {
   // Editar abre a janela aqui mesmo (08/10); ao salvar, a ficha recarrega.
   const [editando, setEditando] = useState(false);
   const [recarga, setRecarga] = useState(0);
+  const [periodo, setPeriodo] = useState({ de: "", ate: "" });
   useEffect(() => {
     api(`/frotas/servidores/${id}/ficha`).then(setS).catch((e) => setErro(e.message));
   }, [id, recarga]);
@@ -185,9 +187,10 @@ export default function ServidorDetalhe() {
   const ABAS = [
     { chave: "geral", rotulo: "Visão Geral", icone: "user" },
     { chave: "cnh", rotulo: "CNH", icone: "cnh" },
+    // Ordem pedida pelo Cesar (18/10).
+    { chave: "multas", rotulo: "Multas", icone: "alert-triangle", total: r.multas },
     { chave: "checklists", rotulo: "Checklists", icone: "checklist", total: r.checklists },
     { chave: "sinistros", rotulo: "Sinistros", icone: "sinistro", total: r.sinistros },
-    { chave: "multas", rotulo: "Multas", icone: "alert-triangle", total: r.multas },
     { chave: "historico", rotulo: "Histórico", icone: "historico" },
   ];
 
@@ -210,6 +213,8 @@ export default function ServidorDetalhe() {
     { rotulo: "Situação", render: (x) => <Selo valor={x.status} /> },
   ];
   const caminho = (modulo, n) => `/frotas/${modulo}?servidor=${id}&porPagina=${n}`;
+  // Periodo da aba Checklists (18/10): vai como filtro para a API.
+  const caminhoChecklists = `${caminho("checklists", 200)}${periodo.de ? `&dataDe=${periodo.de}` : ""}${periodo.ate ? `&dataAte=${periodo.ate}` : ""}`;
   const verTodos = (chave, total) => (
     <button className="botao botao--pequeno vd-cartao-acao" onClick={() => setAba(chave)}>
       Ver todos ({numero(total || 0)})
@@ -345,7 +350,7 @@ export default function ServidorDetalhe() {
           </div>
 
           <div className="ficha-2 ficha-bloco">
-            <Cartao titulo={<><Icone nome="checklist" tamanho={18} /> Últimos Checklists</>}
+            <Cartao titulo={<><Icone nome="checklist" tamanho={18} /> Checklists</>}
                     acao={verTodos("checklists", r.checklists)}>
               <Lista caminho={caminho("checklists", 5)} colunas={COL_CHECKLIST.filter((c) => c.rotulo !== "KM rodado")}
                      vazio="Nenhum checklist registrado."
@@ -408,8 +413,9 @@ export default function ServidorDetalhe() {
       )}
 
       {aba === "checklists" && (
-        <Cartao titulo={<><Icone nome="checklist" tamanho={18} /> Checklists do {nomeTela.toLowerCase()}</>}>
-          <Lista caminho={caminho("checklists", 200)} colunas={COL_CHECKLIST}
+        <Cartao titulo={<><Icone nome="checklist" tamanho={18} /> Checklists
+          <FiltroPeriodo id="periodo-checklists" de={periodo.de} ate={periodo.ate} aoMudar={setPeriodo} /></>}>
+          <Lista caminho={caminhoChecklists} colunas={COL_CHECKLIST}
                  vazio="Nenhum checklist registrado."
                  aoAbrir={(c) => navegar(`/frotas/checklists/${c.id_checklist}`)} />
         </Cartao>

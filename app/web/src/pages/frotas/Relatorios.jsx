@@ -10,7 +10,7 @@
  * ATESTE e vai para o sino de cada escolhido. Sem ateste, nasce GERADO.
  */
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import PaginaLista from "../../components/PaginaLista.jsx";
 import Icone from "../../components/Icone.jsx";
 import Selo from "../../components/Selo.jsx";
@@ -37,14 +37,40 @@ const TOM_STATUS = {
   ATESTADO: "verde", CANCELADO: "vermelho",
 };
 
+/**
+ * Cada menu so mostra os relatorios do proprio modulo (18/10). Quem abre o
+ * endereco do outro modulo (link antigo, favorito) e levado para o seu, em
+ * vez de ficar numa tela que a API recusa.
+ */
 export default function Relatórios() {
+  const fiscalizacao = useLocation().pathname.startsWith("/fiscalizacao");
+  const { podeVer } = useSessao();
+  const tem = (m) => podeVer(m === "FISCALIZACAO" ? "FISCALIZACAO_VISUALIZAR" : "FROTAS_VISUALIZAR");
+  const daTela = fiscalizacao ? "FISCALIZACAO" : "FROTAS";
+  const outro = fiscalizacao ? "FROTAS" : "FISCALIZACAO";
+  if (!tem(daTela) && tem(outro)) {
+    return <Navigate to={fiscalizacao ? "/frotas/relatorios" : "/fiscalizacao/relatorios"} replace />;
+  }
+  return <TelaRelatorios />;
+}
+
+function TelaRelatorios() {
   const navegar = useNavigate();
   // A mesma tela atende Frotas e Fiscalizacao: o relatorio abre e volta
   // dentro da area em que a pessoa esta.
   const fiscalizacao = useLocation().pathname.startsWith("/fiscalizacao");
   const base = fiscalizacao ? "/fiscalizacao/relatorios" : "/frotas/relatorios";
   const { podeVer } = useSessao();
-  const lista = useLista("relatorios", { busca: "", tipo: "", status: "", dataDe: "", dataAte: "" });
+  /*
+   * 18/10: cada menu mostra os relatorios e os dados do proprio modulo
+   * (Frotas > Relatorios so Frotas; Fiscalizacao > Relatorios so
+   * Fiscalizacao). Quem tem os dois modulos (o administrador) ganha o campo
+   * "Dados de" para escolher.
+   */
+  const moduloDaTela = fiscalizacao ? "FISCALIZACAO" : "FROTAS";
+  const temOsDois = podeVer("FROTAS_VISUALIZAR") && podeVer("FISCALIZACAO_VISUALIZAR");
+  const lista = useLista("relatorios", { busca: "", tipo: "", status: "", dataDe: "", dataAte: "", modulo: moduloDaTela });
+  const modulo = lista.filtros.modulo || moduloDaTela;
   const [tipos, setTipos] = useState([]);
   const [gerando, setGerando] = useState(false);
   const [formulario, setFormulario] = useState(FORM_VAZIO);
@@ -55,8 +81,14 @@ export default function Relatórios() {
   const podeGerar = podeVer("RELATORIOS_GERAR");
 
   useEffect(() => {
-    api("/relatorios/tipos").then((r) => setTipos(Array.isArray(r) ? r : [])).catch(() => {});
-  }, []);
+    api(`/relatorios/tipos?modulo=${modulo}`).then((r) => setTipos(Array.isArray(r) ? r : [])).catch(() => setTipos([]));
+  }, [modulo]);
+  const mudarModulo = (m) => {
+    lista.alterarFiltro("tipo", "");
+    lista.alterarFiltro("modulo", m);
+    setFormulario((f) => ({ ...f, tipo: "" }));
+  };
+  const OPCOES_MODULO = [{ valor: "FROTAS", rotulo: "Frotas" }, { valor: "FISCALIZACAO", rotulo: "Fiscalização" }];
 
   // A lista de quem pode ser escolhido para atestar carrega ao abrir a janela.
   useEffect(() => {
@@ -69,6 +101,20 @@ export default function Relatórios() {
     setErroForm("");
     setGerando(true);
   }
+
+  // ?gerar=TIPO (botao "Gerar relatório" da Pontuacao, 18/10): abre a janela
+  // ja com o tipo escolhido. O parametro sai do endereco para nao reabrir.
+  const [parametros, definirParametros] = useSearchParams();
+  useEffect(() => {
+    const tipo = parametros.get("gerar");
+    if (!tipo || !podeGerar) return;
+    setFormulario({ ...FORM_VAZIO, tipo });
+    setErroForm("");
+    setGerando(true);
+    const p = new URLSearchParams(parametros);
+    p.delete("gerar");
+    definirParametros(p, { replace: true });
+  }, [parametros, definirParametros, podeGerar]);
 
   function mudarQuantidade(valor) {
     const n = Number(valor);
@@ -193,6 +239,10 @@ export default function Relatórios() {
       vazio="Nenhum relatório gerado ainda."
       filtros={
         <>
+          {temOsDois && (
+            <Selecao rotulo="Dados de" id="modulo" opcoes={OPCOES_MODULO}
+                     value={modulo} onChange={(e) => mudarModulo(e.target.value)} />
+          )}
           <Texto rotulo="Buscar" id="busca" placeholder="Nome ou tipo do relatório"
                  value={lista.filtros.busca}
                  onChange={(e) => lista.alterarFiltro("busca", e.target.value)} />
@@ -226,6 +276,11 @@ export default function Relatórios() {
           {erroForm && <div className="login__erro">{erroForm}</div>}
           <form id="form-relatório" onSubmit={gerar}>
             <div className="formulario-grade">
+              {temOsDois && (
+                <Selecao rotulo="Dados de *" id="gerar-modulo" largo opcoes={OPCOES_MODULO}
+                         value={modulo} onChange={(e) => mudarModulo(e.target.value)}
+                         ajuda="Frotas: veículos da frota (sem as viaturas). Fiscalização: viaturas, ocorrências, serviços e pontuação." />
+              )}
               <Data rotulo="Data inicial *" id="periodo_inicio" required
                     value={formulario.periodo_inicio}
                     onChange={(e) =>

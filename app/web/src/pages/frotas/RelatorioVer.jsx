@@ -282,6 +282,9 @@ export default function RelatórioVer() {
         <Modal
           titulo="Atestar relatório"
           legenda="Seu nome, cargo, data e hora ficam registrados no sistema."
+          // Mesmo tamanho das outras janelas de confirmacao (18/10).
+          largura={480}
+          compacto
           aoFechar={() => setAtestando(false)}
           rodape={
             <>
@@ -294,8 +297,8 @@ export default function RelatórioVer() {
         >
           <form id="form-ateste" onSubmit={atestar}>
             <p className="modal__aviso">
-              Ao atestar, voce confirma que conferiu os {numero(conteudo.linhas.length)}{" "}
-              registros deste relatório. O ateste nao pode ser desfeito pela tela.
+              Ao atestar, você confirma que conferiu os {numero(conteudo.linhas.length)}{" "}
+              registros deste relatório. O ateste não pode ser desfeito pela tela.
             </p>
             <Area rotulo="Observação" id="observacao" value={observacao}
                   placeholder="Ex.: Conferido e de acordo" onChange={(e) => setObservacao(e.target.value)} />

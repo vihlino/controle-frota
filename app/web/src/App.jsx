@@ -23,15 +23,20 @@ import Sinistros from "./pages/frotas/Sinistros.jsx";
 import Relatorios from "./pages/frotas/Relatorios.jsx";
 import RelatorioVer from "./pages/frotas/RelatorioVer.jsx";
 import ManutencaoDetalhe from "./pages/frotas/ManutencaoDetalhe.jsx";
+import EquipeDetalhe from "./pages/fiscalizacao/EquipeDetalhe.jsx";
+import ViaturaDetalhe from "./pages/fiscalizacao/ViaturaDetalhe.jsx";
+import OcorrenciaDetalhe from "./pages/fiscalizacao/OcorrenciaDetalhe.jsx";
+import ChecklistFiscDetalhe from "./pages/fiscalizacao/ChecklistFiscDetalhe.jsx";
 import SinistroDetalhe from "./pages/frotas/SinistroDetalhe.jsx";
 import DocumentoDetalhe from "./pages/frotas/DocumentoDetalhe.jsx";
 
 import ServicoDiario from "./pages/fiscalizacao/ServicoDiario.jsx";
+import ServicoDiarioDetalhe from "./pages/fiscalizacao/ServicoDiarioDetalhe.jsx";
 import Equipes from "./pages/fiscalizacao/Equipes.jsx";
-import Viaturas from "./pages/fiscalizacao/Viaturas.jsx";
 import Ocorrencias from "./pages/fiscalizacao/Ocorrencias.jsx";
 import ChecklistsFiscalizacao from "./pages/fiscalizacao/ChecklistsFiscalizacao.jsx";
 import Pontuacao from "./pages/fiscalizacao/Pontuacao.jsx";
+import PontuacaoItens from "./pages/fiscalizacao/PontuacaoItens.jsx";
 
 import Usuarios from "./pages/admin/Usuarios.jsx";
 import Servidores from "./pages/admin/Servidores.jsx";
@@ -100,9 +105,9 @@ export default function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
 
-        <Route path="/frotas/veiculos" element={<ComPermissao codigo={FROTAS}><Veiculos /></ComPermissao>} />
+        <Route path="/frotas/veiculos" element={<ComPermissao codigo={FROTAS}><Veiculos key="frotas" /></ComPermissao>} />
         <Route path="/frotas/veiculos/:id/qrcode" element={<QrCodeParaAba />} />
-        <Route path="/frotas/veiculos/:id" element={<ComPermissao codigo={FROTAS}><VeiculoDetalhe /></ComPermissao>} />
+        <Route path="/frotas/veiculos/:id" element={<ComPermissao codigo={FROTAS}><VeiculoDetalhe key="frotas" /></ComPermissao>} />
         <Route path="/frotas/checklists" element={<ComPermissao codigo={FROTAS}><Checklists /></ComPermissao>} />
         <Route path="/frotas/checklists/:id" element={<ComPermissao codigo={FROTAS}><ChecklistDetalhe /></ComPermissao>} />
         <Route path="/frotas/inspecoes" element={<ComPermissao codigo={FROTAS}><Inspecoes /></ComPermissao>} />
@@ -128,9 +133,14 @@ export default function App() {
         <Route path="/frotas/relatorios/:id" element={<RelatorioVer key="frotas" />} />
 
         <Route path="/fiscalizacao/servico-diario" element={<ComPermissao codigo={FISC}><ServicoDiario /></ComPermissao>} />
+        <Route path="/fiscalizacao/servico-diario/:id" element={<ComPermissao codigo={FISC}><ServicoDiarioDetalhe /></ComPermissao>} />
         <Route path="/fiscalizacao/equipes" element={<ComPermissao codigo={FISC}><Equipes /></ComPermissao>} />
-        <Route path="/fiscalizacao/viaturas" element={<ComPermissao codigo={FISC}><Viaturas /></ComPermissao>} />
+        <Route path="/fiscalizacao/equipes/:id" element={<ComPermissao codigo={FISC}><EquipeDetalhe /></ComPermissao>} />
+        {/* Viaturas = a tela de Veiculos so com as viaturas (18/10). */}
+        <Route path="/fiscalizacao/viaturas" element={<ComPermissao codigo={FISC}><Veiculos key="fiscalizacao" /></ComPermissao>} />
+        <Route path="/fiscalizacao/viaturas/:id" element={<ComPermissao codigo={FISC}><ViaturaDetalhe /></ComPermissao>} />
         <Route path="/fiscalizacao/ocorrencias" element={<ComPermissao codigo={FISC}><Ocorrencias /></ComPermissao>} />
+        <Route path="/fiscalizacao/ocorrencias/:id" element={<ComPermissao codigo={FISC}><OcorrenciaDetalhe /></ComPermissao>} />
         {/* Fiscalizacao usa a mesma tela de Frotas, so com as viaturas (09/10).
             O key diferente obriga o React a montar a tela de novo ao trocar de
             Frotas para Fiscalizacao (e vice-versa): sem ele a tela era
@@ -138,11 +148,13 @@ export default function App() {
         <Route path="/fiscalizacao/manutencoes" element={<ComPermissao codigo={FISC}><Manutencoes key="fiscalizacao" /></ComPermissao>} />
         <Route path="/fiscalizacao/manutencoes/:id" element={<ComPermissao codigo={FISC}><ManutencaoDetalhe key="fiscalizacao" /></ComPermissao>} />
         <Route path="/fiscalizacao/checklists" element={<ComPermissao codigo={FISC}><ChecklistsFiscalizacao /></ComPermissao>} />
+        <Route path="/fiscalizacao/checklists/:id" element={<ComPermissao codigo={FISC}><ChecklistFiscDetalhe /></ComPermissao>} />
         <Route path="/fiscalizacao/fiscais" element={<ComPermissao codigo={FISC}><Fiscais /></ComPermissao>} />
         <Route path="/fiscalizacao/fiscais/:id" element={<ComPermissao codigo={FISC}><FiscalDetalhe /></ComPermissao>} />
         {/* Rota antiga: quem tiver o link salvo continua chegando na tela certa. */}
         <Route path="/fiscalizacao/motoristas" element={<Navigate to="/fiscalizacao/fiscais" replace />} />
         <Route path="/fiscalizacao/pontuacao" element={<ComPermissao codigo="FISCALIZACAO_GERENCIAR_PONTUACAO"><Pontuacao /></ComPermissao>} />
+        <Route path="/fiscalizacao/pontuacao/itens" element={<ComPermissao codigo="FISCALIZACAO_GERENCIAR_PONTUACAO"><PontuacaoItens /></ComPermissao>} />
         <Route path="/fiscalizacao/relatorios" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><Relatorios key="fiscalizacao" /></ComPermissao>} />
         <Route path="/fiscalizacao/relatorios/:id" element={<RelatorioVer key="fiscalizacao" />} />
 
