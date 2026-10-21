@@ -15,7 +15,10 @@
  * numero, dinheiro ou sim_nao.
  *
  * FROTAS x FISCALIZACAO (18/10): cada modulo tem os seus tipos e os seus
- * dados. Os de FROTAS deixam de fora as viaturas (veiculo.viatura); os da
+ * dados. Os de FROTAS veem todos os veiculos, viaturas inclusive, em
+ * Manutencoes, Inspecoes, Documentos, Sinistros e Indicadores (pedido do
+ * Cesar, 21/10: o Frotas cuida de toda a frota); os de checklist e de entrada
+ * e saida sao do checklist da frota, onde viatura nao entra. Os da
  * FISCALIZACAO trazem so viaturas, ocorrencias, servicos e pontuacao. Quem
  * tem os dois modulos escolhe na tela de qual quer o relatorio.
  */
@@ -91,7 +94,7 @@ export const MODELOS = {
              COALESCE(r.nome, sol.nome, cond.nome) AS responsavel,
              os.proxima_manutencao, os.observacoes
         FROM ordem_servico os
-        JOIN veiculo v ON v.id_veiculo = os.id_veiculo AND NOT v.viatura
+        JOIN veiculo v ON v.id_veiculo = os.id_veiculo
         LEFT JOIN usuario  u_sol ON u_sol.id_usuario = os.id_solicitante
         LEFT JOIN servidor sol ON sol.id_servidor = u_sol.id_servidor
         LEFT JOIN servidor cond ON cond.id_servidor = os.id_servidor_solicitante
@@ -150,7 +153,7 @@ export const MODELOS = {
                WHERE it.id_inspecao = i.id_inspecao AND it.resultado <> 'NORMAL') AS ressalvas,
              i.proxima_inspecao
         FROM inspecao i
-        JOIN veiculo  v ON v.id_veiculo  = i.id_veiculo AND NOT v.viatura
+        JOIN veiculo  v ON v.id_veiculo  = i.id_veiculo
         JOIN usuario  u_g ON u_g.id_usuario = i.id_gestor
         JOIN servidor s ON s.id_servidor = u_g.id_servidor
        WHERE i.data_realizacao BETWEEN $1 AND $2
@@ -179,7 +182,7 @@ export const MODELOS = {
              (v.marca || ' ' || v.modelo) AS veiculo, si.tipo, si.local,
              c.nome AS condutor, si.houve_terceiros, si.status AS situacao, si.bo
         FROM sinistro si
-        JOIN veiculo  v ON v.id_veiculo  = si.id_veiculo AND NOT v.viatura
+        JOIN veiculo  v ON v.id_veiculo  = si.id_veiculo
         JOIN servidor c ON c.id_servidor = si.id_servidor
        WHERE si.data BETWEEN $1 AND $2
        ORDER BY si.data`,
@@ -206,7 +209,7 @@ export const MODELOS = {
              d.data_emissao, d.data_validade, d.status AS situacao,
              s.nome AS responsavel
         FROM documento_veiculo d
-        JOIN veiculo v ON v.id_veiculo = d.id_veiculo AND NOT v.viatura
+        JOIN veiculo v ON v.id_veiculo = d.id_veiculo
         LEFT JOIN servidor s ON s.id_servidor = d.id_responsavel
        WHERE COALESCE(d.data_validade, d.data_emissao) BETWEEN $1 AND $2
          AND d.substituido_em IS NULL -- versoes antigas ficam so no historico
@@ -222,7 +225,7 @@ export const MODELOS = {
       { chave: "valor", rotulo: "Valor" },
     ],
     sql: `
-      SELECT 'Veiculos cadastrados' AS indicador, COUNT(*)::text AS valor FROM veiculo WHERE NOT viatura
+      SELECT 'Veiculos cadastrados' AS indicador, COUNT(*)::text AS valor FROM veiculo
       UNION ALL SELECT 'Checklists no periodo',
         (SELECT COUNT(*)::text FROM checklist_frotas c JOIN veiculo v ON v.id_veiculo = c.id_veiculo AND NOT v.viatura
           WHERE c.data_abertura BETWEEN $1 AND $2)
@@ -231,19 +234,19 @@ export const MODELOS = {
            FROM checklist_frotas c JOIN veiculo v ON v.id_veiculo = c.id_veiculo AND NOT v.viatura
           WHERE c.data_abertura BETWEEN $1 AND $2 AND c.odometro_chegada IS NOT NULL)
       UNION ALL SELECT 'Ordens de servico abertas no periodo',
-        (SELECT COUNT(*)::text FROM ordem_servico o JOIN veiculo v ON v.id_veiculo = o.id_veiculo AND NOT v.viatura
+        (SELECT COUNT(*)::text FROM ordem_servico o JOIN veiculo v ON v.id_veiculo = o.id_veiculo
           WHERE o.data_abertura::date BETWEEN $1 AND $2)
       UNION ALL SELECT 'Custo total de manutencao (R$)',
-        (SELECT COALESCE(SUM(o.custo), 0)::text FROM ordem_servico o JOIN veiculo v ON v.id_veiculo = o.id_veiculo AND NOT v.viatura
+        (SELECT COALESCE(SUM(o.custo), 0)::text FROM ordem_servico o JOIN veiculo v ON v.id_veiculo = o.id_veiculo
           WHERE o.data_abertura::date BETWEEN $1 AND $2)
       UNION ALL SELECT 'Inspecoes realizadas no periodo',
-        (SELECT COUNT(*)::text FROM inspecao i JOIN veiculo v ON v.id_veiculo = i.id_veiculo AND NOT v.viatura
+        (SELECT COUNT(*)::text FROM inspecao i JOIN veiculo v ON v.id_veiculo = i.id_veiculo
           WHERE i.data_realizacao BETWEEN $1 AND $2)
       UNION ALL SELECT 'Sinistros no periodo',
-        (SELECT COUNT(*)::text FROM sinistro x JOIN veiculo v ON v.id_veiculo = x.id_veiculo AND NOT v.viatura
+        (SELECT COUNT(*)::text FROM sinistro x JOIN veiculo v ON v.id_veiculo = x.id_veiculo
           WHERE x.data BETWEEN $1 AND $2)
       UNION ALL SELECT 'Documentos vencidos',
-        (SELECT COUNT(*)::text FROM documento_veiculo d JOIN veiculo v ON v.id_veiculo = d.id_veiculo AND NOT v.viatura
+        (SELECT COUNT(*)::text FROM documento_veiculo d JOIN veiculo v ON v.id_veiculo = d.id_veiculo
           WHERE d.data_validade < CURRENT_DATE AND d.status <> 'INATIVO' AND d.substituido_em IS NULL)`,
   },
 

@@ -36,7 +36,7 @@ import { urlPublica } from "../urlPublica.js";
 // (quilometragem_atual ou qualquer odometro de checklist). A tela precisa
 // mostrar exatamente esse numero, senao o condutor digita um KM valido aos
 // olhos dele e leva erro.
-async function ultimoOdometro(idVeiculo) {
+export async function ultimoOdometro(idVeiculo) {
   const { rows } = await query(
     `SELECT GREATEST(
               COALESCE(v.quilometragem_atual, 0),
@@ -104,6 +104,7 @@ router.get("/ler/:token", async (req, res, next) => {
     const { rows } = await query(
       `SELECT v.id_veiculo, v.placa, v.marca, v.modelo, v.cor, v.renavam, v.chassi,
               v.ano_fabricacao, v.ano_modelo, v.quilometragem_atual, v.status,
+              v.viatura, v.tipo_combustivel, v.tipo_veiculo,
               s.nome AS setor, q.status AS qr_ativo
          FROM qr_code q
          JOIN veiculo v ON v.id_veiculo = q.id_veiculo
@@ -159,8 +160,8 @@ router.get("/ler/:token", async (req, res, next) => {
 // A normalizacao joga os dois lados no mesmo formato: so letras e numeros,
 // maiusculas, sem zero a esquerda. Continua sendo comparacao exata DEPOIS de
 // normalizar, entao nao ha risco de trazer o servidor errado por semelhanca.
-const NORMALIZAR = `NULLIF(regexp_replace(upper(regexp_replace($1, '[^a-zA-Z0-9]', '', 'g')), '^0+', ''), '')`;
-const NORMALIZAR_COLUNA = `NULLIF(regexp_replace(upper(regexp_replace(matricula, '[^a-zA-Z0-9]', '', 'g')), '^0+', ''), '')`;
+export const NORMALIZAR = `NULLIF(regexp_replace(upper(regexp_replace($1, '[^a-zA-Z0-9]', '', 'g')), '^0+', ''), '')`;
+export const NORMALIZAR_COLUNA = `NULLIF(regexp_replace(upper(regexp_replace(matricula, '[^a-zA-Z0-9]', '', 'g')), '^0+', ''), '')`;
 
 // O TOKEN DO QR CODE E EXIGIDO AQUI, e nao so a matricula.
 //
@@ -245,7 +246,7 @@ router.post("/saida/:token", async (req, res, next) => {
     await cliente.query("BEGIN");
 
     const qr = await cliente.query(
-      `SELECT v.id_veiculo, v.quilometragem_atual, v.status
+      `SELECT v.id_veiculo, v.quilometragem_atual, v.status, v.viatura
          FROM qr_code q JOIN veiculo v ON v.id_veiculo = q.id_veiculo
         WHERE q.token = $1 AND q.status = TRUE
         FOR UPDATE OF v`,
@@ -256,6 +257,11 @@ router.post("/saida/:token", async (req, res, next) => {
       return res.status(404).json({ erro: "QR Code inválido." });
     }
     const veiculo = qr.rows[0];
+    // Viatura faz o checklist da FISCALIZACAO (21/10), nunca o da frota.
+    if (veiculo.viatura) {
+      await cliente.query("ROLLBACK");
+      return res.status(409).json({ erro: "Esta é uma viatura da Fiscalização: use o checklist da Fiscalização." });
+    }
 
     if (veiculo.status === "EM_MANUTENCAO" || veiculo.status === "INATIVO") {
       await cliente.query("ROLLBACK");
@@ -457,13 +463,13 @@ const MAX_FOTOS = 6;
 
 // O corpo destas rotas carrega uma imagem em base64, que passa do limite de
 // 1mb aplicado ao resto da API. O limite maior vale SO aqui.
-const corpoDeFoto = json({ limit: "8mb" });
+export const corpoDeFoto = json({ limit: "8mb" });
 
 /**
  * Converte a data URL que o navegador manda em { tipo, buffer }.
  * Devolve null se o formato nao for o esperado.
  */
-function lerDataUrl(dataUrl) {
+export function lerDataUrl(dataUrl) {
   if (typeof dataUrl !== "string") return null;
   const m = /^data:([a-z/+.-]+);base64,([A-Za-z0-9+/=]+)$/i.exec(dataUrl.trim());
   if (!m) return null;

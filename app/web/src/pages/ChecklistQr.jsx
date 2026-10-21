@@ -24,6 +24,7 @@ import Icone from "../components/Icone.jsx";
 import Selo from "../components/Selo.jsx";
 import Modal from "../components/Modal.jsx";
 import ItensInspecao from "../components/ItensInspecao.jsx";
+import ChecklistQrFiscal from "./ChecklistQrFiscal.jsx";
 import { api } from "../lib/api.js";
 import { itensDaInspecao } from "../lib/itensInspecao.js";
 import { numero, numeroOs, rotulo } from "../lib/formato.js";
@@ -436,6 +437,8 @@ export default function ChecklistQr() {
     );
   }
   if (!dados) return <div className="carregando">Carregando o veículo...</div>;
+  // Viatura da Fiscalizacao: o checklist e outro, em quatro passos (21/10).
+  if (dados.veiculo.viatura) return <ChecklistQrFiscal token={token} />;
 
   const { veiculo, checklistAberto } = dados;
   const naChegada = Boolean(checklistAberto);

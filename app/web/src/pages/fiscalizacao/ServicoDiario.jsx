@@ -8,6 +8,10 @@
  * checklist, os fiscais sao os da equipe no dia e a viatura fica "-".
  * "Visualizar" abre os Detalhes do Servico Diario.
  *
+ * 21/10: o servico e aberto para UMA equipe (com viatura, ocorrencias,
+ * apoio, observacoes e fotos). Sem "Iniciar servico": a equipe entra em
+ * servico no "Continuar" do checklist da viatura e sai ao finalizar.
+ *
  * Do desenho ficaram de fora o que o SITRA nao tem (roteiro/local de atuacao,
  * previsao de retorno, abas Mapa e Escala de Fiscais) e todos os cartoes do
  * topo (pedido do Cesar, 20/10).
@@ -43,7 +47,7 @@ export default function ServicoDiario() {
   const [equipes, setEquipes] = useState([]);
   const [fiscais, setFiscais] = useState([]);
   const [viaturas, setViaturas] = useState([]);
-  // Janela de cadastro: null | { id?: id_servico_diario }
+  // Janela de cadastro: null | { id?: id_servico_equipe }
   const [janela, setJanela] = useState(null);
   const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
 
@@ -88,7 +92,12 @@ export default function ServicoDiario() {
         </span>
       ),
     },
-    { chave: "equipe", rotulo: "Equipe", render: (l) => l.equipe || <span className="texto-apagado">Sem equipe</span> },
+    {
+      chave: "equipe", rotulo: "Equipe",
+      render: (l) => (l.equipe_apoio
+        ? <span className="celula-dupla" title={`Equipe de apoio: ${l.equipe_apoio}`}><strong>{l.equipe}</strong><span>+ apoio</span></span>
+        : l.equipe || <span className="texto-apagado">Sem equipe</span>),
+    },
     {
       chave: "fiscais", rotulo: "Fiscais", classe: "coluna-flexivel",
       render: (l) => (l.fiscais?.length ? (
@@ -113,9 +122,9 @@ export default function ServicoDiario() {
           l.id_equipe && { rotulo: "Ver equipe", icone: "equipe", aoClicar: () => navegar(`/fiscalizacao/equipes/${l.id_equipe}`) },
           l.id_checklist && { rotulo: "Ver checklist", icone: "checklist", aoClicar: () => navegar(`/fiscalizacao/checklists/${l.id_checklist}`) },
           l.id_veiculo && { rotulo: "Ver viatura", icone: "fisc-viatura", aoClicar: () => navegar(`/fiscalizacao/viaturas/${l.id_veiculo}`) },
-          podeGerenciar && l.status_servico === "ABERTO" && { rotulo: "Iniciar serviço", icone: "concluidas", aoClicar: () => mudarSituacao(l, "INICIAR") },
-          podeGerenciar && l.status_servico === "EM_SERVICO" && { rotulo: "Encerrar serviço", icone: "historico", aoClicar: () => mudarSituacao(l, "ENCERRAR") },
-          podeGerenciar && l.status_servico !== "ENCERRADO" && { rotulo: "Editar serviço", icone: "editar", aoClicar: () => setJanela({ id: l.id_servico_diario }) },
+          podeGerenciar && ["ABERTO", "EM_SERVICO"].includes(l.situacao) && { rotulo: "Editar serviço", icone: "editar", aoClicar: () => setJanela({ id: l.id_servico_equipe }) },
+          podeGerenciar && l.situacao === "EM_SERVICO" && { rotulo: "Encerrar serviço", icone: "historico", aoClicar: () => mudarSituacao(l, "ENCERRAR") },
+          podeGerenciar && l.situacao === "ABERTO" && { rotulo: "Cancelar serviço", icone: "fechar", perigo: true, aoClicar: () => mudarSituacao(l, "CANCELAR") },
         ].filter(Boolean)} />
       ),
     },
@@ -127,7 +136,7 @@ export default function ServicoDiario() {
     <PaginaLista
       trilha={[{ rotulo: "Fiscalização" }, { rotulo: "Serviço Diário" }]}
       titulo="Serviço Diário"
-      descricao="Os serviços por turno: cada linha é uma equipe no serviço, com o código, os fiscais, a viatura, a saída e o retorno."
+      descricao="Cada linha é o serviço de uma equipe, com o código, os fiscais, a viatura, a saída e o retorno. A equipe entra em serviço ao tocar em “Continuar” no checklist da viatura."
       acao={
         podeGerenciar && (
           <button className="botao botao--primario" onClick={() => setJanela({})}>
@@ -137,7 +146,7 @@ export default function ServicoDiario() {
       }
       lista={lista}
       colunas={colunas}
-      chaveDe={(l) => `${l.id_servico_diario}-${l.id_equipe ?? 0}`}
+      chaveDe={(l) => l.id_servico_equipe}
       unidade="serviços"
       vazio="Nenhum serviço diário com esses filtros."
       filtros={
@@ -162,7 +171,7 @@ export default function ServicoDiario() {
       }
     >
       {janela && (
-        <JanelaServico idServico={janela.id} aoFechar={() => setJanela(null)} aoSalvar={() => lista.recarregar()} />
+        <JanelaServico idServicoEquipe={janela.id} aoFechar={() => setJanela(null)} aoSalvar={() => lista.recarregar()} />
       )}
       {modalSenha}
     </PaginaLista>

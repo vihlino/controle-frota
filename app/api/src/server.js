@@ -70,6 +70,7 @@ import permissoes from "./routes/permissoes.js";
 import auditoria from "./routes/auditoriaRotas.js";
 import relatorios from "./routes/relatoriosRotas.js";
 import qrcode from "./routes/qrcode.js";
+import qrcodeFiscal from "./routes/qrcodeFiscal.js";
 import detalhes from "./routes/detalhes.js";
 import setores from "./routes/setores.js";
 import cargos from "./routes/cargos.js";
@@ -202,8 +203,14 @@ async function iniciarServidor() {
   // proprio leitor de corpo, com limite maior (routes/frotas.js).
   const jsonPadrao = express.json({ limit: "1mb" });
   const ROTA_ANEXO_DOCUMENTO = /^\/api\/frotas\/(documentos|sinistros|multas)\/\d+\/arquivos\/?$/;
+  // Fotos do checklist pelo QR Code (frota e Fiscalizacao): o leitor de 8 MB
+  // fica na propria rota (corpoDeFoto, routes/qrcode.js).
+  // Fotos e documentos da ocorrencia registrada pelo QR (ate 10 MB): leitor de 15 MB na rota.
+  const ROTA_FOTO_QR = /^\/api\/qrcode\/(foto\/[^/]+|fiscal\/[^/]+\/fotos|fiscal\/[^/]+\/ocorrencia\/\d+\/arquivos)\/?$/;
+  // Fotos do servico diario (21/10): leitor de 12 MB na rota (routes/servicoEquipe.js).
+  const ROTA_FOTO_SERVICO = /^\/api\/fiscalizacao\/servico-diario\/equipe\/\d+\/fotos\/?$/;
   app.use((req, res, next) =>
-    ROTA_ANEXO_DOCUMENTO.test(req.path) ? next() : jsonPadrao(req, res, next)
+    ROTA_ANEXO_DOCUMENTO.test(req.path) || ROTA_FOTO_QR.test(req.path) || ROTA_FOTO_SERVICO.test(req.path) ? next() : jsonPadrao(req, res, next)
   );
 
   /*
@@ -262,6 +269,7 @@ async function iniciarServidor() {
 
   app.use("/api/relatorios", relatorios);
 
+  app.use("/api/qrcode/fiscal", qrcodeFiscal);
   app.use("/api/qrcode", qrcode);
 
   app.use("/api/frotas", detalhes);

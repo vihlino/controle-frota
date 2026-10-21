@@ -10,6 +10,10 @@
  * percurso e pontos fiscalizados, documentos, autos de infracao e
  * advertencias, "presente" do fiscal e observacoes finais do servico. A
  * viatura, a saida e a chegada sao as do checklist da viatura da equipe.
+ *
+ * 21/10: o servico e de uma equipe, com a viatura escolhida na abertura, a
+ * equipe de apoio, observacoes e fotos. Sem "Iniciar servico" (comeca no
+ * "Continuar" do checklist da viatura); Encerrar e Cancelar por equipe.
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
@@ -19,7 +23,7 @@ import Trilha from "../../components/Trilha.jsx";
 import Selo from "../../components/Selo.jsx";
 import { useConfirmacaoSenha } from "../../components/ConfirmarSenha.jsx";
 import { Tabela, Abas, VerTodos } from "../../components/FichaTabela.jsx";
-import { api } from "../../lib/api.js";
+import { api, apiArquivo } from "../../lib/api.js";
 import { data, dataHora, hora, numero, rotulo } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
 import { Item, Linhas } from "../ServidorDetalhe.jsx";
@@ -33,6 +37,35 @@ const ACAO = { CRIAR: "Serviço criado", EDITAR: "Serviço alterado", EXCLUIR: "
 /** Tipo do veiculo pelo rotulo do sistema; fora da lista, so a primeira maiuscula. */
 const tipoVeiculo = (t) => { const r = rotulo("tipoVeiculo", t); return r === t && t ? t.charAt(0) + t.slice(1).toLowerCase() : r; };
 const km = (n) => (n === null || n === undefined ? "—" : `${numero(n)} km`);
+
+/** Fotos do servico (miniaturas via blob: a rota exige o token). */
+function FotosServico({ fotos }) {
+  const [urls, setUrls] = useState({});
+  useEffect(() => {
+    let vivo = true;
+    const criadas = [];
+    (async () => {
+      for (const f of fotos) {
+        try {
+          const u = await apiArquivo(`/fiscalizacao/servico-diario/fotos/${f.id_foto}`);
+          criadas.push(u);
+          if (vivo) setUrls((x) => ({ ...x, [f.id_foto]: u }));
+        } catch { /* sem miniatura */ }
+      }
+    })();
+    return () => { vivo = false; criadas.forEach((u) => URL.revokeObjectURL(u)); };
+  }, [fotos]);
+  return (
+    <div className="ck-fotos">
+      {fotos.map((f, i) => (
+        <a key={f.id_foto} href={urls[f.id_foto]} target="_blank" rel="noreferrer" className="ck-foto">
+          {urls[f.id_foto] ? <img src={urls[f.id_foto]} alt={`Foto ${i + 1}`} /> : <span>...</span>}
+          <small>{dataHora(f.criado_em)}</small>
+        </a>
+      ))}
+    </div>
+  );
+}
 
 /** Minutos entre a saida e a chegada (a chegada pode ser no dia seguinte). */
 function duracao(saida, chegada) {
@@ -124,7 +157,7 @@ export default function ServicoDiarioDetalhe() {
       titulo: "Chegada da viatura", texto: `${c.placa} · ${km(c.odometro_chegada)}` })),
     ...s.historico.filter((h) => h.acao !== "CRIAR").map((h) => ({ quando: String(h.data_hora),
       titulo: h.justificativa || ACAO[h.acao] || h.acao,
-      texto: [h.pessoa, h.entidade === "servico_equipe" ? "Equipes do serviço alteradas" : ""].filter(Boolean).join(" · ") })),
+      texto: [h.pessoa, h.entidade === "servico_equipe" && h.acao === "EDITAR" && !h.justificativa ? "Serviço da equipe alterado" : ""].filter(Boolean).join(" · ") })),
   ].filter(Boolean).sort((a, b) => b.quando.localeCompare(a.quando));
   const quandoTexto = (q) => (q.slice(11, 16).trim() ? `${data(q.slice(0, 10))} ${q.slice(11, 16)}` : data(q.slice(0, 10)));
 
@@ -145,17 +178,17 @@ export default function ServicoDiarioDetalhe() {
           <button className="botao" onClick={() => navegar(BASE)}>
             <Icone nome="seta-esquerda" tamanho={15} /> Voltar
           </button>
-          {podeGerenciar && s.status_servico === "ABERTO" && (
-            <button className="botao" onClick={() => mudarSituacao("INICIAR")}>
-              <Icone nome="concluidas" tamanho={15} /> Iniciar serviço
+          {podeGerenciar && s.situacao === "ABERTO" && (
+            <button className="botao" onClick={() => mudarSituacao("CANCELAR")}>
+              <Icone nome="fechar" tamanho={15} /> Cancelar serviço
             </button>
           )}
-          {podeGerenciar && s.status_servico === "EM_SERVICO" && (
+          {podeGerenciar && s.situacao === "EM_SERVICO" && (
             <button className="botao" onClick={() => mudarSituacao("ENCERRAR")}>
               <Icone nome="historico" tamanho={15} /> Encerrar serviço
             </button>
           )}
-          {podeGerenciar && s.status_servico !== "ENCERRADO" && (
+          {podeGerenciar && ["ABERTO", "EM_SERVICO"].includes(s.situacao) && (
             <button className="botao" onClick={() => setEditando(true)}>
               <Icone nome="editar" tamanho={15} /> Editar
             </button>
@@ -205,104 +238,122 @@ export default function ServicoDiarioDetalhe() {
 
       {aba === "geral" && (
         <>
-          <div className="vt-corpo ficha-bloco">
-            <Cartao titulo={<><Icone nome="informacao" tamanho={18} /> Informações do Serviço</>}>
-              <Linhas linhas={[
-                ["Número do serviço", s.codigo],
-                ["Data e horário", `${data(s.data)} · ${HORARIO_TURNO[s.turno]}`],
-                ["Turno", turnoTexto],
-                ["Equipe", s.equipe],
-                ["Coordenador", s.coordenador ? `${s.coordenador} (Matrícula: ${s.coordenador_matricula})` : null],
-                ["Situação", <Selo valor={s.situacao} />],
-                ["Registrado por", s.criado_por_nome ? `${s.criado_por_nome}${s.criado_por_matricula ? ` (Matrícula: ${s.criado_por_matricula})` : ""}` : null],
-                ["Encerrado por", s.encerrado_por_nome],
-              ]} />
-            </Cartao>
+          {/* Ordem pedida pelo Cesar (21/10): Informacoes e Resumo | Viatura e
+              Horarios | Equipe e Ocorrencias; embaixo Observacoes e Fotos. */}
+          <div className="sd-geral ficha-bloco">
+            <div className="ficha-col">
+              <Cartao titulo={<><Icone nome="informacao" tamanho={18} /> Informações do Serviço</>}>
+                <Linhas linhas={[
+                  ["Número do serviço", s.codigo],
+                  ["Data e horário", `${data(s.data)} · ${HORARIO_TURNO[s.turno]}`],
+                  ["Turno", turnoTexto],
+                  ["Equipe", s.equipe],
+                  s.equipe_apoio && ["Equipe de apoio", `${s.equipe_apoio}${s.apoio_policial ? ` (Policial: ${s.apoio_policial})` : ""}`],
+                  ["Coordenador", s.coordenador ? `${s.coordenador} (Matrícula: ${s.coordenador_matricula})` : null],
+                  ["Situação", <Selo valor={s.situacao} />],
+                  ["Registrado por", s.servico_criado_por || (s.criado_por_nome ? `${s.criado_por_nome}${s.criado_por_matricula ? ` (Matrícula: ${s.criado_por_matricula})` : ""}` : null)],
+                  ["Encerrado por", s.encerrado_por_nome],
+                ].filter(Boolean)} />
+              </Cartao>
 
-            <Cartao titulo={<><Icone nome="equipe" tamanho={18} /> Equipe de Fiscalização</>}
-                    acao={<VerTodos texto="Ver equipe" aoClicar={() => navegar(`/fiscalizacao/equipes/${s.id_equipe}`)} />}>
-              <Tabela linhas={s.fiscais} colunas={COL_FISCAL.filter((c) => c.rotulo !== "Checklist")}
-                      aoAbrir={abrirFiscal} vazio="Nenhum fiscal na equipe nesse dia." />
-            </Cartao>
+              <Cartao titulo={<><Icone nome="chart-line" tamanho={18} /> Resumo do Serviço</>}>
+                <dl className="pt-numeros sd-numeros">
+                  <div><dt><Icone nome="fisc-ocorrencias" tamanho={18} /> Ocorrências atendidas</dt><dd>{numero(r.ocorrencias)}</dd></div>
+                  <div><dt><Icone nome="concluidas" tamanho={18} /> Ocorrências finalizadas</dt><dd>{numero(r.finalizadas)}</dd></div>
+                  <div><dt><Icone nome="alert-triangle" tamanho={18} /> Intercorrências</dt><dd>{numero(r.intercorrencias)}</dd></div>
+                  <div><dt><Icone nome="checklist" tamanho={18} /> Checklists realizados</dt><dd>{numero(r.checklists)}</dd></div>
+                  <div><dt><Icone nome="odometro" tamanho={18} /> KM rodado</dt><dd>{r.km_rodado ? km(r.km_rodado) : "—"}</dd></div>
+                </dl>
+              </Cartao>
+            </div>
 
-            <Cartao titulo={<><Icone nome="fisc-viatura" tamanho={18} /> Viatura</>}
-                    acao={v && <VerTodos texto="Ver detalhes" aoClicar={() => navegar(`/fiscalizacao/viaturas/${v.id_veiculo}`)} />}>
-              {!v ? <p className="texto-corrido">A equipe ainda não fez o checklist da viatura neste serviço.</p> : (
-                <>
-                  <div className="sd-viatura">
-                    <span className="sd-viatura__icone"><Icone nome="fisc-viatura" tamanho={30} /></span>
-                    <div>
-                      <span className="sd-pessoa__nome"><strong>{v.placa}</strong><Selo valor={v.status_veiculo} /></span>
-                      <span>{v.marca} {v.modelo}</span>
-                      <span>Equipe {s.equipe}</span>
+            <div className="ficha-col">
+              <Cartao titulo={<><Icone nome="fisc-viatura" tamanho={18} /> Viatura</>}
+                      acao={v && <VerTodos texto="Ver detalhes" aoClicar={() => navegar(`/fiscalizacao/viaturas/${v.id_veiculo}`)} />}>
+                {!v ? <p className="texto-corrido">Nenhuma viatura escolhida para este serviço.</p> : (
+                  <>
+                    <div className="sd-viatura">
+                      <span className="sd-viatura__icone"><Icone nome="fisc-viatura" tamanho={30} /></span>
+                      <div>
+                        <span className="sd-pessoa__nome"><strong>{v.placa}</strong><Selo valor={v.status_veiculo} /></span>
+                        <span>{v.marca} {v.modelo}</span>
+                        <span>Equipe {s.equipe}</span>
+                        {!s.checklists.length && <small className="texto-apagado">Escolhida no serviço · checklist ainda não feito</small>}
+                      </div>
                     </div>
-                  </div>
-                  <Linhas linhas={[
-                    ["Ano", `${v.ano_fabricacao} / ${v.ano_modelo}`],
-                    ["Tipo", tipoVeiculo(v.tipo_veiculo)],
-                    ["Cor", v.cor],
-                    ["Combustível", v.tipo_combustivel ? rotulo("combustivel", v.tipo_combustivel) : null],
-                    ["KM na saída", km(v.odometro_saida)],
-                    ["KM na chegada", km(v.odometro_chegada)],
-                    ["KM rodado (serviço)", r.km_rodado ? km(r.km_rodado) : "—"],
-                  ]} />
-                </>
-              )}
-            </Cartao>
+                    <Linhas linhas={[
+                      ["Ano", `${v.ano_fabricacao} / ${v.ano_modelo}`],
+                      ["Tipo", tipoVeiculo(v.tipo_veiculo)],
+                      ["Cor", v.cor],
+                      ["Combustível", v.tipo_combustivel ? rotulo("combustivel", v.tipo_combustivel) : null],
+                      ["KM na saída", km(v.odometro_saida)],
+                      ["KM na chegada", km(v.odometro_chegada)],
+                      ["KM rodado (serviço)", r.km_rodado ? km(r.km_rodado) : "—"],
+                    ]} />
+                  </>
+                )}
+              </Cartao>
+
+              <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Horários</>}>
+                <dl className="pt-numeros sd-numeros">
+                  <div><dt>Início do serviço</dt><dd>{s.hora_inicio_equipe ? hora(s.hora_inicio_equipe) : r.saida ? hora(r.saida) : "—"}</dd></div>
+                  <div><dt>Saída da viatura</dt><dd>{r.saida ? hora(r.saida) : "—"}</dd></div>
+                  <div><dt>Chegada da viatura</dt><dd>{r.chegada ? hora(r.chegada) : "—"}</dd></div>
+                  <div><dt>Encerramento do serviço</dt><dd>{s.hora_fim_equipe ? hora(s.hora_fim_equipe) : s.hora_encerramento ? hora(s.hora_encerramento) : "—"}</dd></div>
+                  <div><dt>Tempo com a viatura</dt><dd>{duracao(r.saida, r.chegada) || "—"}</dd></div>
+                </dl>
+              </Cartao>
+            </div>
+
+            <div className="ficha-col">
+              <Cartao titulo={<><Icone nome="equipe" tamanho={18} /> Equipe de Fiscalização</>}
+                      acao={<VerTodos texto="Ver equipe" aoClicar={() => navegar(`/fiscalizacao/equipes/${s.id_equipe}`)} />}>
+                <Tabela linhas={s.fiscais} colunas={COL_FISCAL.filter((c) => c.rotulo !== "Checklist")}
+                        aoAbrir={abrirFiscal} vazio="Nenhum fiscal na equipe nesse dia." />
+              </Cartao>
+
+              <Cartao titulo={<><Icone nome="fisc-ocorrencias" tamanho={18} /> Ocorrências Atendidas</>}
+                      acao={s.ocorrencias.length > 5 && <VerTodos total={s.ocorrencias.length} texto="Ver todas" aoClicar={() => setAba("ocorrencias")} />}>
+                <Tabela linhas={s.ocorrencias.slice(0, 5)} colunas={COL_OCORRENCIA.filter((c) => !["Horário", "Local"].includes(c.rotulo))}
+                        aoAbrir={abrirOcorrencia} vazio="A equipe não atendeu ocorrência neste serviço." />
+              </Cartao>
+            </div>
           </div>
 
-          <div className="sd-linha2 ficha-bloco">
-            <Cartao titulo={<><Icone nome="fisc-ocorrencias" tamanho={18} /> Ocorrências Atendidas</>}
-                    acao={s.ocorrencias.length > 5 && <VerTodos total={s.ocorrencias.length} texto="Ver todas" aoClicar={() => setAba("ocorrencias")} />}>
-              <Tabela linhas={s.ocorrencias.slice(0, 5)} colunas={COL_OCORRENCIA} aoAbrir={abrirOcorrencia}
-                      vazio="A equipe não atendeu ocorrência neste serviço." />
+          <div className="sd-linha3 ficha-bloco">
+            <Cartao titulo={<><Icone nome="documento" tamanho={18} /> Observações</>}>
+              <h3 className="formulario__secao">Do serviço</h3>
+              <p className="texto-corrido">{s.observacoes || "Nenhuma observação no serviço."}</p>
+              <h3 className="formulario__secao" style={{ marginTop: 14 }}>Do checklist da viatura</h3>
+              {s.checklists.some((c) => c.observacoes || c.observacoes_equipe || c.observacoes_chegada)
+                ? s.checklists.flatMap((c) => [
+                    c.observacoes && <p key={`${c.id_checklist}s`} className="texto-corrido"><strong>Saída:</strong> {c.observacoes}</p>,
+                    c.observacoes_equipe && <p key={`${c.id_checklist}e`} className="texto-corrido"><strong>Equipe:</strong> {c.observacoes_equipe}</p>,
+                    c.observacoes_chegada && <p key={`${c.id_checklist}c`} className="texto-corrido"><strong>Chegada:</strong> {c.observacoes_chegada}</p>,
+                  ].filter(Boolean))
+                : <p className="texto-corrido">Nenhuma observação no checklist.</p>}
             </Cartao>
-
-            <Cartao titulo={<><Icone nome="chart-line" tamanho={18} /> Resumo do Serviço</>}>
-              <dl className="pt-numeros sd-numeros">
-                <div><dt><Icone nome="fisc-ocorrencias" tamanho={18} /> Ocorrências atendidas</dt><dd>{numero(r.ocorrencias)}</dd></div>
-                <div><dt><Icone nome="concluidas" tamanho={18} /> Ocorrências finalizadas</dt><dd>{numero(r.finalizadas)}</dd></div>
-                <div><dt><Icone nome="alert-triangle" tamanho={18} /> Intercorrências</dt><dd>{numero(r.intercorrencias)}</dd></div>
-                <div><dt><Icone nome="checklist" tamanho={18} /> Checklists realizados</dt><dd>{numero(r.checklists)}</dd></div>
-                <div><dt><Icone nome="odometro" tamanho={18} /> KM rodado</dt><dd>{r.km_rodado ? km(r.km_rodado) : "—"}</dd></div>
-              </dl>
-            </Cartao>
-
-            <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Horários</>}>
-              <dl className="pt-numeros sd-numeros">
-                <div><dt>Início do serviço</dt><dd>{s.hora_inicio ? hora(s.hora_inicio) : "—"}</dd></div>
-                <div><dt>Saída da viatura</dt><dd>{r.saida ? hora(r.saida) : "—"}</dd></div>
-                <div><dt>Chegada da viatura</dt><dd>{r.chegada ? hora(r.chegada) : "—"}</dd></div>
-                <div><dt>Encerramento do serviço</dt><dd>{s.hora_encerramento ? hora(s.hora_encerramento) : "—"}</dd></div>
-                <div><dt>Tempo com a viatura</dt><dd>{duracao(r.saida, r.chegada) || "—"}</dd></div>
-              </dl>
+            <Cartao titulo={<><Icone nome="oc-camera" tamanho={18} /> Fotos do serviço</>}>
+              {s.fotos?.length ? <FotosServico fotos={s.fotos} /> : <p className="texto-corrido">Nenhuma foto anexada ao serviço.</p>}
             </Cartao>
           </div>
-
-          {s.checklists.some((c) => c.observacoes) && (
-            <Cartao titulo={<><Icone nome="documento" tamanho={18} /> Observações do checklist</>}>
-              {s.checklists.filter((c) => c.observacoes).map((c) => (
-                <p key={c.id_checklist} className="texto-corrido">{c.observacoes}</p>
-              ))}
-            </Cartao>
-          )}
         </>
       )}
 
       {aba === "equipe" && (
-        <Cartao titulo={<><Icone nome="equipe" tamanho={18} /> Fiscais da equipe {s.equipe} no dia</>}
+        <Cartao titulo={<><Icone nome="equipe" tamanho={18} /> Equipe {s.equipe}</>}
                 acao={<VerTodos texto="Ver equipe" aoClicar={() => navegar(`/fiscalizacao/equipes/${s.id_equipe}`)} />}>
           <Tabela linhas={s.fiscais} colunas={COL_FISCAL} aoAbrir={abrirFiscal} vazio="Nenhum fiscal na equipe nesse dia." />
         </Cartao>
       )}
       {aba === "ocorrencias" && (
-        <Cartao titulo={<><Icone nome="fisc-ocorrencias" tamanho={18} /> Ocorrências atendidas no serviço</>}>
+        <Cartao titulo={<><Icone nome="fisc-ocorrencias" tamanho={18} /> Ocorrências atendidas</>}>
           <Tabela linhas={s.ocorrencias} colunas={COL_OCORRENCIA} aoAbrir={abrirOcorrencia}
                   vazio="A equipe não atendeu ocorrência neste serviço." />
         </Cartao>
       )}
       {aba === "checklists" && (
-        <Cartao titulo={<><Icone nome="checklist" tamanho={18} /> Checklists da viatura no serviço</>}>
+        <Cartao titulo={<><Icone nome="checklist" tamanho={18} /> Checklists da viatura</>}>
           <Tabela linhas={s.checklists} colunas={COL_CHECKLIST} aoAbrir={abrirChecklist}
                   vazio="A equipe ainda não fez o checklist da viatura neste serviço." />
         </Cartao>
@@ -319,7 +370,7 @@ export default function ServicoDiarioDetalhe() {
       )}
 
       {editando && (
-        <JanelaServico idServico={s.id_servico_diario} aoFechar={() => setEditando(false)} aoSalvar={recarregar} />
+        <JanelaServico idServicoEquipe={s.id_servico_equipe} aoFechar={() => setEditando(false)} aoSalvar={recarregar} />
       )}
       {modalSenha}
     </div>

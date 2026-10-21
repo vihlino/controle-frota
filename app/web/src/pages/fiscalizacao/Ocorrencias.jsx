@@ -11,6 +11,7 @@
 import criarPagina from "../../components/criarPagina.jsx";
 import Selo from "../../components/Selo.jsx";
 import { data, hora } from "../../lib/formato.js";
+import { CATEGORIAS_OCORRENCIA, SENTIDOS_VIA, rotuloCategoria } from "../../lib/ocorrencias.js";
 
 // Os valores que a tabela `ocorrencia` aceita.
 export const TIPOS_OCORRENCIA = [
@@ -52,6 +53,7 @@ export const CONFIG_OCORRENCIA = {
     { chave: "protocolo", rotulo: "No da ocorrência", ordenavel: true, render: (o) => o.protocolo || "-" },
     { chave: "tipo", rotulo: "Tipo", ordenavel: true,
       render: (o) => TIPOS_OCORRENCIA.find((t) => t.valor === o.tipo)?.rotulo || o.tipo },
+    { chave: "categoria", rotulo: "Tipo de ocorrência", render: (o) => (o.categoria ? rotuloCategoria(o.categoria) : "—") },
     { chave: "endereco", cortar: true, rotulo: "Local" },
     {
       chave: "data", rotulo: "Data / Hora", ordenavel: true,
@@ -68,6 +70,7 @@ export const CONFIG_OCORRENCIA = {
   filtros: [
     { nome: "busca", rotulo: "Buscar", dica: "Protocolo, tipo ou local" },
     { nome: "tipo", rotulo: "Tipo", tipo: "selecao", opcoes: TIPOS_OCORRENCIA, vazio: "Todos" },
+    { nome: "categoria", rotulo: "Tipo de ocorrência", tipo: "selecao", opcoes: CATEGORIAS_OCORRENCIA, vazio: "Todos" },
     { nome: "status", rotulo: "Situação", tipo: "selecao", opcoes: SITUACOES_OCORRENCIA, vazio: "Todas" },
     { nome: "periodo", rotulo: "Período", tipo: "periodo", de: "dataDe", ate: "dataAte" },
   ],
@@ -75,11 +78,15 @@ export const CONFIG_OCORRENCIA = {
     { nome: "id_servico_diario", rotulo: "Serviço diário *", tipo: "selecao", opcoes: "servicos",
       obrigatorio: true, largo: true, ajuda: "O serviço (dia e turno) em que a ocorrência foi atendida." },
     { nome: "tipo", rotulo: "Tipo *", tipo: "selecao", opcoes: TIPOS_OCORRENCIA, obrigatorio: true, padrao: "QRU" },
+    { nome: "categoria", rotulo: "Tipo de ocorrência", tipo: "selecao", opcoes: CATEGORIAS_OCORRENCIA, vazio: "Selecione" },
     { nome: "protocolo", rotulo: "Protocolo", dica: "Ex.: 2026-00125" },
     { nome: "data", rotulo: "Data *", tipo: "data", obrigatorio: true },
     { nome: "hora", rotulo: "Hora *", html: "time", obrigatorio: true, dica: "Ex.: 14:30" },
     { nome: "endereco", rotulo: "Local *", obrigatorio: true, largo: true,
       dica: "Ex.: Av. Brasil, 1250 — Centro" },
+    { nome: "bairro", rotulo: "Bairro", dica: "Ex.: Centro" },
+    { nome: "referencia", rotulo: "Referência", dica: "Ex.: Próximo ao posto" },
+    { nome: "sentido_via", rotulo: "Sentido da via", tipo: "selecao", opcoes: SENTIDOS_VIA, vazio: "Selecione" },
     { nome: "descricao", rotulo: "Descrição *", tipo: "area", obrigatorio: true, largo: true,
       dica: "Ex.: Veículo estacionado em vaga de idoso sem credencial" },
     { nome: "observacoes", rotulo: "Observações", tipo: "area", largo: true,

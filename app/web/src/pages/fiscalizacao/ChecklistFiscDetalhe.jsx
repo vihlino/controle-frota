@@ -18,7 +18,7 @@ import Trilha from "../../components/Trilha.jsx";
 import Selo from "../../components/Selo.jsx";
 import JanelaCadastro from "../../components/JanelaCadastro.jsx";
 import { Tabela, Abas } from "../../components/FichaTabela.jsx";
-import { api } from "../../lib/api.js";
+import { api, apiArquivo } from "../../lib/api.js";
 import { data, dataHora, hora, numero } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
 import { Item, Linhas } from "../ServidorDetalhe.jsx";
@@ -36,6 +36,36 @@ function Pontos({ valor }) {
   return <strong className="fd-pontos" data-sinal={n > 0 ? "mais" : n < 0 ? "menos" : "zero"}>
     {n > 0 ? "+" : ""}{numero(n, Number.isInteger(n) ? 0 : 1)}
   </strong>;
+}
+
+const MOMENTO_FOTO = { SAIDA: "Saída", SERVICO: "Serviço", CHEGADA: "Chegada" };
+/** Miniaturas das fotos tiradas pelo QR Code (a rota exige login: baixa como blob). */
+function FotosChecklist({ fotos }) {
+  const [urls, setUrls] = useState({});
+  useEffect(() => {
+    let vivo = true;
+    const criadas = [];
+    (async () => {
+      for (const f of fotos) {
+        try {
+          const u = await apiArquivo(`/qrcode/fiscal/fotos/arquivo/${f.id_foto}`);
+          criadas.push(u);
+          if (vivo) setUrls((x) => ({ ...x, [f.id_foto]: u }));
+        } catch { /* sem miniatura */ }
+      }
+    })();
+    return () => { vivo = false; criadas.forEach((u) => URL.revokeObjectURL(u)); };
+  }, [fotos]);
+  return (
+    <div className="ck-fotos">
+      {fotos.map((f) => (
+        <a key={f.id_foto} href={urls[f.id_foto]} target="_blank" rel="noreferrer" className="ck-foto">
+          {urls[f.id_foto] ? <img src={urls[f.id_foto]} alt={`Foto ${MOMENTO_FOTO[f.momento]}`} /> : <span>...</span>}
+          <small>{MOMENTO_FOTO[f.momento] || f.momento}</small>
+        </a>
+      ))}
+    </div>
+  );
 }
 
 /** Um lado do checklist (saida ou chegada): equipamentos e os numeros. */
@@ -214,9 +244,27 @@ export default function ChecklistFiscDetalhe() {
                       </button>
                     : `${data(c.servico_data)} · ${TURNO[c.servico_turno] || c.servico_turno}`) : null],
                   ["Coordenador", c.coordenador ? `${c.coordenador} (Matrícula: ${c.coordenador_matricula})` : null],
-                  ["Observações", c.observacoes],
+                  ["Observações da saída", c.observacoes],
+                  ["Observações da equipe", c.observacoes_equipe],
+                  ["Observações da chegada", c.observacoes_chegada],
                 ]} />
               </Cartao>
+              {(c.os || []).length > 0 && (
+                <Cartao titulo={<><Icone nome="kpi-wrench" tamanho={18} /> OS abertas no checklist</>}>
+                  <Tabela linhas={c.os} vazio="" aoAbrir={(o) => navegar(`/fiscalizacao/manutencoes/${o.id_os}`)}
+                          colunas={[
+                            { rotulo: "Nº da OS", render: (o) => o.numero },
+                            { rotulo: "Descrição", classe: "coluna-flexivel", render: (o) => <span className="celula-cortada" title={o.descricao}>{o.descricao}</span> },
+                            { rotulo: "Momento", render: (o) => (o.momento === "CHEGADA" ? "Chegada" : "Saída") },
+                            { rotulo: "Situação", render: (o) => <Selo valor={o.status} /> },
+                          ]} />
+                </Cartao>
+              )}
+              {(c.fotos || []).length > 0 && (
+                <Cartao titulo={<><Icone nome="documento" tamanho={18} /> Fotos ({c.fotos.length})</>}>
+                  <FotosChecklist fotos={c.fotos} />
+                </Cartao>
+              )}
             </div>
             <div className="ficha-col">
               <Cartao titulo={<><Icone nome="fisc-ocorrencias" tamanho={18} /> Ocorrências Registradas</>}
@@ -249,7 +297,7 @@ export default function ChecklistFiscDetalhe() {
       )}
 
       {aba === "ocorrencias" && (
-        <Cartao titulo={<><Icone nome="fisc-ocorrencias" tamanho={18} /> Ocorrências atendidas pela equipe no serviço</>}>
+        <Cartao titulo={<><Icone nome="fisc-ocorrencias" tamanho={18} /> Ocorrências atendidas</>}>
           <Tabela linhas={c.ocorrencias} colunas={COL_OCORRENCIA} aoAbrir={abrirOcorrencia}
                   vazio="A equipe não atendeu ocorrência neste serviço." />
         </Cartao>

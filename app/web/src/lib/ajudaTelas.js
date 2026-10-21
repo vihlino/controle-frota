@@ -31,13 +31,15 @@ export const AJUDA_TELAS = {
 
   // Fiscalizacao
   "/fiscalizacao/servico-diario":
-    "Os serviços por turno. Cada linha é uma equipe no serviço, com o código (SD), os fiscais, a viatura, a saída e o retorno (do checklist da viatura) e as ocorrências atendidas. Clique no código para ver os detalhes.",
+    "Cada linha é o serviço de uma equipe, com o código (SD), os fiscais, a viatura, a saída e o retorno e as ocorrências designadas. A equipe entra em serviço ao tocar em \"Continuar\" no checklist da viatura e sai ao finalizar. Clique no código para ver os detalhes.",
   "/fiscalizacao/fiscais":
     "Servidores com o cargo de Fiscal de Trânsito. Para aparecer aqui, o servidor precisa ter esse cargo no cadastro. Pela ficha do fiscal você vê as ocorrências, as multas e as equipes dele.",
   "/fiscalizacao/equipes":
-    "Equipes da fiscalização e os fiscais que fazem parte de cada uma. As equipes são usadas na escala do Serviço Diário.",
+    "Equipes da fiscalização com o Fiscal 1 e o Fiscal 2 de cada uma. Equipe temporária pode ser de apoio, com o nome do policial. As equipes são usadas no Serviço Diário.",
   "/fiscalizacao/viaturas":
-    "Viaturas da fiscalização (veículos do setor Fiscalização), com as mesmas colunas e ações da tela de Veículos. Em Visualizar estão os checklists, manutenções, ocorrências e sinistros da viatura.",
+    "Viaturas da fiscalização (veículos do setor Fiscalização). Quem cadastra e edita é o Frotas; aqui ficam Visualizar, Histórico, Documentos e Manutenções.",
+  "/fiscalizacao/equipamentos":
+    "Controle de estoque dos equipamentos: quanto foi cadastrado, quanto está em uso, quanto faltou na devolução dos checklists e quanto está disponível. Clique no item para ver quem retirou, quem devolveu e as faltas por fiscal.",
   "/fiscalizacao/ocorrencias":
     "Ocorrências registradas pela fiscalização durante o serviço, com local, tipo e a equipe responsável. Em Visualizar estão o atendimento, a distribuição e o histórico.",
   "/fiscalizacao/manutencoes":

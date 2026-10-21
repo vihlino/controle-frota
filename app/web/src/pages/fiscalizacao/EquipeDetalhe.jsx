@@ -101,7 +101,8 @@ export default function EquipeDetalhe() {
   const [editando, setEditando] = useState(false);
   const [recarga, setRecarga] = useState(0);
   const [parametros, definirParametros] = useSearchParams();
-  const aba = parametros.get("aba") || "geral";
+  // "viaturas" (link antigo) abre a aba Serviço Diário, que a substituiu em 21/10.
+  const aba = (parametros.get("aba") === "viaturas" ? "servicos" : parametros.get("aba")) || "geral";
   const setAba = (chave) => {
     const p = new URLSearchParams(parametros);
     if (chave === "geral") p.delete("aba"); else p.set("aba", chave);
@@ -158,7 +159,8 @@ export default function EquipeDetalhe() {
   const ABAS = [
     { chave: "geral", rotulo: "Visão Geral", icone: "equipe" },
     { chave: "fiscais", rotulo: "Fiscais", icone: "motorista", total: (e.fiscais || []).length },
-    { chave: "viaturas", rotulo: "Viaturas", icone: "fisc-viatura", total: r.viaturas },
+    // 21/10: a aba Viaturas virou Serviço Diário (os servicos da equipe, com a viatura de cada um).
+    { chave: "servicos", rotulo: "Serviço Diário", icone: "calendar", total: r.servicos },
     { chave: "ocorrencias", rotulo: "Ocorrências", icone: "fisc-ocorrencias", total: r.ocorrencias },
     ...(vePontos ? [{ chave: "pontuacao", rotulo: "Pontuação", icone: "fisc-bolt" }] : []),
     { chave: "historico", rotulo: "Histórico", icone: "historico" },
@@ -184,6 +186,17 @@ export default function EquipeDetalhe() {
     { rotulo: "Último uso", render: (v) => data(v.ultimo_uso) },
     { rotulo: "Situação", render: (v) => <Selo valor={v.status} /> },
   ];
+  const COL_SERVICO = [
+    { rotulo: "Nº", render: (x) => (x.codigo ? <strong>{x.codigo}</strong> : "—") },
+    { rotulo: "Data", render: (x) => data(x.data) },
+    { rotulo: "Turno", render: (x) => capitalizar(x.turno) },
+    { rotulo: "Viatura", classe: "coluna-flexivel", render: (x) => (x.placa
+      ? <span className="celula-dupla"><strong>{x.placa}</strong><span>{x.marca} {x.modelo}</span></span> : "—") },
+    { rotulo: "Coordenador", render: (x) => vazio(x.coordenador) },
+    { rotulo: "Ocorrências", render: (x) => numero(x.ocorrencias || 0) },
+    { rotulo: "Situação", render: (x) => <Selo valor={x.situacao} /> },
+  ];
+  const abrirServico = (x) => x.id_servico_equipe && navegar(`/fiscalizacao/servico-diario/${x.id_servico_equipe}`);
   const COL_OCORRENCIA = [
     { rotulo: "Nº", render: (o) => vazio(o.protocolo) },
     { rotulo: "Data / Hora", render: (o) => `${data(o.data)} ${hora(o.hora)}` },
@@ -220,11 +233,11 @@ export default function EquipeDetalhe() {
 
   const cards = [
     { chave: "fiscais", rotulo: "Fiscais", valor: numero(r.fiscais_ativos || 0), icone: "motorista", tom: "verde", rodape: "Ativos na equipe" },
-    { chave: "viaturas", rotulo: "Viaturas", valor: numero(r.viaturas_6m || 0), icone: "fisc-viatura", tom: "azul", rodape: "Usadas nos últimos 6 meses" },
+    { chave: "servicos", rotulo: "Viaturas", valor: numero(r.viaturas_6m || 0), icone: "fisc-viatura", tom: "azul", rodape: "Utilizadas nos últimos 6 meses" },
     { chave: "ocorrencias", rotulo: "Ocorrências", valor: numero(r.ocorrencias_6m || 0), icone: "fisc-ocorrencias", tom: "amarelo", rodape: "Últimos 6 meses" },
     vePontos
       ? { chave: "pontuacao", rotulo: "Pontuação", valor: <Pontos valor={r.pontos_6m} />, icone: "fisc-bolt", tom: "vermelho", rodape: "Últimos 6 meses" }
-      : { chave: "historico", rotulo: "Serviços", valor: numero(r.servicos_6m || 0), icone: "calendar", tom: "vermelho", rodape: "Últimos 6 meses" },
+      : { chave: "servicos", rotulo: "Serviços", valor: numero(r.servicos_6m || 0), icone: "calendar", tom: "vermelho", rodape: "Últimos 6 meses" },
   ];
 
   const totalPositivo = vePontos ? e.pontuacao.filter((p) => Number(p.pontos_aplicados) > 0).reduce((t, p) => t + Number(p.pontos_aplicados), 0) : 0;
@@ -316,10 +329,12 @@ export default function EquipeDetalhe() {
       {aba === "geral" && (
         <>
           <div className="eq-linha1 ficha-bloco">
+            <div className="ficha-col">
             <Cartao titulo={<><Icone nome="informacao" tamanho={18} /> Informações da Equipe</>}>
               <Linhas linhas={[
                 ["Equipe", e.numero],
                 ["Tipo", TIPO_EQUIPE[e.tipo] || capitalizar(e.tipo)],
+                e.apoio && ["Equipe de apoio", e.policial ? `Sim · Policial: ${e.policial}` : "Sim"],
                 ["Setor", "Fiscalização"],
                 ["Turno", e.turno ? (TURNOS_EQUIPE.find((t) => t.valor === e.turno)?.rotulo || capitalizar(e.turno)) : null],
                 ["Último coordenador", ultimo?.coordenador ? `${ultimo.coordenador} (Matrícula: ${ultimo.coordenador_matricula})` : null],
@@ -328,8 +343,16 @@ export default function EquipeDetalhe() {
                 ["Data de criação", e.criada_em ? data(e.criada_em) : null],
                 ["Última atualização", e.atualizada_em ? dataHora(e.atualizada_em) : null],
                 ["Observações", e.observacoes],
-              ]} />
+              ].filter(Boolean)} />
             </Cartao>
+            {/* 21/10: Fiscais logo abaixo das Informações (antes ficava um vão). */}
+            <Cartao titulo={<><Icone nome="motorista" tamanho={18} /> Fiscais da Equipe</>}
+                    acao={verTodos("fiscais", (e.fiscais || []).length)}>
+              <Tabela linhas={atuais.slice(0, 6)}
+                      colunas={COL_FISCAL.filter((c) => !["Desde", "Até"].includes(c.rotulo))}
+                      aoAbrir={abrirFiscal} vazio="Nenhum fiscal na equipe." />
+            </Cartao>
+            </div>
 
             <div className="ficha-col">
               <Cartao titulo={<><Icone nome="chart-line" tamanho={18} /> Resumo</>}>
@@ -349,25 +372,17 @@ export default function EquipeDetalhe() {
               <Cartao titulo={<><Icone nome="alert-triangle" tamanho={18} /> Últimas Ocorrências da Equipe</>}
                       acao={verTodos("ocorrencias", r.ocorrencias)}>
                 <Tabela linhas={(e.ocorrencias || []).slice(0, 5)} colunas={COL_OCORRENCIA}
-                        aoAbrir={abrirOcorrencia} vazio="Nenhuma ocorrência distribuída para a equipe." />
+                        aoAbrir={abrirOcorrencia} vazio="Nenhuma ocorrência atribuída para a equipe." />
+              </Cartao>
+              <Cartao titulo={<><Icone nome="fisc-viatura" tamanho={18} /> Viaturas utilizadas</>}
+                      acao={verTodos("servicos", r.viaturas)}>
+                <Tabela linhas={(e.viaturas || []).slice(0, 5)}
+                        colunas={COL_VIATURA.filter((c) => !["KM rodado", "Usos"].includes(c.rotulo))}
+                        aoAbrir={abrirViatura} vazio="A equipe ainda não usou nenhuma viatura." />
               </Cartao>
             </div>
           </div>
 
-          <div className="ficha-2 ficha-bloco">
-            <Cartao titulo={<><Icone nome="motorista" tamanho={18} /> Fiscais da Equipe</>}
-                    acao={verTodos("fiscais", (e.fiscais || []).length)}>
-              <Tabela linhas={atuais.slice(0, 6)}
-                      colunas={COL_FISCAL.filter((c) => !["Desde", "Até"].includes(c.rotulo))}
-                      aoAbrir={abrirFiscal} vazio="Nenhum fiscal na equipe." />
-            </Cartao>
-            <Cartao titulo={<><Icone nome="fisc-viatura" tamanho={18} /> Viaturas da Equipe</>}
-                    acao={verTodos("viaturas", r.viaturas)}>
-              <Tabela linhas={(e.viaturas || []).slice(0, 6)}
-                      colunas={COL_VIATURA.filter((c) => !["KM rodado", "Usos"].includes(c.rotulo))}
-                      aoAbrir={abrirViatura} vazio="A equipe ainda não usou nenhuma viatura." />
-            </Cartao>
-          </div>
         </>
       )}
 
@@ -380,19 +395,24 @@ export default function EquipeDetalhe() {
         </Cartao>
       )}
 
-      {aba === "viaturas" && (
-        <Cartao titulo={<><Icone nome="fisc-viatura" tamanho={18} /> Viaturas usadas pela equipe</>}>
-          <Tabela linhas={e.viaturas || []} colunas={COL_VIATURA} aoAbrir={abrirViatura} vazio="A equipe ainda não usou nenhuma viatura." />
-          <p className="vd2-nota" style={{ marginTop: 10 }}>
-            A viatura não fica presa à equipe: aqui aparecem as que a equipe usou, pelos checklists de viatura.
-          </p>
-        </Cartao>
+      {aba === "servicos" && (
+        <>
+          <Cartao titulo={<><Icone nome="calendar" tamanho={18} /> Serviço Diário</>}>
+            <Tabela linhas={e.servicos || []} colunas={COL_SERVICO} aoAbrir={abrirServico} vazio="A equipe ainda não teve serviço diário." />
+          </Cartao>
+          <Cartao titulo={<><Icone nome="fisc-viatura" tamanho={18} /> Viaturas utilizadas</>}>
+            <Tabela linhas={e.viaturas || []} colunas={COL_VIATURA} aoAbrir={abrirViatura} vazio="A equipe ainda não usou nenhuma viatura." />
+            <p className="vd2-nota" style={{ marginTop: 10 }}>
+              A viatura não fica presa à equipe: aqui aparecem as que a equipe usou, pelos checklists de viatura.
+            </p>
+          </Cartao>
+        </>
       )}
 
       {aba === "ocorrencias" && (
-        <Cartao titulo={<><Icone nome="fisc-ocorrencias" tamanho={18} /> Ocorrências distribuídas para a equipe</>}>
+        <Cartao titulo={<><Icone nome="fisc-ocorrencias" tamanho={18} /> Ocorrências atribuídas</>}>
           <Tabela linhas={e.ocorrencias || []} colunas={COL_OCORRENCIA} aoAbrir={abrirOcorrencia}
-                  vazio="Nenhuma ocorrência distribuída para a equipe." />
+                  vazio="Nenhuma ocorrência atribuída para a equipe." />
         </Cartao>
       )}
 

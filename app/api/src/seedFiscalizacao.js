@@ -66,7 +66,7 @@ const EQUIPES = [
   ["EQ-OESTE", "NOTURNO", "FIXA", "Equipe noturna de bares, eventos e transporte."],
   ["EQ-APOIO", "DIURNO", "TEMPORARIA", "Equipe de apoio para eventos e operações integradas."],
 ];
-const ITENS_EQUIP = { "Rádio": 1, "Cone": 4, "Pantográfica": 1, "Macaco": 1, "Estepe": 1, "Chave de roda": 1 };
+const ITENS_EQUIP = { "Rádio": 2, "Cone": 4, "Pantográfica": 2, "Cavalete": 2, "Barreira": 2, "Macaco": 1, "Estepe": 1, "Chave de roda": 1 };
 const PONTUACAO = [
   ["PT-01", "Ocorrência atendida no prazo", 10],
   ["PT-02", "Checklist de viatura completo", 5],
@@ -194,6 +194,15 @@ try {
   const equipamentos = (await cliente.query(
     "SELECT id_equipamento, nome FROM equipamento WHERE status ORDER BY id_equipamento"
   )).rows.filter((e) => ITENS_EQUIP[e.nome] !== undefined);
+  // Estoque inicial (migracao 046, se ja rodou): a entrada de 45 dias atras.
+  const ESTOQUE = { Cone: 60, "Pantográfica": 20, Cavalete: 20, Barreira: 20 };
+  if ((await cliente.query("SELECT to_regclass('equipamento_movimento') AS t")).rows[0].t) {
+    for (const e of equipamentos.filter((x) => ESTOQUE[x.nome])) {
+      await cliente.query(
+        `INSERT INTO equipamento_movimento (id_equipamento, tipo, quantidade, data, observacao)
+         VALUES ($1, 'ENTRADA', $2, CURRENT_DATE - 45, 'Estoque inicial (dados de exemplo)')`, [e.id_equipamento, ESTOQUE[e.nome]]);
+    }
+  }
   const viaturas = [];
   for (let i = 0; i < VIATURAS.length; i++) {
     const [marca, modelo, tipo, combustivel, cor] = VIATURAS[i];

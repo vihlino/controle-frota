@@ -18,6 +18,8 @@ import { criarCrud } from "../crud.js";
 import { pool, query } from "../db.js";
 import { autenticar, exigePermissao } from "../auth.js";
 import { registrarAuditoria } from "../auditoria.js";
+import equipamentosFisc from "./equipamentosFisc.js";
+import servicoEquipe from "./servicoEquipe.js";
 
 const VER = "FISCALIZACAO_VISUALIZAR";
 
@@ -162,20 +164,32 @@ export const equipes = criarCrud({
            (SELECT string_agg(sx.nome, ', ' ORDER BY sx.nome)
               FROM equipe_servidor es JOIN servidor sx ON sx.id_servidor = es.id_servidor
              WHERE es.id_equipe = equipe.id_equipe AND es.status AND es.data_fim IS NULL) AS nomes_integrantes,
-           (SELECT COALESCE(json_agg(es.id_servidor::text ORDER BY es.id_servidor), '[]'::json)
+           (SELECT COALESCE(json_agg(es.id_servidor::text ORDER BY es.posicao NULLS LAST, es.id_servidor), '[]'::json)
               FROM equipe_servidor es
              WHERE es.id_equipe = equipe.id_equipe AND es.status AND es.data_fim IS NULL) AS fiscais,
+           CASE WHEN equipe.apoio THEN 'APOIO' ELSE 'NORMAL' END AS modalidade,
+           -- Fiscal 1 e Fiscal 2 (21/10): pela posicao na equipe.
+           f1.id_servidor::text AS fiscal1, f1.nome AS fiscal1_nome, f1.matricula AS fiscal1_matricula,
+           f2.id_servidor::text AS fiscal2, f2.nome AS fiscal2_nome, f2.matricula AS fiscal2_matricula,
            -- Turno atual (18/10): Diurno 06:00-19:00 ou Noturno 19:00-23:59.
            (SELECT t.turno FROM equipe_turno t
              WHERE t.id_equipe = equipe.id_equipe AND t.data_inicio <= CURRENT_DATE
                AND (t.data_fim IS NULL OR t.data_fim >= CURRENT_DATE)
              ORDER BY t.data_inicio DESC LIMIT 1) AS turno`,
-  from: "equipe",
-  busca: ["equipe.numero", "equipe.tipo", "equipe.observacoes"],
+  from: `equipe
+         LEFT JOIN LATERAL (
+           SELECT sx.id_servidor, sx.nome, sx.matricula FROM equipe_servidor es JOIN servidor sx ON sx.id_servidor = es.id_servidor
+            WHERE es.id_equipe = equipe.id_equipe AND es.status AND es.data_fim IS NULL
+            ORDER BY es.posicao NULLS LAST, sx.nome LIMIT 1) f1 ON TRUE
+         LEFT JOIN LATERAL (
+           SELECT sx.id_servidor, sx.nome, sx.matricula FROM equipe_servidor es JOIN servidor sx ON sx.id_servidor = es.id_servidor
+            WHERE es.id_equipe = equipe.id_equipe AND es.status AND es.data_fim IS NULL
+            ORDER BY es.posicao NULLS LAST, sx.nome OFFSET 1 LIMIT 1) f2 ON TRUE`,
+  busca: ["equipe.numero", "equipe.tipo", "equipe.observacoes", "equipe.policial", "f1.nome", "f1.matricula", "f2.nome", "f2.matricula"],
   filtros: { status: "equipe.status", tipo: "equipe.tipo" },
   ordenaveis: { numero: "equipe.numero", tipo: "equipe.tipo", status: "equipe.status" },
   ordemPadrao: "equipe.numero",
-  campos: ["numero", "tipo", "status", "observacoes"],
+  campos: ["numero", "tipo", "status", "observacoes", "apoio", "policial"],
   obrigatorios: ["numero", "tipo"],
   permissoes: { ver: VER, gerenciar: "FISCALIZACAO_GERENCIAR_EQUIPES" },
 });
@@ -212,9 +226,9 @@ export const ocorrencias = criarCrud({
          JOIN usuario  u_cri ON u_cri.id_usuario = ocorrencia.criado_por
          JOIN servidor criador ON criador.id_servidor = u_cri.id_servidor
          LEFT JOIN servico_diario ON servico_diario.id_servico_diario = ocorrencia.id_servico_diario`,
-  busca: ["ocorrencia.protocolo", "ocorrencia.tipo", "ocorrencia.endereco", "ocorrencia.descricao"],
+  busca: ["ocorrencia.protocolo", "ocorrencia.tipo", "ocorrencia.endereco", "ocorrencia.descricao", "ocorrencia.bairro"],
   filtros: {
-    status: "ocorrencia.status", tipo: "ocorrencia.tipo",
+    status: "ocorrencia.status", tipo: "ocorrencia.tipo", categoria: "ocorrencia.categoria",
     servico: "ocorrencia.id_servico_diario",
     dataDe: "ocorrencia.data", dataAte: "ocorrencia.data",
   },
@@ -226,7 +240,7 @@ export const ocorrencias = criarCrud({
   campos: [
     "protocolo", "tipo", "descricao", "data", "hora", "endereco", "observacoes",
     "id_servico_diario", "criado_por", "status", "descricao_atendimento",
-    "data_finalizacao",
+    "data_finalizacao", "categoria", "bairro", "referencia", "sentido_via",
   ],
   obrigatorios: ["tipo", "descricao", "data", "hora", "endereco", "criado_por"],
   permissoes: { ver: VER, gerenciar: "FISCALIZACAO_GERENCIAR_OCORRENCIAS" },
@@ -336,6 +350,12 @@ equipes.put("/:id/integrantes", autenticar, exigePermissao("FISCALIZACAO_GERENCI
           [id, s]
         );
       }
+      // A ordem da lista e a posicao (Fiscal 1, Fiscal 2), 21/10.
+      for (let i = 0; i < novos.length; i++) {
+        await query(
+          "UPDATE equipe_servidor SET posicao = $3 WHERE id_equipe = $1 AND id_servidor = $2 AND status AND data_fim IS NULL",
+          [id, novos[i], i + 1]);
+      }
       if (sairam.length || entraram.length) {
         await registrarAuditoria({
           idUsuario: req.usuario.id_usuario, acao: "EDITAR", entidade: "equipe_servidor",
@@ -406,10 +426,16 @@ const router = Router();
  * viatura daquela equipe naquele servico; os fiscais, do checklist (Fiscal 1
  * e 2) ou, sem checklist, da composicao da equipe no dia.
  */
+// 21/10: a situacao e a da EQUIPE no servico. Em servico desde o "Continuar"
+// do checklist da viatura; encerrado ao finalizar o checklist.
 const SITUACAO_LINHA = `CASE
     WHEN se.status = 'CANCELADA' THEN 'CANCELADA'
     WHEN se.status = 'FINALIZADA' OR sd.status = 'ENCERRADO' THEN 'ENCERRADO'
-    WHEN sd.status = 'EM_SERVICO' THEN 'EM_SERVICO'
+    WHEN se.status = 'EM_SERVICO' THEN 'EM_SERVICO'
+    WHEN EXISTS (SELECT 1 FROM checklist_fiscalizacao cx WHERE cx.id_servico_diario = se.id_servico_diario
+                  AND cx.id_equipe = se.id_equipe AND cx.status = 'ABERTO') THEN 'EM_SERVICO'
+    WHEN EXISTS (SELECT 1 FROM checklist_fiscalizacao cx WHERE cx.id_servico_diario = se.id_servico_diario
+                  AND cx.id_equipe = se.id_equipe) THEN 'ENCERRADO'
     ELSE 'ABERTO' END`;
 
 router.get("/servico-diario/painel", autenticar, exigePermissao(VER), async (req, res, next) => {
@@ -436,24 +462,29 @@ router.get("/servico-diario/painel", autenticar, exigePermissao(VER), async (req
     const base = `
       WITH l AS (
         SELECT sd.id_servico_diario, sd.data, sd.turno, sd.status AS status_servico,
-               sd.hora_inicio, sd.hora_encerramento, sd.id_coordenador, co.nome AS coordenador,
+               sd.hora_inicio, sd.hora_encerramento, COALESCE(se.id_coordenador, sd.id_coordenador) AS id_coordenador,
+               co.nome AS coordenador,
                se.id_servico_equipe, se.numero AS codigo, se.id_equipe, se.status AS status_equipe, eq.numero AS equipe,
+               ap.numero AS equipe_apoio,
                c.id_checklist, c.hora_saida, c.hora_chegada, c.status AS status_checklist,
                v.id_veiculo, v.placa, v.marca, v.modelo,
                ${SITUACAO_LINHA} AS situacao,
                COALESCE(fc.nomes, fe.nomes) AS fiscais,
                COALESCE(fc.ids, fe.ids, ARRAY[]::bigint[]) AS ids_fiscais,
                (SELECT COUNT(DISTINCT d.id_ocorrencia)::int FROM distribuicao_ocorrencia d
-                 WHERE d.id_servico_diario = sd.id_servico_diario AND d.id_equipe = se.id_equipe) AS ocorrencias
+                 WHERE d.id_servico_diario = sd.id_servico_diario AND d.id_equipe = se.id_equipe AND d.status <> 'CANCELADA') AS ocorrencias
           FROM servico_diario sd
-          JOIN servidor co ON co.id_servidor = sd.id_coordenador
           LEFT JOIN servico_equipe se ON se.id_servico_diario = sd.id_servico_diario
+          -- Coordenador: o do servico da equipe (21/10); nos antigos, o do turno.
+          LEFT JOIN servidor co ON co.id_servidor = COALESCE(se.id_coordenador, sd.id_coordenador)
           LEFT JOIN equipe eq ON eq.id_equipe = se.id_equipe
           LEFT JOIN LATERAL (
             SELECT * FROM checklist_fiscalizacao c
              WHERE c.id_servico_diario = sd.id_servico_diario AND c.id_equipe = se.id_equipe
              ORDER BY c.data_abertura DESC, c.hora_saida DESC NULLS LAST LIMIT 1) c ON TRUE
-          LEFT JOIN veiculo v ON v.id_veiculo = c.id_veiculo
+          -- Viatura: a do checklist; sem checklist, a escolhida no servico (21/10).
+          LEFT JOIN veiculo v ON v.id_veiculo = COALESCE(c.id_veiculo, se.id_veiculo)
+          LEFT JOIN equipe ap ON ap.id_equipe = se.id_equipe_apoio
           LEFT JOIN LATERAL (
             SELECT array_agg(sx.nome ORDER BY cs.tipo) AS nomes, array_agg(sx.id_servidor) AS ids
               FROM checklist_fiscal_servidor cs JOIN servidor sx ON sx.id_servidor = cs.id_servidor
@@ -463,6 +494,8 @@ router.get("/servico-diario/painel", autenticar, exigePermissao(VER), async (req
               FROM equipe_servidor es JOIN servidor sx ON sx.id_servidor = es.id_servidor
              WHERE es.id_equipe = se.id_equipe AND es.data_inicio <= sd.data
                AND (es.data_fim IS NULL OR es.data_fim >= sd.data)) fe ON se.id_equipe IS NOT NULL
+         -- Servico sem equipe (modelo antigo, equipes marcadas depois) nao aparece mais.
+         WHERE se.id_servico_equipe IS NOT NULL
       )`;
     const total = await query(`${base} SELECT COUNT(*)::int AS n FROM l ${filtro}`, valores);
     const itens = await query(
@@ -649,14 +682,42 @@ router.get("/ocorrencias/:id/ficha", autenticar, exigePermissao(VER), async (req
         WHERE r.entidade_origem = 'ocorrencia' AND r.id_registro_origem = $1
         ORDER BY r.data_registro DESC`, [id]) : null;
 
+    // Envolvidos, fotos/documentos e ocorrencias ligadas (migracao 044).
+    const envolvidos = await query(
+      "SELECT id_envolvido, tipo, identificacao, placa_documento FROM ocorrencia_envolvido WHERE id_ocorrencia = $1 ORDER BY id_envolvido", [id]);
+    const arquivos = await query(
+      "SELECT id_arquivo, categoria, nome, tipo, bytes, criado_em FROM ocorrencia_arquivo WHERE id_ocorrencia = $1 ORDER BY categoria DESC, id_arquivo", [id]);
+    const ligadas = await query(
+      `SELECT id_ocorrencia, protocolo, tipo, status, descricao, data, hora,
+              CASE WHEN id_ocorrencia = $2 THEN 'ORIGEM' ELSE 'DERIVADA' END AS relacao
+         FROM ocorrencia WHERE id_ocorrencia = $2 OR id_ocorrencia_origem = $1
+        ORDER BY data, hora`, [id, oc.id_ocorrencia_origem || 0]);
+
     res.json({
       ...oc,
+      envolvidos: envolvidos.rows,
+      arquivos: arquivos.rows,
+      ligadas: ligadas.rows,
       distribuicao: atual,
       distribuicoes: distribuicoes.rows,
       fiscais: fiscais.rows,
       pontuacao: pontuacao ? pontuacao.rows : null,
       historico: await historicoDe(["ocorrencia"], id),
     });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Foto ou documento da ocorrencia (miniatura / abrir).
+router.get("/ocorrencias/arquivos/:id", autenticar, exigePermissao(VER), async (req, res, next) => {
+  try {
+    const { rows } = await query("SELECT nome, tipo, conteudo FROM ocorrencia_arquivo WHERE id_arquivo = $1", [Number(req.params.id)]);
+    if (!rows[0]) return res.status(404).json({ erro: "Arquivo não encontrado." });
+    res.setHeader("Content-Type", rows[0].tipo);
+    res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(rows[0].nome)}`);
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    res.send(rows[0].conteudo);
   } catch (e) {
     next(e);
   }
@@ -698,8 +759,11 @@ router.get("/checklists/:id/ficha", autenticar, exigePermissao(VER), async (req,
     // Equipamentos: o que a viatura deve ter (veiculo_equipamento) e o que
     // foi conferido na saida e na chegada.
     const equipamentos = await query(
-      `SELECT e.id_equipamento, e.nome,
-              ve.quantidade AS previsto,
+      `SELECT e.id_equipamento, e.nome, e.conferencia,
+              CASE e.conferencia
+                WHEN 'POR_FISCAL' THEN (SELECT COUNT(*) FROM checklist_fiscal_servidor cs WHERE cs.id_checklist = $1)::int
+                WHEN 'OBRIGATORIO' THEN 1
+                ELSE COALESCE(ve.quantidade, 0) END AS previsto,
               sai.quantidade AS saida, sai.observacao AS obs_saida,
               che.quantidade AS chegada, che.observacao AS obs_chegada
          FROM equipamento e
@@ -709,7 +773,7 @@ router.get("/checklists/:id/ficha", autenticar, exigePermissao(VER), async (req,
          LEFT JOIN checklist_fiscal_equipamento che
                 ON che.id_equipamento = e.id_equipamento AND che.id_checklist = $1 AND che.etapa = 'CHEGADA'
         WHERE e.status OR sai.id_checklist IS NOT NULL OR che.id_checklist IS NOT NULL
-        ORDER BY e.id_equipamento`, [id, ck.id_veiculo]);
+        ORDER BY e.ordem NULLS LAST, e.id_equipamento`, [id, ck.id_veiculo]);
 
     const ocorrencias = (ck.id_servico_diario && ck.id_equipe) ? await query(
       `SELECT DISTINCT ON (o.id_ocorrencia)
@@ -731,8 +795,17 @@ router.get("/checklists/:id/ficha", autenticar, exigePermissao(VER), async (req,
                AND r.entidade_origem IS DISTINCT FROM 'checklist_fiscalizacao')
         ORDER BY r.data_registro DESC`, [id, ck.id_equipe, ck.data_abertura]) : null;
 
+    // OS abertas pelo QR Code durante o checklist e as fotos (21/10).
+    const osChecklist = await query(
+      `SELECT id_os, numero, descricao, gravidade, momento, status, data_abertura
+         FROM ordem_servico WHERE origem = 'CHECKLIST_FISCALIZACAO' AND id_registro_origem = $1
+        ORDER BY data_abertura`, [id]);
+    const fotos = await query(
+      "SELECT id_foto, momento, tipo, bytes FROM checklist_fiscal_foto WHERE id_checklist = $1 ORDER BY momento, id_foto", [id]);
     res.json({
       ...ck,
+      os: osChecklist.rows,
+      fotos: fotos.rows,
       fiscais: fiscais.rows,
       equipamentos: equipamentos.rows,
       ocorrencias: ocorrencias.rows,
@@ -861,9 +934,12 @@ router.get("/servico-diario/linha/:id/ficha", autenticar, exigePermissao(VER), a
     const id = Number(req.params.id);
     const base = await query(
       `SELECT se.id_servico_equipe, se.numero AS codigo, se.status AS status_equipe, se.id_equipe,
-              eq.numero AS equipe, eq.tipo AS tipo_equipe,
+              se.id_veiculo AS id_veiculo_previsto, se.observacoes, se.criado_em, se.hora_inicio AS hora_inicio_equipe,
+              se.hora_fim AS hora_fim_equipe, se.id_equipe_apoio, ap.numero AS equipe_apoio, ap.policial AS apoio_policial,
+              eq.numero AS equipe, eq.tipo AS tipo_equipe, eq.apoio AS equipe_e_apoio, eq.policial,
+              cse.nome AS servico_criado_por,
               sd.id_servico_diario, sd.data, sd.turno, sd.status AS status_servico,
-              sd.hora_inicio, sd.hora_encerramento, sd.hora_criacao, sd.id_coordenador,
+              sd.hora_inicio, sd.hora_encerramento, sd.hora_criacao, COALESCE(se.id_coordenador, sd.id_coordenador) AS id_coordenador,
               co.nome AS coordenador, co.matricula AS coordenador_matricula,
               cr.nome AS criado_por_nome, cr.matricula AS criado_por_matricula,
               en.nome AS encerrado_por_nome,
@@ -871,7 +947,10 @@ router.get("/servico-diario/linha/:id/ficha", autenticar, exigePermissao(VER), a
          FROM servico_equipe se
          JOIN servico_diario sd ON sd.id_servico_diario = se.id_servico_diario
          JOIN equipe eq ON eq.id_equipe = se.id_equipe
-         LEFT JOIN servidor co ON co.id_servidor = sd.id_coordenador
+         LEFT JOIN equipe ap ON ap.id_equipe = se.id_equipe_apoio
+         LEFT JOIN usuario use_ ON use_.id_usuario = se.criado_por
+         LEFT JOIN servidor cse ON cse.id_servidor = use_.id_servidor
+         LEFT JOIN servidor co ON co.id_servidor = COALESCE(se.id_coordenador, sd.id_coordenador)
          LEFT JOIN usuario ucr ON ucr.id_usuario = sd.criado_por
          LEFT JOIN servidor cr ON cr.id_servidor = ucr.id_servidor
          LEFT JOIN usuario uen ON uen.id_usuario = sd.encerrado_por
@@ -882,7 +961,7 @@ router.get("/servico-diario/linha/:id/ficha", autenticar, exigePermissao(VER), a
 
     const checklists = await query(
       `SELECT c.id_checklist, c.data_abertura, c.hora_saida, c.hora_chegada, c.status,
-              c.odometro_saida, c.odometro_chegada, c.observacoes,
+              c.odometro_saida, c.odometro_chegada, c.observacoes, c.observacoes_equipe, c.observacoes_chegada,
               (c.odometro_chegada - c.odometro_saida) AS km_rodado,
               v.id_veiculo, v.placa, v.marca, v.modelo, v.cor, v.ano_fabricacao, v.ano_modelo,
               v.tipo_combustivel, v.tipo_veiculo, v.status AS status_veiculo, v.quilometragem_atual,
@@ -908,12 +987,12 @@ router.get("/servico-diario/linha/:id/ficha", autenticar, exigePermissao(VER), a
 
     const ocorrencias = await query(
       `SELECT DISTINCT ON (o.id_ocorrencia)
-              o.id_ocorrencia, o.protocolo, o.tipo, o.data, o.hora, o.endereco, o.descricao, o.status,
+              o.id_ocorrencia, o.protocolo, o.tipo, o.categoria, o.data, o.hora, o.endereco, o.descricao, o.status,
               v.placa AS viatura
          FROM distribuicao_ocorrencia d
          JOIN ocorrencia o ON o.id_ocorrencia = d.id_ocorrencia
          LEFT JOIN veiculo v ON v.id_veiculo = d.id_veiculo
-        WHERE d.id_servico_diario = $1 AND d.id_equipe = $2
+        WHERE d.id_servico_diario = $1 AND d.id_equipe = $2 AND d.status <> 'CANCELADA'
         ORDER BY o.id_ocorrencia`, [sv.id_servico_diario, sv.id_equipe]);
     ocorrencias.rows.sort((a, b) => String(a.hora).localeCompare(String(b.hora)));
 
@@ -926,15 +1005,31 @@ router.get("/servico-diario/linha/:id/ficha", autenticar, exigePermissao(VER), a
         WHERE a.entidade IN ('servico_diario', 'servico_equipe') AND a.id_registro = $1
         ORDER BY a.data_hora DESC LIMIT 100`, [sv.id_servico_diario]);
 
+    // Viatura escolhida no servico (21/10), para quando ainda nao ha checklist.
+    const prevista = sv.id_veiculo_previsto ? (await query(
+      `SELECT v.id_veiculo, v.placa, v.marca, v.modelo, v.cor, v.ano_fabricacao, v.ano_modelo,
+              v.tipo_combustivel, v.tipo_veiculo, v.status AS status_veiculo, v.quilometragem_atual
+         FROM veiculo v WHERE v.id_veiculo = $1`, [sv.id_veiculo_previsto])).rows[0] : null;
+    const fotos = await query(
+      "SELECT id_foto, nome, tipo, bytes, criado_em FROM servico_equipe_foto WHERE id_servico_equipe = $1 ORDER BY id_foto", [id]);
+    const historicoEquipe = await query(
+      `SELECT a.data_hora, a.acao, a.entidade, a.justificativa, COALESCE(sa.nome, ua.login) AS pessoa
+         FROM auditoria a
+         LEFT JOIN usuario ua ON ua.id_usuario = a.id_usuario
+         LEFT JOIN servidor sa ON sa.id_servidor = ua.id_servidor
+        WHERE a.entidade = 'servico_equipe' AND a.id_registro = $1
+        ORDER BY a.data_hora DESC LIMIT 100`, [id]);
     const cks = checklists.rows;
     const ocs = ocorrencias.rows;
     res.json({
       ...sv,
       checklists: cks,
-      viatura: cks.length ? cks[cks.length - 1] : null,
+      viatura: cks.length ? cks[cks.length - 1] : prevista,
+      viatura_prevista: prevista,
+      fotos: fotos.rows,
       fiscais: fiscais.rows,
       ocorrencias: ocs,
-      historico: historico.rows,
+      historico: [...historicoEquipe.rows, ...historico.rows.filter((h) => h.entidade === "servico_diario")],
       resumo: {
         ocorrencias: ocs.length,
         finalizadas: ocs.filter((o) => o.status === "FINALIZADA").length,
@@ -1233,10 +1328,17 @@ router.get("/equipes/:id/ficha", autenticar, exigePermissao(VER), async (req, re
 
     const servicos = await query(
       `SELECT sd.id_servico_diario, sd.data, sd.turno, sd.status, se.status AS status_equipe,
+              se.id_servico_equipe, se.numero AS codigo, ${SITUACAO_LINHA} AS situacao,
+              v.id_veiculo, v.placa, v.marca, v.modelo,
+              (SELECT COUNT(DISTINCT d.id_ocorrencia)::int FROM distribuicao_ocorrencia d
+                WHERE d.id_servico_diario = se.id_servico_diario AND d.id_equipe = se.id_equipe AND d.status <> 'CANCELADA') AS ocorrencias,
               s.nome AS coordenador, s.matricula AS coordenador_matricula
          FROM servico_equipe se
          JOIN servico_diario sd ON sd.id_servico_diario = se.id_servico_diario
-         LEFT JOIN servidor s ON s.id_servidor = sd.id_coordenador
+         LEFT JOIN veiculo v ON v.id_veiculo = COALESCE(
+           (SELECT c.id_veiculo FROM checklist_fiscalizacao c WHERE c.id_servico_diario = se.id_servico_diario
+             AND c.id_equipe = se.id_equipe ORDER BY c.id_checklist DESC LIMIT 1), se.id_veiculo)
+         LEFT JOIN servidor s ON s.id_servidor = COALESCE(se.id_coordenador, sd.id_coordenador)
         WHERE se.id_equipe = $1
         ORDER BY sd.data DESC, sd.hora_inicio DESC NULLS LAST
         LIMIT 200`,
@@ -1298,11 +1400,14 @@ router.get("/equipes/:id/ficha", autenticar, exigePermissao(VER), async (req, re
   }
 });
 
+// Servico por equipe (21/10) antes do CRUD: rotas /equipe, /ocorrencias-disponiveis, /fotos.
+router.use("/servico-diario", servicoEquipe);
 router.use("/servico-diario", servicoDiario);
 router.use("/equipes", equipes);
 router.use("/apoios", apoios);
 router.use("/ocorrencias", ocorrencias);
 router.use("/checklists", checklistsFiscalizacao);
 router.use("/pontuacao", pontuacaoItens);
+router.use("/equipamentos", equipamentosFisc);
 
 export default router;

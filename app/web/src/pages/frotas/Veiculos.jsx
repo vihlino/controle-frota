@@ -39,8 +39,10 @@ export default function Veículos() {
   const [editando, setEditando] = useState(null);
   const { pedirExclusao, elemento: modalSenha } = useConfirmacaoSenha();
 
-  const podeGerenciar = podeVer("FROTAS_GERENCIAR_VEICULOS")
-    || (fiscalizacao && podeVer("FISCALIZACAO_GERENCIAR_VIATURAS"));
+  // 21/10: so o Frotas cadastra, edita e exclui veiculos - viatura tambem.
+  // Na tela de Viaturas, Editar e Excluir so aparecem para quem tem
+  // "Gerenciar veiculos" (Perfis e Permissoes); "Nova viatura" nao existe.
+  const podeGerenciar = podeVer("FROTAS_GERENCIAR_VEICULOS");
   const [parametros, definirParametros] = useSearchParams();
 
   /*
@@ -79,7 +81,7 @@ export default function Veículos() {
   // na listagem. O parametro sai da URL na hora: se ficasse, a janela abriria
   // sozinha a cada F5 e ao voltar pelo historico.
   useEffect(() => {
-    if (!parametros.get("novo") || !podeGerenciar) return;
+    if (!parametros.get("novo") || !podeGerenciar || fiscalizacao) return;
     setEditando("novo");
     const limpo = new URLSearchParams(parametros);
     limpo.delete("novo");
@@ -141,7 +143,7 @@ export default function Veículos() {
           acoes={[
             { rotulo: "Visualizar", icone: "visualizar",
               aoClicar: () => navegar(`${base}/${v.id_veiculo}`) },
-            ...(podeGerenciar
+            ...(podeGerenciar && !fiscalizacao
               ? [{ rotulo: "Editar", icone: "editar", aoClicar: () => abrirEdicao(v) }]
               : []),
             // Na Fiscalizacao os destinos sao as telas da Fiscalizacao (os
@@ -153,6 +155,9 @@ export default function Veículos() {
               aoClicar: () => navegar(fiscalizacao ? `${base}/${v.id_veiculo}?aba=documentos` : `/frotas/documentos?veiculo=${v.id_veiculo}`) },
             { rotulo: "Manutenções", icone: "kpi-wrench",
               aoClicar: () => navegar(fiscalizacao ? `/fiscalizacao/manutencoes?veiculo=${v.id_veiculo}` : `/frotas/manutencoes?veiculo=${v.id_veiculo}`) },
+            ...(podeGerenciar && fiscalizacao
+              ? [{ rotulo: "Editar", icone: "editar", aoClicar: () => abrirEdicao(v) }]
+              : []),
             ...(podeGerenciar
               ? [{ rotulo: "Excluir", perigo: true, icone: "lixo",
                    aoClicar: () => excluir(v) }]
@@ -169,7 +174,7 @@ export default function Veículos() {
       titulo={fiscalizacao ? "Viaturas" : "Veículos"}
       descricao={fiscalizacao ? "Os veículos do setor de Fiscalização." : "Gerencie os veículos da frota."}
       acao={
-        podeGerenciar && (
+        podeGerenciar && !fiscalizacao && (
           <button className="botao botao--primario" onClick={abrirNovo}>
             <Icone nome="mais" tamanho={15} /> {fiscalizacao ? "Nova viatura" : "Novo veículo"}
           </button>

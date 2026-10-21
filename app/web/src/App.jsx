@@ -37,6 +37,8 @@ import Ocorrencias from "./pages/fiscalizacao/Ocorrencias.jsx";
 import ChecklistsFiscalizacao from "./pages/fiscalizacao/ChecklistsFiscalizacao.jsx";
 import Pontuacao from "./pages/fiscalizacao/Pontuacao.jsx";
 import PontuacaoItens from "./pages/fiscalizacao/PontuacaoItens.jsx";
+import Equipamentos from "./pages/fiscalizacao/Equipamentos.jsx";
+import EquipamentoDetalhe from "./pages/fiscalizacao/EquipamentoDetalhe.jsx";
 
 import Usuarios from "./pages/admin/Usuarios.jsx";
 import Servidores from "./pages/admin/Servidores.jsx";
@@ -139,6 +141,9 @@ export default function App() {
         {/* Viaturas = a tela de Veiculos so com as viaturas (18/10). */}
         <Route path="/fiscalizacao/viaturas" element={<ComPermissao codigo={FISC}><Veiculos key="fiscalizacao" /></ComPermissao>} />
         <Route path="/fiscalizacao/viaturas/:id" element={<ComPermissao codigo={FISC}><ViaturaDetalhe /></ComPermissao>} />
+        {/* Equipamentos das viaturas: quantidades, conferencias, itens e historico (21/10). */}
+        <Route path="/fiscalizacao/equipamentos" element={<ComPermissao codigo={FISC}><Equipamentos /></ComPermissao>} />
+        <Route path="/fiscalizacao/equipamentos/:id" element={<ComPermissao codigo={FISC}><EquipamentoDetalhe /></ComPermissao>} />
         <Route path="/fiscalizacao/ocorrencias" element={<ComPermissao codigo={FISC}><Ocorrencias /></ComPermissao>} />
         <Route path="/fiscalizacao/ocorrencias/:id" element={<ComPermissao codigo={FISC}><OcorrenciaDetalhe /></ComPermissao>} />
         {/* Fiscalizacao usa a mesma tela de Frotas, so com as viaturas (09/10).

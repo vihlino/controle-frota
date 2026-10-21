@@ -5,9 +5,10 @@
  * atenderam; abas Visao Geral, Distribuicao, Pontuacao (so quem gerencia a
  * pontuacao) e Historico.
  *
- * Do desenho saiu o que o SITRA nao tem na ocorrencia: envolvidos (condutor
- * e veiculo abordados), fotos, documentos e infracoes. Editar abre a janela
- * de cadastro da lista de Ocorrencias, aqui mesmo.
+ * 21/10 (migracao 044, tela Nova Ocorrencia do QR Code): tipo da
+ * ocorrencia, bairro, referencia, sentido da via, localizacao do aparelho,
+ * envolvidos, fotos, documentos e o QRU ligado. Editar abre a janela de
+ * cadastro da lista de Ocorrencias, aqui mesmo.
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
@@ -17,7 +18,9 @@ import Trilha from "../../components/Trilha.jsx";
 import Selo from "../../components/Selo.jsx";
 import JanelaCadastro from "../../components/JanelaCadastro.jsx";
 import { Tabela, Abas } from "../../components/FichaTabela.jsx";
-import { api } from "../../lib/api.js";
+import { api, apiArquivo } from "../../lib/api.js";
+import { tamanhoArquivo } from "../../lib/arquivos.js";
+import { iconeCategoria, rotuloCategoria, rotuloEnvolvido } from "../../lib/ocorrencias.js";
 import { data, dataHora, hora, numero } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
 import { Item, Linhas } from "../ServidorDetalhe.jsx";
@@ -28,6 +31,57 @@ const TURNO = { DIURNO: "Diurno", NOTURNO: "Noturno" };
 const TIPO_DISTRIBUICAO = { ATRIBUICAO: "Atribuição", REATRIBUICAO: "Reatribuição" };
 const ACAO = { CRIAR: "Ocorrência registrada", EDITAR: "Ocorrência alterada", EXCLUIR: "Ocorrência excluída" };
 const tipoTexto = (t) => (t === "QRU" ? "QRU" : TIPOS_OCORRENCIA.find((x) => x.valor === t)?.rotulo || t);
+
+/** Fotos (miniaturas) e documentos da ocorrencia. A rota exige o token: baixa como blob. */
+function ArquivosOcorrencia({ arquivos }) {
+  const [urls, setUrls] = useState({});
+  useEffect(() => {
+    let vivo = true;
+    const criadas = [];
+    (async () => {
+      for (const a of arquivos.filter((x) => x.categoria === "FOTO")) {
+        try {
+          const u = await apiArquivo(`/fiscalizacao/ocorrencias/arquivos/${a.id_arquivo}`);
+          criadas.push(u);
+          if (vivo) setUrls((x) => ({ ...x, [a.id_arquivo]: u }));
+        } catch { /* sem miniatura */ }
+      }
+    })();
+    return () => { vivo = false; criadas.forEach((u) => URL.revokeObjectURL(u)); };
+  }, [arquivos]);
+  async function abrir(a) {
+    try { window.open(await apiArquivo(`/fiscalizacao/ocorrencias/arquivos/${a.id_arquivo}`), "_blank", "noopener"); } catch { /* */ }
+  }
+  const fotos = arquivos.filter((a) => a.categoria === "FOTO");
+  const docs = arquivos.filter((a) => a.categoria === "DOCUMENTO");
+  return (
+    <>
+      <h3 className="formulario__secao">Fotos ({fotos.length})</h3>
+      {fotos.length === 0 ? <p className="texto-corrido">Nenhuma foto.</p> : (
+        <div className="ck-fotos">
+          {fotos.map((f, i) => (
+            <a key={f.id_arquivo} href={urls[f.id_arquivo]} target="_blank" rel="noreferrer" className="ck-foto">
+              {urls[f.id_arquivo] ? <img src={urls[f.id_arquivo]} alt={`Foto ${i + 1}`} /> : <span>...</span>}
+              <small>{tamanhoArquivo(f.bytes)}</small>
+            </a>
+          ))}
+        </div>
+      )}
+      <h3 className="formulario__secao" style={{ marginTop: 16 }}>Documentos ({docs.length})</h3>
+      {docs.length === 0 ? <p className="texto-corrido">Nenhum documento.</p> : (
+        <ul className="no-docs">
+          {docs.map((d) => (
+            <li key={d.id_arquivo}>
+              <Icone nome="documento" tamanho={18} />
+              <span><strong>{d.nome}</strong><small>{tamanhoArquivo(d.bytes)} · {dataHora(d.criado_em)}</small></span>
+              <button type="button" className="botao botao--pequeno" onClick={() => abrir(d)}><Icone nome="visualizar" tamanho={14} /> Abrir</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
 
 function Pontos({ valor }) {
   const n = Number(valor || 0);
@@ -69,6 +123,7 @@ export default function OcorrenciaDetalhe() {
 
   const ABAS = [
     { chave: "geral", rotulo: "Visão Geral", icone: "fisc-ocorrencias" },
+    { chave: "envolvidos", rotulo: "Envolvidos e arquivos", icone: "documento", total: (o.envolvidos?.length || 0) + (o.arquivos?.length || 0) },
     { chave: "distribuicao", rotulo: "Distribuição", icone: "equipe", total: o.distribuicoes.length },
     vePontos && { chave: "pontuacao", rotulo: "Pontuação", icone: "fisc-bolt", total: o.pontuacao.length },
     { chave: "historico", rotulo: "Histórico", icone: "historico" },
@@ -140,12 +195,12 @@ export default function OcorrenciaDetalhe() {
 
       <section className="vd-resumo sd-resumo">
         <div className="sd-pessoa">
-          <span className="sd-avatar eq-avatar" aria-hidden="true"><Icone nome="fisc-ocorrencias" tamanho={40} /></span>
+          <span className="sd-avatar eq-avatar" aria-hidden="true"><Icone nome={o.tipo === "QRU" ? "alert-triangle" : iconeCategoria(o.categoria)} tamanho={40} /></span>
           <div className="sd-pessoa__dados">
             <span className="vd-resumo__rotulo">Ocorrência</span>
             <span className="sd-pessoa__nome"><strong>{o.protocolo || `Nº ${o.id_ocorrencia}`}</strong><Selo valor={o.status} /></span>
             <span className="sd-pessoa__linha">
-              {tipoTexto(o.tipo)}
+              {tipoTexto(o.tipo)}{o.categoria ? ` · ${rotuloCategoria(o.categoria)}` : ""}
               <span className="sd-sep">|</span>
               Registrada em {registrada}
             </span>
@@ -186,9 +241,20 @@ export default function OcorrenciaDetalhe() {
             <Cartao titulo={<><Icone nome="documento" tamanho={18} /> Descrição da Ocorrência</>}>
               <Linhas linhas={[
                 ["Tipo", tipoTexto(o.tipo)],
+                ["Tipo de ocorrência", o.categoria ? rotuloCategoria(o.categoria) : null],
                 ["Descrição", o.descricao],
                 ["Data e hora", `${data(o.data)} às ${hora(o.hora)}`],
                 ["Local", o.endereco],
+                ["Bairro", o.bairro],
+                ["Referência", o.referencia],
+                ["Sentido da via", o.sentido_via],
+                ["Localização do aparelho", o.latitude != null && o.longitude != null
+                  ? <a href={`https://www.google.com/maps?q=${o.latitude},${o.longitude}`} target="_blank" rel="noreferrer">{Number(o.latitude)}, {Number(o.longitude)} (abrir no mapa)</a>
+                  : null],
+                ...(o.ligadas || []).map((l) => [l.relacao === "ORIGEM" ? "Ligada à ocorrência" : "QRU relacionado",
+                  <button type="button" className="pt-nome sd-codigo" onClick={() => navegar(`${BASE}/${l.id_ocorrencia}`)}>
+                    {l.protocolo || `Nº ${l.id_ocorrencia}`} · {tipoTexto(l.tipo)}
+                  </button>]),
                 ["Observações", o.observacoes],
                 ["Serviço diário", o.servico_data ? (o.id_servico_equipe
                   ? <button type="button" className="pt-nome sd-codigo" onClick={() => navegar(`/fiscalizacao/servico-diario/${o.id_servico_equipe}`)}>
@@ -196,7 +262,7 @@ export default function OcorrenciaDetalhe() {
                     </button>
                   : `${data(o.servico_data)} · ${TURNO[o.servico_turno] || o.servico_turno}`) : null],
                 ["Coordenador", o.coordenador ? `${o.coordenador} (Matrícula: ${o.coordenador_matricula})` : null],
-              ]} />
+              ].filter(([r, v]) => r !== "Localização do aparelho" || v)} />
             </Cartao>
             <Cartao titulo={<><Icone nome="equipe" tamanho={18} /> Atendimento</>}>
               <Linhas linhas={[
@@ -234,6 +300,26 @@ export default function OcorrenciaDetalhe() {
                   </li>
                 ))}
               </ol>
+            </Cartao>
+          </div>
+        </div>
+      )}
+
+      {aba === "envolvidos" && (
+        <div className="oc-corpo ficha-bloco">
+          <div className="ficha-col">
+            <Cartao titulo={<><Icone nome="equipe" tamanho={18} /> Envolvidos</>}>
+              <Tabela linhas={o.envolvidos || []} vazio="Nenhum envolvido registrado."
+                      colunas={[
+                        { rotulo: "Tipo", render: (e) => rotuloEnvolvido(e.tipo) },
+                        { rotulo: "Nome / Identificação", classe: "coluna-flexivel", render: (e) => <strong>{e.identificacao}</strong> },
+                        { rotulo: "Placa / Documento", render: (e) => e.placa_documento || "—" },
+                      ]} />
+            </Cartao>
+          </div>
+          <div className="ficha-col">
+            <Cartao titulo={<><Icone nome="oc-camera" tamanho={18} /> Fotos e documentos</>}>
+              <ArquivosOcorrencia arquivos={o.arquivos || []} />
             </Cartao>
           </div>
         </div>

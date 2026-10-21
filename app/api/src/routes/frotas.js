@@ -84,7 +84,10 @@ export const veiculos = criarCrud({
   // do veiculo e a frota, mesmo quando o veiculo esta na fiscalizacao.
   permissoes: {
     ver: [VER, "FISCALIZACAO_VISUALIZAR"],
-    gerenciar: ["FROTAS_GERENCIAR_VEICULOS", "FISCALIZACAO_GERENCIAR_VIATURAS"],
+    // 21/10: so o Frotas cadastra, edita e exclui veiculos - viatura tambem.
+    // A Fiscalizacao ve (Visualizar, Historico, Documentos, Manutencoes); quem
+    // precisar editar recebe "Gerenciar veiculos" em Perfis e Permissoes.
+    gerenciar: ["FROTAS_GERENCIAR_VEICULOS"],
   },
 });
 

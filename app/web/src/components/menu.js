@@ -33,6 +33,7 @@ export const MENU = [
       { rotulo: "Fiscais",       para: "/fiscalizacao/fiscais",       icone: "motorista" },
       { rotulo: "Equipes",       para: "/fiscalizacao/equipes",       icone: "equipe" },
       { rotulo: "Viaturas",      para: "/fiscalizacao/viaturas",      icone: "fisc-viatura" },
+      { rotulo: "Equipamentos",  para: "/fiscalizacao/equipamentos",  icone: "eq-cone" },
       { rotulo: "Ocorrências",   para: "/fiscalizacao/ocorrencias",   icone: "fisc-ocorrencias" },
       { rotulo: "Checklists",    para: "/fiscalizacao/checklists",    icone: "checklist" },
       { rotulo: "Manutenções",   para: "/fiscalizacao/manutencoes",   icone: "kpi-wrench" },

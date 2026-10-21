@@ -67,7 +67,8 @@ export default function ViaturaDetalhe() {
   if (!v) return <div className="carregando">Carregando a viatura...</div>;
 
   const r = v.resumo || {};
-  const podeEditar = podeVer("FROTAS_GERENCIAR_VEICULOS") || podeVer("FISCALIZACAO_GERENCIAR_VIATURAS");
+  // 21/10: so o Frotas edita veiculos (viatura tambem); a Fiscalizacao so ve.
+  const podeEditar = podeVer("FROTAS_GERENCIAR_VEICULOS");
   const recarregar = () => setRecarga((n) => n + 1);
   const ck = r.ultimo_checklist;
 
@@ -323,7 +324,7 @@ export default function ViaturaDetalhe() {
         </Cartao>
       )}
       {aba === "ocorrencias" && (
-        <Cartao titulo={<><Icone nome="fisc-ocorrencias" tamanho={18} /> Ocorrências atendidas com a viatura</>}>
+        <Cartao titulo={<><Icone nome="fisc-ocorrencias" tamanho={18} /> Ocorrências atendidas</>}>
           <Tabela linhas={v.ocorrencias} colunas={COL_OCORRENCIA} aoAbrir={abrirOcorrencia} vazio="Nenhuma ocorrência atendida com esta viatura." />
         </Cartao>
       )}
