@@ -16,7 +16,8 @@
  *
  * Itens conferidos (Fiscalizacao > Equipamentos, 21/10): Radio e um por
  * fiscal; Cone, Pantografica, Cavalete e Barreira, a quantidade salva para
- * a viatura; Macaco, Estepe e Chave de roda, presentes ou ausentes.
+ * a viatura; Macaco, Estepe, Triangulo e Chave de roda, presentes ou
+ * ausentes (Triangulo entrou em 26/10, migracao 047, igual ao de Frotas).
  *
  * "Nova" e "Abrir QRU" abrem a tela Nova Ocorrencia do desenho de 21/10
  * (NovaOcorrenciaQr.jsx). Os icones das ocorrencias sao um padrao para todas
@@ -33,6 +34,7 @@ import { reduzirImagem, pesoLegivel } from "../lib/imagem.js";
 import { iconeDoItem, previstoDoItem } from "../lib/equipamentos.js";
 import { iconeCategoria, rotuloCategoria } from "../lib/ocorrencias.js";
 import NovaOcorrenciaQr from "./NovaOcorrenciaQr.jsx";
+import { TopoQr, Secao, CartaoVeiculo, HoraEKmSaida } from "../components/QrComum.jsx";
 
 const obrigatorio = (e) => e.conferencia === "OBRIGATORIO";
 const porFiscal = (e) => e.conferencia === "POR_FISCAL";
@@ -87,23 +89,10 @@ function paraApi(itens, conf) {
   });
 }
 
-function Secao({ icone, titulo, nota, obrigatorio, acao, children }) {
-  return (
-    <section className="qr-cartao qf-secao">
-      <div className="qf-secao__topo">
-        <span className="qf-secao__icone"><Icone nome={icone} tamanho={22} /></span>
-        <div className="qf-secao__textos">
-          <h2 className="qr-cartao__titulo">{titulo}{obrigatorio && <span className="qf-obrig"> *</span>}</h2>
-          {nota && <p className="qr-cartao__nota">{nota}</p>}
-        </div>
-        {acao}
-      </div>
-      {children}
-    </section>
-  );
-}
+// Secao, cabecalho e cartao do veiculo: components/QrComum.jsx (iguais no
+// checklist de Frotas, 26/10).
 
-/** Macaco, Estepe, Chave de roda: toque para marcar ausente. */
+/** Macaco, Estepe, Triangulo, Chave de roda: toque para marcar ausente. */
 function Obrigatorios({ itens, conf, setConf, travado }) {
   const lista = itens.filter(obrigatorio);
   const ausentes = lista.filter((e) => !conf[e.id_equipamento]?.conforme);
@@ -555,15 +544,7 @@ export default function ChecklistQrFiscal({ token }) {
     );
   }
 
-  const topo = (
-    <header className="qf-topo">
-      <img src="/icons/logo-sitra.png" alt="SITRA" />
-      <span className="qf-topo__hora">
-        <Icone nome="calendar" tamanho={18} monocromatico />
-        <span>{new Date().toLocaleDateString("pt-BR")}<br />{new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
-      </span>
-    </header>
-  );
+  const topo = <TopoQr />;
 
   if (novaOc && ck) {
     return (
@@ -609,19 +590,12 @@ export default function ChecklistQrFiscal({ token }) {
         })}
       </nav>
 
-      <section className="qr-cartao qf-viatura">
-        <span className="qf-viatura__icone"><Icone nome="fisc-viatura" tamanho={34} /></span>
-        <div className="qf-viatura__dados">
-          <span className="qf-viatura__placa"><strong>{v.placa}</strong><Selo valor={v.status} /></span>
-          <span>{v.marca} {v.modelo}</span>
-          <small>{[v.ano_modelo, v.tipo_combustivel ? rotulo("combustivel", v.tipo_combustivel) : null, v.cor].filter(Boolean).join(" · ")}</small>
-          <span className="qf-viatura__setor">Fiscalização</span>
-        </div>
+      <CartaoVeiculo veiculo={{ ...v, setor: v.setor || "Fiscalização" }} lado={
         <div className="qf-viatura__equipe">
           <strong>{equipe ? equipe.equipe : "—"}</strong>
           <small>{equipe ? `${equipe.codigo || ""}${equipe.turno ? ` · ${TURNO[equipe.turno]}` : ""}` : "Equipe"}</small>
         </div>
-      </section>
+      } />
 
       {erro && <div className="qr-tela__aviso qr-tela__aviso--erro">{erro}</div>}
 
@@ -629,7 +603,13 @@ export default function ChecklistQrFiscal({ token }) {
       {passo === 1 && (
         <>
           {travadoSaida && <div className="qr-tela__aviso"><Icone nome="informacao" tamanho={18} /><p>Saída registrada às {hhmm(ck.hora_saida)}. Os dados abaixo não mudam mais por aqui.</p></div>}
-          <Secao icone="user" titulo="Matrícula da equipe" obrigatorio nota="Informe a matrícula dos dois fiscais da equipe.">
+          {/* Saida do veiculo: o mesmo cartao do checklist de Frotas (26/10) -
+              matricula, e na mesma linha o horario e o hodometro. */}
+          <Secao icone="historico" titulo="Saída do veículo">
+            <div className="qr-subtitulo">
+              <span className="qr-subtitulo__rotulo">Matrícula da equipe <span className="qf-obrig">*</span></span>
+              <span className="qr-subtitulo__nota">Informe a matrícula dos dois fiscais da equipe.</span>
+            </div>
             {travadoSaida ? (
               <div className="qf-fiscais">
                 {ck.fiscais.map((f) => (
@@ -646,31 +626,15 @@ export default function ChecklistQrFiscal({ token }) {
             {!travadoSaida && fiscal1 && !fiscal1.escala && (
               <p className="qr-cartao__nota qr-cartao__nota--alerta">{fiscal1.nome} não está escalado(a) em nenhum serviço diário de hoje.</p>
             )}
+            <HoraEKmSaida
+              hora={travadoSaida ? hhmm(ck.hora_saida) : horaSaida} setHora={setHoraSaida}
+              km={travadoSaida ? ck.odometro_saida : kmSaida} setKm={setKmSaida}
+              confere={kmConfere} setConfere={setKmConfere}
+              kmAtual={v.quilometragem_atual} travado={travadoSaida} formatarKm={numero}
+              data={travadoSaida ? String(ck.data_abertura).slice(0, 10) : (dados.agora?.data || new Date().toLocaleDateString("sv-SE"))} />
           </Secao>
 
-          <Secao icone="historico" titulo="Horário de saída" obrigatorio>
-            <input type="time" className="qf-hora" value={travadoSaida ? hhmm(ck.hora_saida) : horaSaida} disabled={travadoSaida}
-                   onChange={(e) => setHoraSaida(e.target.value)} aria-label="Horário de saída" />
-          </Secao>
-
-          <Secao icone="odometro" titulo="Hodômetro na saída" obrigatorio
-                 nota="Informe o KM atual da viatura e confirme se o hodômetro está correto.">
-            <div className="qr-km">
-              <input type="number" inputMode="numeric" aria-label="KM de saída" readOnly={travadoSaida || kmConfere !== false}
-                     value={travadoSaida ? ck.odometro_saida : kmSaida} onChange={(e) => setKmSaida(e.target.value)} />
-              <span className="qf-km__unidade">km</span>
-              {!travadoSaida && (
-                <div className="qr-km__confirma" role="group" aria-label="O KM está correto?">
-                  <button type="button" data-ativo={kmConfere === true}
-                          onClick={() => { setKmConfere(true); setKmSaida(String(v.quilometragem_atual ?? "")); }}>Sim</button>
-                  <button type="button" data-ativo={kmConfere === false} onClick={() => setKmConfere(false)}>Não</button>
-                </div>
-              )}
-            </div>
-            {!travadoSaida && <span className="campo__ajuda">Último KM registrado: {numero(v.quilometragem_atual)} km. Marque "Não" para corrigir.</span>}
-          </Secao>
-
-          <Secao icone="checklist" titulo="Equipamentos obrigatórios da viatura" obrigatorio nota="Toque no item para marcar como ausente.">
+          <Secao icone="checklist" titulo="Equipamentos obrigatórios" obrigatorio nota="Toque no item para marcar como ausente.">
             <Obrigatorios itens={dados.equipamentos} conf={confSaida} setConf={setConfSaida} travado={travadoSaida} />
           </Secao>
 
@@ -749,7 +713,7 @@ export default function ChecklistQrFiscal({ token }) {
               Distância percorrida: <strong>{kmRodado !== null && kmRodado > 0 ? `${numero(kmRodado)} km` : "—"}</strong>
             </div>
           </Secao>
-          <Secao icone="checklist" titulo="Equipamentos obrigatórios da viatura (retorno)" obrigatorio nota="Toque no item para marcar como ausente.">
+          <Secao icone="checklist" titulo="Equipamentos obrigatórios (retorno)" obrigatorio nota="Toque no item para marcar como ausente.">
             <Obrigatorios itens={dados.equipamentos} conf={confChegada} setConf={setConfChegada} />
           </Secao>
           <Secao icone="documento" titulo="Equipamentos utilizados pelos fiscais (retorno)" obrigatorio nota="Confirme os equipamentos que estão retornando com a equipe.">

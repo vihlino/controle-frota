@@ -235,9 +235,9 @@ export default function ChecklistDetalhe() {
   const dadosMomento = (momento) => {
     const saida = momento === "SAIDA";
     const linhas = saida
-      ? [["Data e hora informadas", saidaEm], ["Enviado em", dataHora(c.criado_em)], ["KM de saída", `${numero(c.odometro_saida)} km`],
+      ? [["Data e hora informadas", saidaEm], ["Registrado no sistema em", dataHora(c.saida_registrada_em || c.criado_em)], ["KM de saída", `${numero(c.odometro_saida)} km`],
         ["Local de saída", c.local_saida], ["Percurso / atividade", c.percurso], ["Observações do condutor", c.observacoes]]
-      : [["Data e hora informadas", chegadaEm], ["Enviado em", c.data_finalizacao ? dataHora(c.data_finalizacao) : null],
+      : [["Data e hora informadas", chegadaEm], ["Registrado no sistema em", (c.chegada_registrada_em || c.data_finalizacao) ? dataHora(c.chegada_registrada_em || c.data_finalizacao) : null],
         ["KM de chegada", c.odometro_chegada == null ? null : `${numero(c.odometro_chegada)} km`],
         ["KM rodado", c.km_rodado == null ? null : `${numero(c.km_rodado)} km`], ["Observações do condutor", c.observacoes_chegada]];
     return (

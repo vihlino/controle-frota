@@ -90,7 +90,8 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
         </button>
 
         <MenuSuspenso aberto={alertasAberto} aoFechar={fecharAlertas}
-                      ancora={sino} largura={360} alinhamento="esquerda">
+                      ancora={sino} largura={380} alinhamento="esquerda"
+                      classe="menu-suspenso--alertas">
           <div className="menu-suspenso__cabecalho">
             <div className="topo__usuario-nome">Alertas</div>
             <div className="topo__usuario-perfil">

@@ -712,7 +712,12 @@ try {
       "SELECT id_perfil FROM perfil WHERE unaccent_simples(nome) = 'GESTOR'"
     )
   ).rows[0];
-  const senhaPadrao = await bcrypt.hash("sitra@2026", 10);
+  // Senha dos usuarios de exemplo: vem do .env (SEED_DEMO_SENHA), nunca do codigo.
+  const senhaDemo = process.env.SEED_DEMO_SENHA || "";
+  if (senhaDemo.length < 12) {
+    throw new Error("Defina SEED_DEMO_SENHA (12+ caracteres) no .env para criar os usuarios de exemplo.");
+  }
+  const senhaPadrao = await bcrypt.hash(senhaDemo, 10);
 
   const usuarios = [];
   for (let i = 0; i < 6; i++) {

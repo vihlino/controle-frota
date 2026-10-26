@@ -252,9 +252,12 @@ router.post("/:token/saida", async (req, res, next) => {
     const { data, hora } = agoraBr();
     const { rows } = await cliente.query(
       `INSERT INTO checklist_fiscalizacao (id_veiculo, id_servico_diario, id_equipe, data_abertura, hora_saida,
-         odometro_saida, observacoes, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,'ABERTO') RETURNING id_checklist`,
-      [v.id_veiculo, escala.id_servico_diario, escala.id_equipe, data, hora_saida || hora,
+         odometro_saida, observacoes, status, saida_registrada_em)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'ABERTO', CURRENT_TIMESTAMP) RETURNING id_checklist`,
+      // hora_saida = a hora INFORMADA (ajustavel na tela); saida_registrada_em
+      // = o momento real do envio, sempre gravado (migracao 048, 26/10).
+      [v.id_veiculo, escala.id_servico_diario, escala.id_equipe, data,
+       /^([01]\d|2[0-3]):[0-5]\d/.test(String(hora_saida || "")) ? String(hora_saida).slice(0, 5) : hora,
        Number(odometro_saida), observacoes ? String(observacoes).slice(0, 500) : null]);
     const idCk = rows[0].id_checklist;
     await cliente.query(
@@ -559,7 +562,8 @@ router.post("/:token/finalizar", async (req, res, next) => {
     await cliente.query(
       `UPDATE checklist_fiscalizacao
           SET hora_chegada = $2, odometro_chegada = $3, observacoes_chegada = $4,
-              data_finalizacao = $5, status = 'FINALIZADO'
+              data_finalizacao = $5, status = 'FINALIZADO',
+              chegada_registrada_em = CURRENT_TIMESTAMP
         WHERE id_checklist = $1`,
       [ck.id_checklist, chegada, Number(odometro_chegada),
        observacoes_chegada ? String(observacoes_chegada).slice(0, 500) : null, `${data} ${hora}:00`]);

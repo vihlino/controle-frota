@@ -6,12 +6,13 @@
  *   QUANTIDADE  - a quantidade salva para a viatura em Fiscalizacao >
  *                 Equipamentos (Cone, Pantografica, Cavalete, Barreira);
  *   POR_FISCAL  - fixo, um para cada fiscal (Radio);
- *   OBRIGATORIO - presente ou ausente (Macaco, Estepe, Chave de roda).
+ *   OBRIGATORIO - presente ou ausente (Macaco, Estepe, Triangulo, Chave de
+ *                 roda - o Triangulo entrou em 26/10, migracao 047).
  */
 export const ICONE_ITEM = {
   "Rádio": "eq-radio", Cone: "eq-cone", "Pantográfica": "eq-pantografica",
   Cavalete: "eq-cavalete", Barreira: "eq-barreira",
-  Macaco: "eq-macaco", Estepe: "eq-estepe", "Chave de roda": "eq-chave-roda",
+  Macaco: "eq-macaco", Estepe: "eq-estepe", "Triângulo": "eq-triangulo", "Chave de roda": "eq-chave-roda",
 };
 export const iconeDoItem = (nome) => ICONE_ITEM[nome] || "checklist";
 

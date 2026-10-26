@@ -221,13 +221,16 @@ export default function ChecklistFiscDetalhe() {
                    quando={`em ${data(c.data_abertura)} ${c.hora_saida ? hora(c.hora_saida) : ""}`}
                    rodape={[
                      { icone: "odometro", rotulo: "Hodômetro de saída", valor: `${numero(c.odometro_saida)} km` },
-                     { icone: "calendar", rotulo: "Hora da saída", valor: c.hora_saida ? hora(c.hora_saida) : "—" },
+                     { icone: "calendar", rotulo: "Hora da saída (informada)", valor: c.hora_saida ? hora(c.hora_saida) : "—" },
+                     // Hora real do envio, gravada pelo sistema (migracao 048).
+                     { icone: "historico", rotulo: "Registrada no sistema", valor: c.saida_registrada_em ? dataHora(c.saida_registrada_em) : "—" },
                    ]} />
             <Etapa titulo="Checklist de Chegada" feito={finalizado} chave="chegada" equipamentos={c.equipamentos}
                    quando={c.data_finalizacao ? `em ${dataHora(c.data_finalizacao)}` : ""}
                    rodape={[
                      { icone: "odometro", rotulo: "Hodômetro de chegada", valor: c.odometro_chegada != null ? `${numero(c.odometro_chegada)} km` : "—" },
-                     { icone: "calendar", rotulo: "Hora da chegada", valor: c.hora_chegada ? hora(c.hora_chegada) : "—" },
+                     { icone: "calendar", rotulo: "Hora da chegada (informada)", valor: c.hora_chegada ? hora(c.hora_chegada) : "—" },
+                     { icone: "historico", rotulo: "Registrada no sistema", valor: c.chegada_registrada_em ? dataHora(c.chegada_registrada_em) : "—" },
                      { icone: "kpi-steering", rotulo: "KM rodado", valor: c.km_rodado != null ? `${numero(c.km_rodado)} km` : "—" },
                    ]} />
           </div>

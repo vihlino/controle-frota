@@ -12,7 +12,7 @@ const LOGIN = process.env.SEED_LOGIN || "admin";
 
 // SEM SENHA PADRAO NO CODIGO.
 //
-// Havia aqui um `|| "sitra@2026"`. O repositorio e publico: essa senha estava
+// Havia aqui uma senha padrao fixa. O repositorio e publico: essa senha estava
 // escrita, em texto puro, num arquivo que qualquer pessoa na internet le - e
 // o render.yaml nao declara SEED_SENHA, entao era ELA que criava o
 // administrador em producao. Login de administrador com senha conhecida.

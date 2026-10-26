@@ -48,9 +48,11 @@ import { pool } from "./db.js";
  *
  * Caso ela nao exista, usamos "admin".
  *
- * A senha pode ser definida pela variavel SEED_SENHA.
+ * A senha vem OBRIGATORIAMENTE da variavel SEED_SENHA.
  *
- * Caso ela nao exista, usamos a senha padrao definida abaixo.
+ * Nao existe senha padrao escrita no codigo: o codigo-fonte e entregue ao
+ * cliente e pode ser lido por terceiros. Sem SEED_SENHA (ou com menos de 8
+ * caracteres) a API se recusa a criar o administrador e para com um aviso.
  *
  * IMPORTANTE:
  *
@@ -60,7 +62,19 @@ import { pool } from "./db.js";
 
 const LOGIN = process.env.SEED_LOGIN || "admin";
 
-const SENHA = process.env.SEED_SENHA || "sitra@2026";
+const SENHA = process.env.SEED_SENHA || "";
+
+/** Senha inicial do .env; falha alto se faltar, em vez de usar uma senha conhecida. */
+function senhaInicial() {
+  if (SENHA.length < 8) {
+    throw new Error(
+      "SEED_SENHA nao definida (ou com menos de 8 caracteres). " +
+      "Defina uma senha forte no .env (ou nas variaveis do servidor) " +
+      "para criar o administrador inicial."
+    );
+  }
+  return SENHA;
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -359,7 +373,7 @@ async function garantirAdministrador(cliente) {
    */
 
   const senhaHash = await bcrypt.hash(
-    SENHA,
+    senhaInicial(),
     10
   );
 
@@ -479,7 +493,7 @@ async function garantirGestores(cliente) {
       continue;
     }
 
-    const senhaHash = await bcrypt.hash(SENHA, 10);
+    const senhaHash = await bcrypt.hash(senhaInicial(), 10);
     await cliente.query(
       // Mesma senha do admin, vinda do .env: troca obrigatoria no primeiro acesso.
       `INSERT INTO usuario (id_servidor, id_perfil, login, senha_hash, trocar_senha)

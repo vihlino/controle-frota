@@ -30,7 +30,8 @@ const MARGEM = 8;   // respiro entre o botao e o menu
 const BORDA = 8;    // respiro minimo ate a borda da janela
 
 export default function MenuSuspenso({ aberto, aoFechar, ancora, largura,
-                                       alinhamento = "direita", children }) {
+                                       alinhamento = "direita", classe = "",
+                                       children }) {
   const menu = useRef(null);
   const [pos, setPos] = useState(null);
 
@@ -115,7 +116,7 @@ export default function MenuSuspenso({ aberto, aoFechar, ancora, largura,
   return createPortal(
     <div
       ref={menu}
-      className="menu-suspenso"
+      className={`menu-suspenso ${classe}`.trim()}
       role="menu"
       style={{
         top: pos?.top ?? -9999,

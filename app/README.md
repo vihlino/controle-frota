@@ -44,7 +44,8 @@ npm install
 npm run dev
 ```
 
-Abre em http://localhost:5173. Login padrao: `admin` / `sitra@2026`.
+Abre em http://localhost:5173. Login: o definido em `SEED_LOGIN` / `SEED_SENHA`
+no `.env` (troca de senha obrigatoria no primeiro acesso).
 
 ## Estrutura de telas
 

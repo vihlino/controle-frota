@@ -25,6 +25,7 @@ import Selo from "../components/Selo.jsx";
 import Modal from "../components/Modal.jsx";
 import ItensInspecao from "../components/ItensInspecao.jsx";
 import ChecklistQrFiscal from "./ChecklistQrFiscal.jsx";
+import { TopoQr, Secao, CartaoVeiculo, HoraEKmSaida, TelaSucesso } from "../components/QrComum.jsx";
 import { api } from "../lib/api.js";
 import { itensDaInspecao } from "../lib/itensInspecao.js";
 import { numero, numeroOs, rotulo } from "../lib/formato.js";
@@ -387,6 +388,8 @@ export default function ChecklistQr() {
         body: {
           matricula: matricula.trim(),
           odometro_saida: Number(saida.odometro),
+          // Hora informada (ajustavel). A hora real do registro o servidor grava sozinho.
+          hora_saida: saida.hora,
           observacoes: saida.observacoes,
           equipamentos: listaEquipamentos(),
         },
@@ -444,69 +447,33 @@ export default function ChecklistQr() {
   const naChegada = Boolean(checklistAberto);
 
   if (concluido) {
+    // Tela de conclusao do desenho de 26/10 (components/QrComum.jsx).
     return (
-      <div className="qr-tela">
-        <div className="qr-tela__sucesso">
-          <Icone nome="check" tamanho={44} />
-          <h1>{concluido === "saida" ? "Saída registrada" : "Checklist concluído"}</h1>
-          <p>
-            {concluido === "saida"
-              ? "Boa viagem. Ao retornar, leia o QR Code de novo para registrar a chegada."
-              : "Obrigado. O registro foi fechado."}
-          </p>
-          <p className="qr-tela__veiculo">
-            {veiculo.marca} {veiculo.modelo} · {veiculo.placa}
-          </p>
-        </div>
-      </div>
+      <TelaSucesso
+        titulo={concluido === "saida" ? "Saída registrada" : "Checklist concluído"}
+        texto={concluido === "saida"
+          ? "Boa viagem. Ao retornar, leia o QR Code de novo para registrar a chegada."
+          : "Obrigado. A chegada foi registrada e o checklist foi fechado."}
+        veiculo={veiculo}
+      />
     );
   }
 
-  const dadosVeiculo = [
-    ["Veículo", `${veiculo.marca} ${veiculo.modelo}`],
-    ["Placa", veiculo.placa],
-    ["Ano / Modelo", `${veiculo.ano_fabricacao} / ${veiculo.ano_modelo}`],
-    ["Cor", veiculo.cor],
-    ["Setor", veiculo.setor],
-  ];
-
-  const kmEditavel = kmConfere === false;
-
   return (
-    <div className="qr-tela">
-      {/* A marca inteira, centralizada. O condutor chega aqui pela camera do
-          celular, sem login e sem menu: a logo e o unico sinal de que ele
-          esta no sistema da prefeitura, e nao numa pagina qualquer. */}
-      <header className="qr-tela__topo">
-        <img src="/icons/logo-sitra.png" alt="SITRA" />
-      </header>
+    <div className="qr-tela qf-tela">
+      {/* Mesmo cabecalho e mesmo cartao do veiculo do checklist da
+          Fiscalizacao (26/10). Saiu o "QR Code reconhecido": a tela abrir com
+          o veiculo certo ja e a confirmacao da leitura. */}
+      <TopoQr />
 
-      <div className="qr-tela__leitura">
-        <strong>
-          <Icone nome="check" tamanho={22} />
-          QR Code reconhecido
-        </strong>
-        <p>
-          {naChegada
-            ? "Este veículo tem um checklist aberto. Registre a chegada para concluir."
-            : "Confira os dados do veículo e preencha o checklist."}
-        </p>
-      </div>
+      <CartaoVeiculo veiculo={veiculo} />
 
-      <section className="qr-cartao">
-        <h2 className="qr-cartao__titulo qr-cartao__titulo--icone">
-          <span className="qr-cartao__simbolo"><Icone nome="fisc-viatura" tamanho={20} /></span>
-          Dados do veículo
-        </h2>
-        <dl className="qr-dados">
-          {dadosVeiculo.map(([r, v]) => (
-            <div key={r}>
-              <dt>{r}</dt>
-              <dd>{v}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
+      {naChegada && (
+        <div className="qr-tela__aviso">
+          <Icone nome="informacao" tamanho={18} />
+          <p>Este veículo tem um checklist aberto. Registre a chegada para concluir.</p>
+        </div>
+      )}
 
       {erro && <div className="qr-tela__aviso qr-tela__aviso--erro">{erro}</div>}
 
@@ -636,10 +603,7 @@ export default function ChecklistQr() {
       )}
 
       <form onSubmit={naChegada ? registrarChegada : registrarSaida}>
-        <section className="qr-cartao">
-          <h2 className="qr-cartao__titulo">
-            {naChegada ? "Chegada do veículo" : "Saída do veículo"}
-          </h2>
+        <Secao icone="historico" titulo={naChegada ? "Chegada do veículo" : "Saída do veículo"}>
 
           {/* CONDUTOR. Na saida ele se identifica pela matricula; na chegada
               ja esta identificado, entao os campos vem preenchidos e travados. */}
@@ -657,7 +621,7 @@ export default function ChecklistQr() {
           ) : (
             <>
               <div className="campo">
-                <label htmlFor="matricula">Matrícula do condutor *</label>
+                <label htmlFor="matricula">Matrícula do condutor <span className="qf-obrig">*</span></label>
                 <div className="qr-matricula">
                   <input
                     id="matricula" required value={matricula}
@@ -673,9 +637,10 @@ export default function ChecklistQr() {
                       if (e.key === "Enter") { e.preventDefault(); buscarCondutor(); }
                     }}
                   />
-                  <button type="button" className="botao" onClick={buscarCondutor}
-                          disabled={buscando || !matricula.trim()}>
-                    {buscando ? "..." : "Buscar"}
+                  {/* Lupa, igual ao checklist da Fiscalizacao (26/10). */}
+                  <button type="button" className="botao botao--primario qf-lupa" onClick={buscarCondutor}
+                          disabled={buscando || !matricula.trim()} aria-label="Buscar condutor">
+                    <Icone nome="search" tamanho={18} monocromatico />
                   </button>
                 </div>
               </div>
@@ -693,115 +658,76 @@ export default function ChecklistQr() {
             </>
           )}
 
-          {/* SAIDA: texto, nao campo.
-              O <input type="date"> desenha a data no idioma do APARELHO. Num
-              celular em ingles, "2026-09-02" aparece como 09/02/2026 - mes e
-              dia trocados numa tela que registra QUANDO o veiculo saiu.
-              Na saida estes dois valores nem sao enviados: quem grava o
-              horario e o servidor. Eram campos de formulario mostrando uma
-              informacao que ninguem preenche e ninguem envia. Como texto, o
-              formato e sempre o brasileiro e nao depende do celular.
+          {/* SAIDA: a data esta no cabecalho e o horario fica ao lado do
+              hodometro (26/10, igual a Fiscalizacao). O horario informado pode
+              ser ajustado; a hora REAL do envio o servidor grava a parte.
 
               CHEGADA: continuam campos, porque ali a pessoa corrige de
               verdade - quem volta as 18h e so registra as 19h precisa poder
               dizer a hora certa - e os valores vao no corpo da requisicao. */}
+          {/* CHEGADA (26/10): data, horario e hodometro na mesma linha. */}
           {naChegada ? (
-            <div className="qr-dupla">
-              <div className="campo">
-                <label htmlFor="data">Data de chegada *</label>
-                <input
-                  id="data" type="date" required
-                  value={chegada.data}
-                  onChange={(e) => setChegada((c) => ({ ...c, data: e.target.value }))}
-                />
+            <>
+              <div className="qr-chegada-linha">
+                <div className="campo">
+                  <label htmlFor="data">Data de chegada <span className="qf-obrig">*</span></label>
+                  <input
+                    id="data" type="date" required
+                    value={chegada.data}
+                    onChange={(e) => setChegada((c) => ({ ...c, data: e.target.value }))}
+                  />
+                </div>
+                <div className="campo">
+                  <label htmlFor="hora">Horário de chegada <span className="qf-obrig">*</span></label>
+                  <input
+                    id="hora" type="time" required
+                    value={chegada.hora}
+                    onChange={(e) => setChegada((c) => ({ ...c, hora: e.target.value }))}
+                  />
+                </div>
+                <div className="campo">
+                  <label htmlFor="km-chegada">Hodômetro de chegada <span className="qf-obrig">*</span></label>
+                  <input
+                    id="km-chegada" type="number" required inputMode="numeric"
+                    placeholder="KM"
+                    /* +1 porque o KM de chegada tem de ser MAIOR que o de saida,
+                       nao igual: veiculo que saiu e voltou rodou alguma coisa. */
+                    min={checklistAberto.odometro_saida + 1}
+                    value={chegada.odometro}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setChegada((c) => ({ ...c, odometro: v }));
+                      // Sem isto o navegador mostra a mensagem PADRAO dele - "o
+                      // valor deve ser maior ou igual a X" - que contradiz a regra.
+                      e.target.setCustomValidity(
+                        v !== "" && Number(v) <= checklistAberto.odometro_saida
+                          ? `O KM de chegada precisa ser MAIOR que o da saída (${numero(checklistAberto.odometro_saida)} km).`
+                          : ""
+                      );
+                    }}
+                  />
+                </div>
               </div>
-              <div className="campo">
-                <label htmlFor="hora">Hora de chegada *</label>
-                <input
-                  id="hora" type="time" required
-                  value={chegada.hora}
-                  onChange={(e) => setChegada((c) => ({ ...c, hora: e.target.value }))}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="qr-momento">
-              <span className="qr-momento__rotulo">Saída registrada em</span>
-              <strong className="qr-momento__valor">
-                {dataBr(saida.data)} às {saida.hora}
-              </strong>
-            </div>
-          )}
-
-          {/* KM. Na saida o valor ja vem do ultimo registro e o condutor so
-              confirma - digitar de novo um numero que o sistema ja sabe e
-              convite a erro de digitacao. */}
-          {naChegada ? (
-            <div className="campo">
-              <label htmlFor="km-chegada">KM de chegada *</label>
-              <input
-                id="km-chegada" type="number" required inputMode="numeric"
-                placeholder="Ex.: 45230"
-                /* +1 porque o KM de chegada tem de ser MAIOR que o de saida,
-                   nao igual: veiculo que saiu e voltou rodou alguma coisa. */
-                min={checklistAberto.odometro_saida + 1}
-                value={chegada.odometro}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setChegada((c) => ({ ...c, odometro: v }));
-                  // Sem isto o navegador mostra a mensagem PADRAO dele - "o
-                  // valor deve ser maior ou igual a X" - que contradiz a regra.
-                  // setCustomValidity troca por uma nossa e continua bloqueando
-                  // o envio pela validacao nativa do formulario.
-                  e.target.setCustomValidity(
-                    v !== "" && Number(v) <= checklistAberto.odometro_saida
-                      ? `O KM de chegada precisa ser MAIOR que o da saída (${numero(checklistAberto.odometro_saida)} km).`
-                      : ""
-                  );
-                }}
-              />
-              <span className="campo__ajuda">
+              <span className="campo__ajuda qr-saida-ajuda">
                 KM na saída: {numero(checklistAberto.odometro_saida)} km.
                 O valor informado precisa ser maior que este.
               </span>
-            </div>
+            </>
           ) : (
-            <div className="campo">
-              <label htmlFor="km-saida">KM de saída *</label>
-              <div className="qr-km">
-                <input
-                  id="km-saida" type="number" required inputMode="numeric"
-                  value={saida.odometro} readOnly={!kmEditavel}
-                  onChange={(e) => setSaida((s) => ({ ...s, odometro: e.target.value }))}
-                />
-                <div className="qr-km__confirma" role="group"
-                     aria-label="O KM exibido está correto?">
-                  <button type="button" data-ativo={kmConfere === true}
-                          onClick={() => {
-                            setKmConfere(true);
-                            setSaida((s) => ({
-                              ...s, odometro: String(veiculo.quilometragem_atual ?? ""),
-                            }));
-                          }}>
-                    Sim
-                  </button>
-                  <button type="button" data-ativo={kmConfere === false}
-                          onClick={() => setKmConfere(false)}>
-                    Não
-                  </button>
-                </div>
-              </div>
-              <span className="campo__ajuda">
-                Último KM registrado: {numero(veiculo.quilometragem_atual)} km.
-                Marque "Não" caso o KM exibido esteja incorreto para permitir a edição.
-              </span>
-            </div>
+            // Horario e hodometro na mesma linha, igual a Fiscalizacao. O
+            // horario pode ser ajustado (26/10); a hora REAL do envio o
+            // servidor grava sempre, a parte (saida_registrada_em).
+            <HoraEKmSaida
+              hora={saida.hora} setHora={(h) => setSaida((s) => ({ ...s, hora: h }))}
+              km={saida.odometro} setKm={(v) => setSaida((s) => ({ ...s, odometro: v }))}
+              confere={kmConfere} setConfere={setKmConfere}
+              kmAtual={veiculo.quilometragem_atual} formatarKm={numero} />
           )}
 
           {/* O percurso so existe na chegada. */}
           {naChegada && (
             <div className="campo">
-              <label htmlFor="percurso">Percurso / atividade</label>
+              <label htmlFor="percurso">Percurso feito</label>
               <textarea
                 id="percurso" rows={2} value={chegada.percurso}
                 placeholder="Ex.: Fiscalização de trânsito — Região Central"
@@ -810,13 +736,10 @@ export default function ChecklistQr() {
             </div>
           )}
 
-        </section>
+        </Secao>
 
-        <section className="qr-cartao">
-          <h2 className="qr-cartao__titulo">Equipamentos obrigatórios</h2>
-          <p className="qr-cartao__nota">
-            Toque no item para marcar como ausente.
-          </p>
+        <Secao icone="checklist" titulo="Equipamentos obrigatórios" obrigatorio
+               nota="Toque no item para marcar como ausente.">
 
           <div className="qr-equipamentos">
             {EQUIPAMENTOS.map(({ codigo, rotulo, icone }) => {
@@ -871,20 +794,13 @@ export default function ChecklistQr() {
               ))}
             </div>
           )}
-        </section>
+        </Secao>
 
         {/* CHAMADO DE MANUTENCAO
             Aqui e mecanica, nao equipamento: pneu furado, farol queimado,
             freio falhando. Pode abrir mais de um no mesmo checklist. */}
-        <section className="qr-cartao">
-          <h2 className="qr-cartao__titulo qr-cartao__titulo--icone">
-            <span className="qr-cartao__simbolo"><Icone nome="kpi-wrench" tamanho={20} /></span>
-            Abrir OS
-          </h2>
-          <p className="qr-cartao__nota">
-            Pneu furado, farol queimado, freio falhando, barulho no motor.
-            Pode abrir mais de um.
-          </p>
+        <Secao icone="kpi-wrench" titulo="Abrir OS"
+               nota="Pneu furado, farol queimado, freio falhando, barulho no motor. Pode abrir mais de um.">
 
           {formChamado ? (
             <div className="qr-chamado-form">
@@ -983,13 +899,10 @@ export default function ChecklistQr() {
               ))}
             </div>
           )}
-        </section>
+        </Secao>
 
-        <section className="qr-cartao">
-          <h2 className="qr-cartao__titulo">Fotos (opcional)</h2>
-          <p className="qr-cartao__nota">
-            Registre avarias ou o estado do veículo. Até {MAX_FOTOS} fotos.
-          </p>
+        <Secao icone="documento" titulo="Fotos (opcional)"
+               nota={`Registre avarias ou o estado do veículo. Até ${MAX_FOTOS} fotos.`}>
 
           {fotos.length > 0 && (
             <div className="qr-fotos">
@@ -1026,10 +939,9 @@ export default function ChecklistQr() {
             A foto é reduzida no próprio aparelho antes de subir, para não
             gastar sua internet.
           </p>
-        </section>
+        </Secao>
 
-        <section className="qr-cartao">
-          <h2 className="qr-cartao__titulo">Observações (opcional)</h2>
+        <Secao icone="documento" titulo="Observações (opcional)">
           <div className="campo">
             <textarea
               id="obs" rows={3} aria-label="Observações"
@@ -1042,7 +954,7 @@ export default function ChecklistQr() {
               }
             />
           </div>
-        </section>
+        </Secao>
 
         <div className="qr-rodape">
           {!naChegada && (

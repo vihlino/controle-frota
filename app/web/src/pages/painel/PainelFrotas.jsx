@@ -1,10 +1,15 @@
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Cartao from "../../components/Cartao.jsx";
 import Icone from "../../components/Icone.jsx";
 import Kpi from "../../components/Kpi.jsx";
 import Selo from "../../components/Selo.jsx";
 import VeiculoCel from "../../components/VeiculoCel.jsx";
 import { dataHora, hora, numero, porcentagem } from "../../lib/formato.js";
+import { api } from "../../lib/api.js";
+
+// Mesma ordem de gravidade da rota /alertas: o que esta vencido vem primeiro.
+const ORDEM_PRIORIDADE = { CRITICA: 1, ALTA: 2, MEDIA: 3, BAIXA: 4 };
 
 const ROTULOS_OS = {
   // OS pedida pela Fiscalizacao esperando o Frotas completar (18/10).
@@ -21,10 +26,36 @@ export default function PainelFrotas({ dados }) {
   // esta olhando a tela - e o mesmo dia que o cartao mostra.
   const hoje = new Date().toLocaleDateString("sv-SE");
   const difChecklists = kpis.checklistsHoje.valor - kpis.checklistsHoje.ontem;
+  const navegar = useNavigate();
+
+  // Os MESMOS avisos do sininho (rota /alertas), agora tambem no painel: o
+  // sino so mostra o numero ate alguem clicar, e o painel e a primeira tela
+  // do dia. null = ainda carregando; [] = carregou e nao ha aviso.
+  const [alertas, setAlertas] = useState(null);
+  useEffect(() => {
+    let vivo = true;
+    api("/alertas")
+      .then((r) => vivo && setAlertas(
+        [...(r.itens || [])].sort((a, b) =>
+          (ORDEM_PRIORIDADE[a.prioridade] || 9) - (ORDEM_PRIORIDADE[b.prioridade] || 9))
+      ))
+      .catch(() => vivo && setAlertas([]));
+    return () => { vivo = false; };
+  }, []);
+
+  // Mesmo destino do clique no sininho (Topo.jsx).
+  function abrirAlerta(item) {
+    if (item.link) navegar(item.link);
+    else if (item.entidade === "servidor") navegar("/frotas/motoristas");
+    else if (item.entidade === "documento_veiculo") navegar("/frotas/documentos");
+  }
 
   return (
     <>
-      <div className="kpis">
+      {/* kpis--esticar: no painel os cartoes dividem a linha inteira. Com a
+          largura maxima fixa da .kpis eles ficavam colados a esquerda e
+          sobrava um vazio enorme nas telas grandes. */}
+      <div className="kpis kpis--esticar">
         <Kpi icone="kpi-car"       rotulo="Total de Veículos"  valor={kpis.total}
              nota="100% da frota" tom="neutro" />
         <Kpi icone="kpi-car-front" rotulo="Disponível"         valor={kpis.disponiveis.valor}
@@ -114,6 +145,34 @@ export default function PainelFrotas({ dados }) {
         </Cartao>
       </div>
 
+      {/* Alertas antes dos vencimentos (pedido de 23/10). */}
+      <Cartao titulo="Alertas"
+              acao={alertas && alertas.length > 0 && (
+                <span className="cartao__acao cartao__acao--texto">
+                  {`${numero(alertas.length)} aviso${alertas.length === 1 ? "" : "s"}`}
+                </span>
+              )}
+              className="painel-alertas">
+        {alertas === null ? (
+          <div className="vazio">Carregando avisos...</div>
+        ) : alertas.length === 0 ? (
+          <div className="vazio">Nenhum aviso no momento.</div>
+        ) : (
+          <div className="painel-alertas__lista">
+            {alertas.map((item) => (
+              <button key={item.id_alerta} type="button" className="painel-alerta"
+                      onClick={() => abrirAlerta(item)}>
+                <span className={`alerta-item__marca alerta-item__marca--${(item.prioridade || "BAIXA").toLowerCase()}`} />
+                <span className="alerta-item__texto">
+                  <span className="alerta-item__titulo">{item.titulo}</span>
+                  <span className="alerta-item__mensagem">{item.mensagem}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </Cartao>
+
       <div className="grade-2">
         {/* O link ja leva a lista FILTRADA por Vencendo. Mandar para a lista
             inteira obrigaria a refazer na mao o filtro que o cartao acabou de
@@ -173,7 +232,9 @@ export default function PainelFrotas({ dados }) {
         </Cartao>
       </div>
 
-      <Cartao titulo="Ações rápidas">
+      {/* cartao--ajustado: o cartao termina no ultimo botao, em vez de
+          atravessar a tela inteira com um vazio a direita (pedido de 23/10). */}
+      <Cartao titulo="Ações rápidas" className="cartao--ajustado">
         {/* Cada atalho abre o FORMULARIO, nao a lista. Antes todos paravam na
             listagem e a pessoa ainda tinha que achar o botao de cadastrar -
             o atalho nao encurtava nada. As telas que cadastram por janela

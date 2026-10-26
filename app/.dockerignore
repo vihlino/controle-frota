@@ -1,0 +1,10 @@
+# Contexto do docker build e a pasta app/ (ver render.yaml e api/Dockerfile).
+# Nada de segredo, dependencia local ou dado vai para dentro da imagem.
+**/node_modules
+**/.env
+**/.env.*
+!**/.env.example
+api/backups
+**/*.log
+web/
+.git

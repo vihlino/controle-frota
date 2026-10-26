@@ -411,6 +411,14 @@ button { font: inherit; cursor: pointer; }
   gap: var(--e-3);
   margin-bottom: var(--e-5);
 }
+/* No PAINEL os cartoes dividem a linha inteira: com o teto de 205px eles
+   ficavam colados a esquerda e sobrava meia tela vazia nos monitores grandes.
+   Continuam com minimo de 170px (cinco cabem a partir de 1280px de tela) e
+   quebram linha nas telas estreitas. */
+.kpis--esticar {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+.kpis--esticar .kpi { padding: var(--e-3) var(--e-4); }
 .kpi {
   padding: var(--e-2) var(--e-3);
   display: flex;
@@ -767,6 +775,13 @@ button { font: inherit; cursor: pointer; }
   display: flex;
   flex-wrap: wrap;
   gap: var(--e-2);
+}
+/* Cartao do tamanho do conteudo: termina no ultimo botao, com o mesmo respiro
+   interno dos outros cartoes. max-width para nao estourar no celular, onde os
+   botoes quebram linha. */
+.cartao--ajustado {
+  width: fit-content;
+  max-width: 100%;
 }
 .acao-rapida {
   display: inline-flex;
@@ -2581,6 +2596,49 @@ button { font: inherit; cursor: pointer; }
    crescer alem da tela.
    ============================================================ */
 .alertas-lista { max-height: 320px; overflow-y: auto; }
+
+/* Largura FIXA do menu do sino. So com min-width, o menu nascia com a largura
+   da mensagem mais comprida (600px ou mais, numa linha so) e encolhia depois,
+   ao ser reposicionado - o mesmo menu aparecia de dois tamanhos. Agora e
+   sempre o formato estreito, com as mensagens quebrando linha. */
+.menu-suspenso--alertas {
+  width: 380px;
+  max-width: calc(100vw - 16px);
+}
+
+/* ============================================================
+   ALERTAS NO PAINEL (Dashboard › Frotas)
+   Os mesmos avisos do sino, em grade: duas ou tres colunas conforme a
+   largura da tela, rolando por dentro quando passam de quatro linhas.
+   ============================================================ */
+.painel-alertas { margin-bottom: 18px; }
+.cartao__acao--texto { color: var(--texto-2); font-weight: var(--peso-medio); }
+.painel-alertas__lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+  gap: var(--e-2);
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: var(--e-1);
+}
+.painel-alerta {
+  display: flex;
+  gap: var(--e-3);
+  align-items: flex-start;
+  width: 100%;
+  padding: var(--e-3);
+  text-align: left;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  color: var(--texto);
+  cursor: pointer;
+  transition: border-color var(--transicao), background var(--transicao);
+}
+.painel-alerta:hover {
+  border-color: var(--marca);
+  background: var(--marca-fraca);
+}
 
 .alertas-lista__vazio {
   margin: 0;
@@ -4473,7 +4531,10 @@ button { font: inherit; cursor: pointer; }
   padding: var(--e-3) var(--e-4);
 }
 .qf-topo img { width: 132px; height: auto; display: block; }
-.qf-topo__hora { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; line-height: 1.3; text-align: right; }
+/* Icone, HORA e data numa linha so (26/10). Em duas linhas o icone ficava no
+   meio da altura e parecia estar entre a data e a hora. */
+.qf-topo__hora { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; line-height: 1; white-space: nowrap; }
+.qf-topo__hora strong { font-size: 15px; font-weight: 700; }
 .qf-passos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
 .qf-passo {
   display: flex; align-items: center; gap: 6px; padding: 8px 4px; background: none; border: 0;
@@ -4503,7 +4564,10 @@ button { font: inherit; cursor: pointer; }
 }
 .qf-viatura__equipe { display: flex; flex-direction: column; text-align: right; font-size: 13px; }
 .qf-viatura__equipe small { color: var(--texto-2); }
-.qf-secao__topo { display: flex; align-items: flex-start; gap: 10px; margin-bottom: var(--e-3); }
+/* Titulo e conteudo mais juntos (26/10): o cartao ja separa os blocos com o
+   gap, a margem extra do cabecalho deixava o titulo solto. */
+.qf-secao { gap: var(--e-3); }
+.qf-secao__topo { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 0; }
 .qf-secao__icone { flex: none; line-height: 0; margin-top: 2px; }
 .qf-secao__textos { flex: 1; min-width: 0; }
 .qf-secao__textos .qr-cartao__titulo { margin: 0; }
@@ -4734,3 +4798,157 @@ th .eqp-item__icone { width: 22px; height: 22px; border-radius: 6px; }
 .eqp-grande .eqp-n { font-size: 22px; }
 .eqp-nota--rodape { padding: 10px 16px 14px; }
 .eqp-filtros { padding: 0 0 14px; border: 0; box-shadow: none; margin: 0; }
+
+/* ---------- Saida do veiculo: igual nos checklists de Frotas e da
+   Fiscalizacao (26/10) ---------- */
+.qr-subtitulo { display: flex; flex-direction: column; gap: 2px; }
+.qr-subtitulo__rotulo { font-size: 14px; font-weight: 600; color: var(--texto); }
+.qr-subtitulo__nota { font-size: 12.5px; color: var(--texto-2); }
+/* Horario e hodometro lado a lado; o hodometro leva o Sim/Nao, entao fica
+   com a maior parte da linha. */
+.qr-saida-linha {
+  display: grid;
+  grid-template-columns: 124px minmax(0, 1fr);
+  gap: var(--e-3);
+  align-items: end;
+}
+.qr-saida-linha label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--texto); white-space: nowrap; }
+.qr-saida-linha input[type="time"] { width: 100%; padding-left: 10px; padding-right: 6px; }
+.qr-saida-linha .qr-km__confirma button { min-width: 48px; }
+.qr-saida-ajuda { display: block; margin-top: calc(var(--e-2) * -1); }
+@media (max-width: 360px) { .qr-saida-linha { grid-template-columns: 1fr; } }
+
+/* Os cartoes do checklist de Frotas ficam dentro do <form>; o gap da
+   .qr-tela nao chegava neles e na chegada eles ficavam colados (26/10). */
+.qr-tela > form { display: flex; flex-direction: column; gap: var(--e-3); }
+
+/* ---------- Conclusao do checklist pelo QR (desenho de 26/10) ---------- */
+.qr-sucesso {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--e-5) var(--e-4);
+  background: #F7F8FB;
+  overflow: hidden;
+}
+/* Faixas amarelas da marca ao fundo, em diagonal. */
+.qr-sucesso__faixa {
+  position: absolute;
+  width: 120px;
+  height: 520px;
+  border-radius: 999px;
+  transform: rotate(45deg);
+  background: linear-gradient(180deg, rgba(255, 196, 0, 0.42), rgba(255, 214, 102, 0.06));
+  pointer-events: none;
+}
+.qr-sucesso__faixa--1 { left: -40px; top: 28%; }
+.qr-sucesso__faixa--2 { right: -30px; top: 6%; }
+.qr-sucesso__faixa--3 { right: 4%; top: 34%; width: 80px; height: 360px; opacity: 0.55; }
+.qr-sucesso__cartao {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 560px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(17, 24, 39, 0.08);
+  padding: var(--e-7, 36px) var(--e-5) var(--e-6, 28px);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.qr-sucesso__selo { position: relative; width: 168px; height: 150px; display: grid; place-items: center; }
+.qr-sucesso__halo {
+  width: 132px; height: 132px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: radial-gradient(circle, rgba(22, 163, 74, 0.16) 0 58%, rgba(22, 163, 74, 0.07) 58% 100%);
+}
+.qr-sucesso__check {
+  width: 74px; height: 74px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--verde, #16A34A); color: #fff;
+  box-shadow: 0 6px 18px rgba(22, 163, 74, 0.35);
+  animation: qr-sucesso-pop 420ms cubic-bezier(.2, 1.4, .4, 1) both;
+}
+.qr-sucesso__confete { position: absolute; display: block; border-radius: 999px; }
+.qr-sucesso__confete--1 { width: 5px; height: 16px; background: #F5B800; left: 30px; top: 6px; transform: rotate(-40deg); }
+.qr-sucesso__confete--2 { width: 9px; height: 9px; background: #A7E3B5; left: 14px; top: 44px; }
+.qr-sucesso__confete--3 { width: 6px; height: 6px; background: #F5B800; left: 6px; top: 84px; }
+.qr-sucesso__confete--4 { width: 5px; height: 13px; background: #A7E3B5; left: 22px; top: 112px; transform: rotate(45deg); }
+.qr-sucesso__confete--5 { width: 5px; height: 14px; background: #A7E3B5; right: 22px; top: 38px; transform: rotate(50deg); }
+.qr-sucesso__confete--6 { width: 6px; height: 18px; background: #F5B800; right: 8px; top: 70px; transform: rotate(45deg); }
+.qr-sucesso__confete--7 { width: 7px; height: 7px; background: #F5B800; right: 26px; top: 118px; }
+.qr-sucesso__confete--8 { width: 5px; height: 5px; background: #F5B800; left: 52px; top: 132px; opacity: 0.6; }
+.qr-sucesso__titulo { margin: var(--e-3) 0 var(--e-2); font-size: clamp(26px, 6vw, 34px); line-height: 1.15; font-weight: 800; color: var(--texto); letter-spacing: -0.01em; }
+.qr-sucesso__texto { margin: 0; max-width: 46ch; font-size: 16px; line-height: 1.5; color: var(--texto-2); text-wrap: pretty; }
+.qr-sucesso__veiculo {
+  margin-top: var(--e-6, 28px);
+  width: 100%; max-width: 360px;
+  display: flex; align-items: center; gap: var(--e-4);
+  padding: var(--e-4) var(--e-5);
+  background: var(--superficie-2); border: 1px solid var(--borda); border-radius: 12px;
+  text-align: left;
+}
+.qr-sucesso__icone {
+  flex: none; width: 64px; height: 64px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--marca-claro, #FFE9A8); color: #0d0d0d;
+}
+.qr-sucesso__divisor { flex: none; align-self: stretch; width: 1px; background: var(--borda-forte, #D1D5DB); }
+.qr-sucesso__dados { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.qr-sucesso__dados small { font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texto-2); }
+.qr-sucesso__dados strong { font-size: 17px; font-weight: 700; color: var(--texto); }
+.qr-sucesso__dados span { font-size: 16px; color: var(--texto-2); letter-spacing: 0.02em; }
+@keyframes qr-sucesso-pop { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .qr-sucesso__check { animation: none; } }
+
+/* Chegada do checklist de Frotas (26/10): data, horario e hodometro lado a
+   lado. Os rotulos podem quebrar em duas linhas; os campos ficam alinhados
+   pela base. Em tela muito estreita a data vai para a linha de cima. */
+.qr-chegada-linha {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e-2);
+  align-items: end;
+}
+.qr-chegada-linha .campo { min-width: 0; margin: 0; }
+.qr-chegada-linha label { font-size: 13px; line-height: 1.25; }
+.qf-tela .qr-chegada-linha input:not([type="checkbox"]):not([type="file"]) { width: 100%; min-width: 0; padding-left: 6px; padding-right: 3px; font-size: 13px; }
+.qr-chegada-linha input::-webkit-calendar-picker-indicator { margin-left: 2px; }
+.qr-chegada-linha input::-webkit-calendar-picker-indicator { padding: 0; width: 14px; }
+@media (max-width: 360px) {
+  .qr-chegada-linha { grid-template-columns: 1fr 1fr; }
+  .qr-chegada-linha .campo:first-child { grid-column: 1 / -1; }
+}
+
+/* Saida da Fiscalizacao com a data (26/10): Data | Horario | Hodometro, os
+   tres do mesmo tamanho, como a chegada de Frotas. Campos mais baixos e o
+   Sim/Nao pequeno DENTRO do campo do KM, a direita. Os rotulos podem quebrar
+   linha; os campos ficam alinhados pela base. */
+/* O hodometro e um pouco mais largo: ele leva o Sim/Nao dentro e o KM
+   precisa continuar visivel. */
+.qr-saida-linha--data { grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.8fr) minmax(0, 1.15fr); gap: 6px; align-items: end; }
+.qr-saida-linha--data label { white-space: normal; line-height: 1.2; font-size: 12.5px; margin-bottom: 3px; }
+.qf-tela .qr-saida-linha--data input:not([type="checkbox"]):not([type="file"]) {
+  width: 100%; min-width: 0; min-height: 38px; padding: 4px 3px 4px 6px; font-size: 13px;
+}
+.qr-saida-linha--data .qr-km { position: relative; display: block; }
+.qf-tela .qr-saida-linha--data .qr-km input:not([type="checkbox"]):not([type="file"]) { padding-right: 58px; }
+.qr-saida-linha--data .qr-km__confirma {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  display: flex; gap: 2px; margin: 0;
+}
+.qr-saida-linha--data .qr-km__confirma button {
+  min-width: 0; height: 26px; padding: 0 4px; font-size: 10.5px; line-height: 1; border-radius: 6px;
+}
+.qr-saida-linha--data input::-webkit-calendar-picker-indicator { margin-left: 0; padding: 0; width: 14px; }
+/* A data e o campo mais apertado da linha (dd/mm/aaaa + o icone do
+   calendario): letra um pouco menor so nela, para nao cortar o ano. */
+.qf-tela .qr-chegada-linha input[type="date"]:not([type="checkbox"]):not([type="file"]),
+.qf-tela .qr-saida-linha--data input[type="date"]:not([type="checkbox"]):not([type="file"]) { font-size: 12.5px; padding-right: 2px; }
+.qr-data-fixa { position: relative; display: block; }
+.qr-data-fixa .icone { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); color: var(--texto-2); pointer-events: none; }
+.qf-tela .qr-saida-linha--data .qr-data-fixa input[type="date"]:not([type="checkbox"]):not([type="file"]) { padding-right: 18px; }

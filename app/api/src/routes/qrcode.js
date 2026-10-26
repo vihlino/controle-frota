@@ -97,6 +97,11 @@ router.post("/veiculo/:id", autenticar, exigePermissao("FROTAS_GERENCIAR_VEICULO
 );
 
 // Leitura do QR Code: devolve o veiculo e o checklist em aberto, se houver.
+// Hora informada na tela ("HH:MM"). Qualquer outra coisa vira null e o
+// banco usa a hora atual. A hora REAL do registro e gravada a parte, sempre
+// (saida_registrada_em / chegada_registrada_em, migracao 048).
+const horaInformada = (h) => (/^([01]\d|2[0-3]):[0-5]\d/.test(String(h || "")) ? String(h).slice(0, 5) : null);
+
 // Rota publica de proposito - o condutor abre pelo celular, sem login. O token
 // do QR Code e a credencial.
 router.get("/ler/:token", async (req, res, next) => {
@@ -237,7 +242,7 @@ router.get("/condutor/:token/:matricula", async (req, res, next) => {
 router.post("/saida/:token", async (req, res, next) => {
   const cliente = await pool.connect();
   try {
-    const { matricula, odometro_saida, percurso, local_saida, observacoes, equipamentos } = req.body;
+    const { matricula, odometro_saida, percurso, local_saida, observacoes, equipamentos, hora_saida } = req.body;
 
     if (!matricula || odometro_saida === undefined) {
       return res.status(400).json({ erro: "Informe a matrícula e o KM de saída." });
@@ -293,12 +298,13 @@ router.post("/saida/:token", async (req, res, next) => {
 
     const checklist = await cliente.query(
       `INSERT INTO checklist_frotas
-         (id_veiculo, id_servidor, odometro_saida, percurso, local_saida, observacoes)
-       VALUES ($1, $2, $3, $4, $5, $6)
+         (id_veiculo, id_servidor, odometro_saida, percurso, local_saida, observacoes,
+          hora_saida, saida_registrada_em)
+       VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7::time, CURRENT_TIME), CURRENT_TIMESTAMP)
        RETURNING *`,
       [
         veiculo.id_veiculo, servidor.rows[0].id_servidor, Number(odometro_saida),
-        percurso, local_saida || null, observacoes || null,
+        percurso, local_saida || null, observacoes || null, horaInformada(hora_saida),
       ]
     );
 
@@ -372,6 +378,7 @@ router.post("/chegada/:token", async (req, res, next) => {
               data_devolucao = COALESCE($3::date, CURRENT_DATE),
               hora_chegada   = COALESCE($4::time, CURRENT_TIME),
               data_finalizacao = CURRENT_TIMESTAMP,
+              chegada_registrada_em = CURRENT_TIMESTAMP,
               status = 'FINALIZADO',
               percurso = COALESCE($5, percurso),
               observacoes_chegada = $6
@@ -381,7 +388,7 @@ router.post("/chegada/:token", async (req, res, next) => {
         checklist.id_checklist,
         Number(odometro_chegada),
         data_chegada || null,
-        hora_chegada || null,
+        horaInformada(hora_chegada),
         percurso || null,
         observacoes || null,
       ]
