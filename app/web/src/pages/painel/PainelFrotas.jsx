@@ -1,16 +1,10 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Cartao from "../../components/Cartao.jsx";
 import Icone from "../../components/Icone.jsx";
 import Kpi from "../../components/Kpi.jsx";
-import MenuSuspenso from "../../components/MenuSuspenso.jsx";
+import PainelAlertas from "../../components/PainelAlertas.jsx";
 import Selo from "../../components/Selo.jsx";
-import VeiculoCel from "../../components/VeiculoCel.jsx";
 import { dataHora, hora, numero, porcentagem } from "../../lib/formato.js";
-import { api } from "../../lib/api.js";
-
-// Mesma ordem de gravidade da rota /alertas: o que esta vencido vem primeiro.
-const ORDEM_PRIORIDADE = { CRITICA: 1, ALTA: 2, MEDIA: 3, BAIXA: 4 };
 
 const ROTULOS_OS = {
   // OS pedida pela Fiscalizacao esperando o Frotas completar (18/10).
@@ -27,63 +21,6 @@ export default function PainelFrotas({ dados }) {
   // esta olhando a tela - e o mesmo dia que o cartao mostra.
   const hoje = new Date().toLocaleDateString("sv-SE");
   const difChecklists = kpis.checklistsHoje.valor - kpis.checklistsHoje.ontem;
-  const navegar = useNavigate();
-
-  // Os MESMOS avisos do sininho (rota /alertas), agora tambem no painel: o
-  // sino so mostra o numero ate alguem clicar, e o painel e a primeira tela
-  // do dia. null = ainda carregando; [] = carregou e nao ha aviso.
-  const [alertas, setAlertas] = useState(null);
-  useEffect(() => {
-    let vivo = true;
-    api("/alertas")
-      .then((r) => vivo && setAlertas(
-        [...(r.itens || [])].sort((a, b) =>
-          (ORDEM_PRIORIDADE[a.prioridade] || 9) - (ORDEM_PRIORIDADE[b.prioridade] || 9))
-      ))
-      .catch(() => vivo && setAlertas([]));
-    return () => { vivo = false; };
-  }, []);
-
-  // Mesmo destino do clique no sininho (Topo.jsx).
-  function abrirAlerta(item) {
-    if (item.link) navegar(item.link);
-    else if (item.entidade === "servidor") navegar("/frotas/motoristas");
-    else if (item.entidade === "documento_veiculo") navegar("/frotas/documentos");
-  }
-
-  // Os avisos agrupados pelo titulo ("Documento vencido", "Multa vencida"...),
-  // na ordem de gravidade que ja vem da lista. null = carregando.
-  const gruposAlerta = alertas === null ? null : Object.values(
-    alertas.reduce((acc, a) => {
-      (acc[a.titulo] = acc[a.titulo] || { titulo: a.titulo, tipo: a.tipo, prioridade: a.prioridade, itens: [] }).itens.push(a);
-      return acc;
-    }, {})
-  );
-
-  // Um aviso so: abre o proprio registro. Varios: abre uma listinha logo
-  // abaixo do botao com cada aviso (ex.: as 3 multas vencendo, cada uma com o
-  // motorista, a placa e o valor); clicar num deles abre a ficha certa. Quando
-  // existe uma lista que ja mostra todos (documentos, OS, relatorios), o fim
-  // da listinha tem o "Ver todos".
-  const [grupoAberto, setGrupoAberto] = useState(null);
-  const ancoraGrupo = useRef(null);
-  const fecharGrupo = () => setGrupoAberto(null);
-  const LISTA_DO_TIPO = (g) => {
-    const doc = `/frotas/documentos?status=${/vencid/i.test(g.titulo) ? "VENCIDO" : "VENCENDO"}`;
-    // Relatorio: a tela do modulo do relatorio (Frotas ou Fiscalizacao).
-    const rel = g.itens.every((i) => String(i.link || "").startsWith("/fiscalizacao")) ? "/fiscalizacao/relatorios" : "/frotas/relatorios";
-    return {
-      DOCUMENTO_VENCENDO: doc, DOCUMENTO_VENCIDO: doc,
-      OS_PENDENTE: "/frotas/manutencoes?status=PENDENTE",
-      MANUTENCAO: "/frotas/manutencoes?status=PENDENTE",
-      ATESTE_PENDENTE: `${rel}?status=MEU_ATESTE`,
-    }[g.tipo];
-  };
-  function abrirGrupo(g, evento) {
-    if (g.itens.length === 1) { abrirAlerta(g.itens[0]); return; }
-    ancoraGrupo.current = evento.currentTarget;
-    setGrupoAberto((atual) => (atual?.titulo === g.titulo ? null : g));
-  }
 
   return (
     <>
@@ -108,7 +45,10 @@ export default function PainelFrotas({ dados }) {
           26/10); o resto do painel fica na coluna principal. */}
       <div className="painel-frotas">
         <div className="painel-frotas__principal">
-      <div className="grade-2">
+      {/* Ultimos checklists mais largo que Movimentacoes de hoje (26/10): e o
+          cartao mais importante e precisa mostrar todas as colunas. Em tela
+          menor os dois ficam um embaixo do outro, cada um na largura toda. */}
+      <div className="grade-2 painel-frotas__linha1">
         <Cartao titulo="Últimos checklists"
                 acao={<Link className="cartao__acao" to="/frotas/checklists">Ver todos</Link>}>
           <div className="rolagem-x">
@@ -131,7 +71,9 @@ export default function PainelFrotas({ dados }) {
                     <td>
                       <span className="celula-dupla">
                         <strong>{c.placa}</strong>
-                        <span>{`${c.marca} ${c.modelo}`}</span>
+                        {/* Modelo longo cortado com "...": nao empurra a
+                            Situacao para fora do cartao. */}
+                        <span className="painel-modelo" title={`${c.marca} ${c.modelo}`}>{`${c.marca} ${c.modelo}`}</span>
                       </span>
                     </td>
                     <td>{c.condutor}</td>
@@ -163,16 +105,21 @@ export default function PainelFrotas({ dados }) {
             <table className="tabela">
               <thead>
                 <tr>
-                  <th>Veículo</th><th>Motorista</th><th>Placa</th><th>Retirada</th><th>Status</th>
+                  <th>Placa / Veículo</th><th>Motorista</th><th>Retirada</th><th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {veiculosEmUso.map((m) => (
                   <tr key={m.id_checklist}>
-                    <td><VeiculoCel marca={m.marca} modelo={m.modelo}
-                                   tipo={m.tipo_veiculo} foto={m.foto} /></td>
+                    {/* Sem o icone do veiculo (26/10): placa e, embaixo, o modelo
+                        - como no Ultimos checklists. */}
+                    <td>
+                      <span className="celula-dupla">
+                        <strong>{m.placa}</strong>
+                        <span className="painel-modelo" title={`${m.marca} ${m.modelo}`}>{`${m.marca} ${m.modelo}`}</span>
+                      </span>
+                    </td>
                     <td>{m.motorista}</td>
-                    <td>{m.placa}</td>
                     <td>{hora(m.hora_saida)}</td>
                     <td><Selo valor={m.status} /></td>
                   </tr>
@@ -246,53 +193,7 @@ export default function PainelFrotas({ dados }) {
         </div>
 
         <aside className="painel-frotas__lateral">
-        <Cartao titulo="Alertas">
-          <div className="lista-lateral">
-            {gruposAlerta === null ? (
-              <span className="painel-rodape__vazio">Carregando avisos...</span>
-            ) : gruposAlerta.length === 0 ? (
-              <span className="painel-rodape__vazio">Nenhum aviso no momento.</span>
-            ) : (
-              gruposAlerta.map((g) => (
-                <button key={g.titulo} type="button" className="acao-rapida acao-rapida--alerta"
-                        onClick={(e) => abrirGrupo(g, e)} aria-expanded={grupoAberto?.titulo === g.titulo}>
-                  <span className={`alerta-item__marca alerta-item__marca--${(g.prioridade || "BAIXA").toLowerCase()}`} />
-                  <span className="lista-lateral__texto">{g.titulo}</span>
-                  <span className="acao-rapida__conta">{numero(g.itens.length)}</span>
-                </button>
-              ))
-            )}
-          </div>
-        </Cartao>
-
-        <MenuSuspenso aberto={Boolean(grupoAberto)} aoFechar={fecharGrupo} ancora={ancoraGrupo}
-                      largura={380} alinhamento="esquerda" classe="menu-suspenso--alertas">
-          {grupoAberto && (
-            <>
-              <div className="menu-suspenso__cabecalho">
-                <div className="topo__usuario-nome">{grupoAberto.titulo}</div>
-                <div className="topo__usuario-perfil">{`${grupoAberto.itens.length} avisos`}</div>
-              </div>
-              <div className="alertas-lista">
-                {grupoAberto.itens.map((item) => (
-                  <button key={item.id_alerta} role="menuitem" className="alerta-item"
-                          onClick={() => { fecharGrupo(); abrirAlerta(item); }}>
-                    <span className={`alerta-item__marca alerta-item__marca--${(item.prioridade || "BAIXA").toLowerCase()}`} />
-                    <span className="alerta-item__texto">
-                      <span className="alerta-item__mensagem">{item.mensagem}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-              {LISTA_DO_TIPO(grupoAberto) && (
-                <button role="menuitem" className="painel-grupo__todos"
-                        onClick={() => { const d = LISTA_DO_TIPO(grupoAberto); fecharGrupo(); navegar(d); }}>
-                  Ver todos <Icone nome="seta-direita" tamanho={14} />
-                </button>
-              )}
-            </>
-          )}
-        </MenuSuspenso>
+        <PainelAlertas modulo="FROTAS" />
 
         <Cartao titulo="Ações rápidas">
           {/* Cada atalho abre o FORMULARIO, nao a lista. As telas que cadastram

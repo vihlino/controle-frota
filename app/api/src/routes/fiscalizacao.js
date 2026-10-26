@@ -20,6 +20,7 @@ import { autenticar, exigePermissao } from "../auth.js";
 import { registrarAuditoria } from "../auditoria.js";
 import equipamentosFisc from "./equipamentosFisc.js";
 import servicoEquipe from "./servicoEquipe.js";
+import { historicoCnh } from "./detalhes.js";
 
 const VER = "FISCALIZACAO_VISUALIZAR";
 
@@ -1204,7 +1205,12 @@ router.get("/fiscais/:id/ficha", autenticar,
       // aqui, e nao da rota de Frotas, porque quem so ve a Fiscalizacao nao
       // tem acesso a lista de sinistros de Frotas.
       const sinistros = await query(
-        `SELECT x.id_sinistro, x.numero, x.data, x.tipo, x.status, v.placa, v.marca, v.modelo
+        `SELECT x.id_sinistro, x.numero, x.data, x.tipo, x.status, v.placa, v.marca, v.modelo,
+                -- Para o resumo ao lado da lista (26/10).
+                x.hora, x.local, x.descricao, x.bo, x.houve_terceiros, x.gravidade_danos,
+                x.orcamento_pecas, x.orcamento_mao_obra, x.orcamento_outros,
+                (SELECT sr.nome FROM usuario ur JOIN servidor sr ON sr.id_servidor = ur.id_servidor
+                  WHERE ur.id_usuario = x.id_responsavel) AS responsavel
            FROM sinistro x JOIN veiculo v ON v.id_veiculo = x.id_veiculo
           WHERE x.id_servidor = $1
           ORDER BY x.data DESC LIMIT 200`,
@@ -1235,6 +1241,7 @@ router.get("/fiscais/:id/ficha", autenticar,
         servicos: servicos.rows,
         sinistros: sinistros.rows,
         cadastro: cadastro.rows,
+        cnh_historico: await historicoCnh(id),
         resumo: {
           ocorrencias: ocorrencias.rows.length,
           ocorrencias_6m: ocorrencias.rows.filter((o) => recente(o.data)).length,

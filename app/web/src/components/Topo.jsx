@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import AjudaTela from "./AjudaTela.jsx";
 import Icone from "./Icone.jsx";
 import MenuSuspenso from "./MenuSuspenso.jsx";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useSessao } from "../lib/sessao.jsx";
 import { api } from "../lib/api.js";
 
@@ -33,6 +33,22 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
       .catch(() => {});
   }, []);
 
+  // O sininho mostra so os avisos do modulo da tela aberta (26/10): nas telas
+  // da Fiscalizacao, so os da Fiscalizacao (documento das viaturas, CNH e
+  // multa dos fiscais...); nas do Frotas, so os do Frotas. No Dashboard vale
+  // a aba aberta (?painel=). Nas outras telas (Administracao, Auditoria, TI)
+  // aparecem todos. Cada aviso diz em `modulos` a que painel pertence.
+  const { pathname, search } = useLocation();
+  const painel = new URLSearchParams(search).get("painel");
+  const moduloDaTela = pathname.startsWith("/fiscalizacao") ? "FISCALIZACAO"
+    : pathname.startsWith("/frotas") ? "FROTAS"
+      : pathname.startsWith("/dashboard") || pathname === "/"
+        ? ({ frotas: "FROTAS", fiscalizacao: "FISCALIZACAO" }[painel] || null)
+        : null;
+  const visiveis = moduloDaTela
+    ? alertas.filter((a) => (a.modulos || ["FROTAS"]).includes(moduloDaTela))
+    : alertas;
+
   // Fechar ao clicar fora, no Esc e ao rolar e responsabilidade do
   // MenuSuspenso - nao repetir aqui, senao viram dois ouvintes disputando.
   const fecharMenu = useCallback(() => setMenuAberto(false), []);
@@ -46,7 +62,8 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
   // a tela so segue.
   function abrirAlerta(item) {
     setAlertasAberto(false);
-    if (item.link) navegar(item.link);
+    const destino = (moduloDaTela === "FISCALIZACAO" && item.link_fisc) || item.link;
+    if (destino) navegar(destino);
     else if (item.entidade === "servidor") navegar("/frotas/motoristas");
     else if (item.entidade === "documento_veiculo") navegar("/frotas/documentos");
   }
@@ -86,7 +103,7 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
                 aria-haspopup="menu" aria-expanded={alertasAberto}
                 onClick={() => setAlertasAberto((v) => !v)}>
           <Icone nome="bell" tamanho={22} />
-          {alertas.length > 0 && <span className="topo__contador">{alertas.length}</span>}
+          {visiveis.length > 0 && <span className="topo__contador">{visiveis.length}</span>}
         </button>
 
         <MenuSuspenso aberto={alertasAberto} aoFechar={fecharAlertas}
@@ -95,19 +112,19 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
           <div className="menu-suspenso__cabecalho">
             <div className="topo__usuario-nome">Alertas</div>
             <div className="topo__usuario-perfil">
-              {alertas.length === 0
+              {visiveis.length === 0
                 ? "Nenhum aviso no momento"
-                : `${alertas.length} aviso(s) pendente(s)`}
+                : `${visiveis.length} aviso(s) pendente(s)`}
             </div>
           </div>
 
           <div className="alertas-lista">
-            {alertas.length === 0 ? (
+            {visiveis.length === 0 ? (
               <p className="alertas-lista__vazio">
                 Nada vencendo nos próximos 30 dias.
               </p>
             ) : (
-              alertas.map((item) => (
+              visiveis.map((item) => (
                 <button key={item.id_alerta} role="menuitem"
                         className="alerta-item"
                         onClick={() => abrirAlerta(item)}>

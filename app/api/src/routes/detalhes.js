@@ -11,7 +11,8 @@
  *   /api/frotas/veiculos/:id/resumo      contagens para os cartoes do topo
  */
 import { Router } from "express";
-import { query } from "../db.js";
+import { pool, query } from "../db.js";
+import { registrarAuditoria } from "../auditoria.js";
 import { autenticar, exigePermissao } from "../auth.js";
 
 const router = Router();
@@ -242,6 +243,101 @@ router.get("/historico/:tipo/:id", autenticar,
  * As listas completas de checklists, OS e sinistros vem das rotas de cada
  * modulo com o filtro ?servidor=ID.
  */
+/**
+ * CNHs anteriores da pessoa (migracao 049), da mais recente para a mais
+ * antiga. Quem fez a alteracao vem da auditoria do cadastro gravada no mesmo
+ * minuto. Usada tambem pela ficha do Fiscal.
+ */
+export async function historicoCnh(idServidor) {
+  const { rows } = await query(
+    `SELECT h.id_historico, h.cnh, h.categoria_cnh, h.cnh_data_emissao, h.cnh_data_validade,
+            h.substituida_em, h.motivo,
+            (SELECT COALESCE(sa.nome, ua.login)
+               FROM auditoria a
+               LEFT JOIN usuario ua ON ua.id_usuario = a.id_usuario
+               LEFT JOIN servidor sa ON sa.id_servidor = ua.id_servidor
+              WHERE a.entidade = 'servidor' AND a.id_registro = h.id_servidor
+                AND a.data_hora BETWEEN h.substituida_em - INTERVAL '1 minute'
+                                    AND h.substituida_em + INTERVAL '1 minute'
+              ORDER BY abs(extract(epoch FROM a.data_hora - h.substituida_em))
+              LIMIT 1) AS alterado_por
+       FROM servidor_cnh_historico h
+      WHERE h.id_servidor = $1
+      ORDER BY h.substituida_em DESC`,
+    [idServidor]
+  ).catch(() => ({ rows: [] })); // banco sem a 049 ainda: ficha sem historico
+  return rows;
+}
+
+/*
+ * "Atualizar CNH" (26/10): troca so os dados da CNH, pela aba CNH dos
+ * Detalhes do Motorista/Servidor/Fiscal. O gatilho da migracao 049 guarda a
+ * CNH antiga; aqui o motivo e gravado nessa linha (migracao 051) e a
+ * alteracao vai para a auditoria (de onde sai o "por quem" do historico).
+ */
+const CATEGORIAS_CNH = ["A", "B", "AB", "C", "D", "E", "AC", "AD", "AE"];
+const MOTIVOS_CNH = ["Renovação", "Mudança de categoria", "Segunda via", "Correção de dados"];
+router.put("/servidores/:id/cnh", autenticar,
+  exigePermissao("FROTAS_GERENCIAR_SERVIDORES", "ADMIN_GERENCIAR_SERVIDORES", "FISCALIZACAO_GERENCIAR_FISCAIS"),
+  async (req, res, next) => {
+    const id = Number(req.params.id);
+    const b = req.body || {};
+    const cnh = String(b.cnh || "").replace(/\D/g, "");
+    const categoria = String(b.categoria_cnh || "").toUpperCase();
+    const emissao = String(b.cnh_data_emissao || "").slice(0, 10);
+    const validade = String(b.cnh_data_validade || "").slice(0, 10);
+    const motivo = MOTIVOS_CNH.includes(b.motivo) ? b.motivo : null;
+    const dataOk = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(new Date(d));
+    if (cnh.length < 9 || cnh.length > 15) return res.status(400).json({ erro: "Informe o número da CNH (só números)." });
+    if (!CATEGORIAS_CNH.includes(categoria)) return res.status(400).json({ erro: "Escolha a categoria da CNH." });
+    if (!dataOk(emissao) || !dataOk(validade)) return res.status(400).json({ erro: "Informe as datas de emissão e de validade." });
+    if (validade <= emissao) return res.status(400).json({ erro: "A validade precisa ser depois da emissão." });
+    if (!motivo) return res.status(400).json({ erro: "Escolha o motivo da atualização." });
+    const cliente = await pool.connect();
+    let anterior = null;
+    try {
+      await cliente.query("BEGIN");
+      const antes = await cliente.query(
+        `SELECT cnh, categoria_cnh, cnh_data_emissao, cnh_data_validade, condutor
+           FROM servidor WHERE id_servidor = $1 FOR UPDATE`, [id]);
+      if (!antes.rows[0]) {
+        await cliente.query("ROLLBACK");
+        cliente.release();
+        return res.status(404).json({ erro: "Servidor não encontrado." });
+      }
+      anterior = antes.rows[0];
+      await cliente.query(
+        `UPDATE servidor SET cnh = $2, categoria_cnh = $3, cnh_data_emissao = $4,
+                cnh_data_validade = $5, condutor = TRUE
+          WHERE id_servidor = $1`,
+        [id, cnh, categoria, emissao, validade]);
+      // A linha que o gatilho acabou de criar (se a CNH mudou de verdade).
+      await cliente.query(
+        `UPDATE servidor_cnh_historico SET motivo = $2
+          WHERE id_historico = (SELECT max(id_historico) FROM servidor_cnh_historico
+                                 WHERE id_servidor = $1 AND motivo IS NULL
+                                   AND substituida_em >= now() - INTERVAL '1 minute')`,
+        [id, motivo]);
+      await cliente.query("COMMIT");
+    } catch (e) {
+      await cliente.query("ROLLBACK").catch(() => {});
+      cliente.release();
+      return next(e);
+    }
+    cliente.release();
+    try {
+      await registrarAuditoria({
+        idUsuario: req.usuario.id_usuario, acao: "ALTERAR", entidade: "servidor", idRegistro: id,
+        justificativa: `Atualizar CNH - ${motivo}`,
+        dadosAnteriores: anterior,
+        dadosNovos: { cnh, categoria_cnh: categoria, cnh_data_emissao: emissao, cnh_data_validade: validade },
+      });
+      res.json({ ok: true });
+    } catch (e) {
+      next(e);
+    }
+  });
+
 router.get("/servidores/:id/ficha", autenticar, verPessoas, async (req, res, next) => {
   try {
     const id = Number(req.params.id);
@@ -354,6 +450,7 @@ router.get("/servidores/:id/ficha", autenticar, verPessoas, async (req, res, nex
       usuario: usuario.rows[0] || null,
       resumo: resumo.rows[0],
       atividades: atividades.rows,
+      cnh_historico: await historicoCnh(id),
     });
   } catch (e) {
     next(e);

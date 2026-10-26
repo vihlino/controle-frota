@@ -7,8 +7,13 @@
  * HISTORICO DE VERSOES (Atualizar = renovacao; a versao antiga nao e apagada
  * e abre nesta mesma tela, com aviso e sem os botoes de alterar).
  *
- * Fica de fora o que o SITRA nao tem: foto do veiculo, ano de referencia,
- * configurar alerta de vencimento, enviar por e-mail.
+ * Fica de fora o que o SITRA nao tem: ano de referencia, configurar alerta
+ * de vencimento, enviar por e-mail.
+ *
+ * 26/10 (desenho novo do Cesar): no topo a faixa do veiculo COM A FOTO do
+ * cadastro (FaixaVeiculo); na Visao Geral o cartao do arquivo vem primeiro,
+ * com a previa ao lado (zoom, girar, tela cheia); o aviso de vencimento fica
+ * dentro do Historico de Versoes.
  */
 import { useEffect, useRef, useState } from "react";
 import { useOutletContext, useParams, useNavigate, useSearchParams } from "react-router-dom";
@@ -18,11 +23,11 @@ import Trilha from "../../components/Trilha.jsx";
 import Selo from "../../components/Selo.jsx";
 import FormularioDocumento from "../../components/FormularioDocumento.jsx";
 import ArquivosAnexados from "../../components/ArquivosAnexados.jsx";
-import ResumoVeiculo from "../../components/ResumoVeiculo.jsx";
+import FaixaVeiculo from "../../components/FaixaVeiculo.jsx";
 import HistoricoAuditoria from "../../components/HistoricoAuditoria.jsx";
 import { useArquivos } from "../../components/useArquivos.js";
-import { api } from "../../lib/api.js";
-import { data, dataHora, numero } from "../../lib/formato.js";
+import { api, apiArquivo } from "../../lib/api.js";
+import { data, dataHora } from "../../lib/formato.js";
 import { ACEITAR, tamanhoArquivo } from "../../lib/arquivos.js";
 import { useSessao } from "../../lib/sessao.jsx";
 
@@ -44,6 +49,51 @@ function Linhas({ linhas }) {
         <div className="vd-dados__linha" key={r}><dt>{r}</dt><dd>{vazio(v)}</dd></div>
       ))}
     </dl>
+  );
+}
+
+/*
+ * Previa do arquivo (26/10): foto com zoom e girar; PDF no leitor do
+ * navegador. "Tela cheia" abre o arquivo numa aba nova.
+ */
+function PreviaArquivo({ arquivo: a, miniatura, aoAbrir }) {
+  const [zoom, setZoom] = useState(100);
+  const [giro, setGiro] = useState(0);
+  const [pdf, setPdf] = useState(null);
+  const ehPdf = a.tipo === "application/pdf";
+  useEffect(() => {
+    setZoom(100); setGiro(0); setPdf(null);
+    if (!ehPdf) return undefined;
+    let criada = null;
+    apiArquivo(`/frotas/documentos/arquivos/${a.id_arquivo}`)
+      .then((u) => { criada = u; setPdf(u); })
+      .catch(() => {});
+    return () => { if (criada) URL.revokeObjectURL(criada); };
+  }, [a.id_arquivo, ehPdf]);
+  return (
+    <div className="doc-previa">
+      <div className="doc-previa__area">
+        {ehPdf
+          ? (pdf ? <object data={`${pdf}#toolbar=0&view=FitH`} type="application/pdf" aria-label={a.nome} /> : <span className="doc-previa__vazio">Carregando a prévia...</span>)
+          : miniatura
+            ? <img src={miniatura} alt={a.nome} style={{ transform: `scale(${zoom / 100}) rotate(${giro}deg)` }} />
+            : <span className="doc-previa__vazio">Carregando a prévia...</span>}
+      </div>
+      <div className="doc-previa__barra">
+        {!ehPdf && (
+          <>
+            <button type="button" aria-label="Diminuir" onClick={() => setZoom((z) => Math.max(50, z - 25))}><Icone nome="minus" tamanho={16} monocromatico /></button>
+            <span>{zoom}%</span>
+            <button type="button" aria-label="Aumentar" onClick={() => setZoom((z) => Math.min(300, z + 25))}><Icone nome="mais" tamanho={16} monocromatico /></button>
+          </>
+        )}
+        <span className="doc-previa__espaco" />
+        {!ehPdf && (
+          <button type="button" aria-label="Girar" onClick={() => setGiro((g) => (g + 90) % 360)}><Icone nome="historico" tamanho={16} monocromatico /></button>
+        )}
+        <button type="button" aria-label="Tela cheia" onClick={aoAbrir}><Icone nome="visualizar" tamanho={16} monocromatico /></button>
+      </div>
+    </div>
   );
 }
 
@@ -244,11 +294,6 @@ export default function DocumentoDetalhe() {
           <button className="botao" onClick={() => navegar("/frotas/documentos")}>
             <Icone nome="seta-esquerda" tamanho={15} /> Voltar
           </button>
-          {ultimo && (
-            <button className="botao" onClick={() => anexos.baixar(ultimo)}>
-              <Icone nome="baixar" tamanho={15} /> Baixar
-            </button>
-          )}
           {pode && (
             <button className="botao" onClick={() => setFormulario("editar")}>
               <Icone nome="editar" tamanho={15} /> Editar
@@ -272,16 +317,7 @@ export default function DocumentoDetalhe() {
         </div>
       )}
 
-      <section className="vd-resumo">
-        <ResumoVeiculo v={d} />
-        <div className="vd-resumo__grade vd-resumo__grade--5">
-          <div className="vd-resumo__coluna"><Item rotulo="Setor">{vazio(d.setor)}</Item></div>
-          <div className="vd-resumo__coluna"><Item rotulo="Motorista atual">{vazio(d.condutor_atual)}</Item></div>
-          <div className="vd-resumo__coluna"><Item rotulo="Odômetro atual">{`${numero(d.quilometragem_atual)} km`}</Item></div>
-          <div className="vd-resumo__coluna"><Item rotulo="Chassi">{vazio(d.chassi)}</Item></div>
-          <div className="vd-resumo__coluna"><Item rotulo="Renavam">{vazio(d.renavam)}</Item></div>
-        </div>
-      </section>
+      <FaixaVeiculo v={d} />
 
       <div className="abas vd-abas esconder-impressao" role="tablist">
         {ABAS.map((a) => (
@@ -301,49 +337,55 @@ export default function DocumentoDetalhe() {
       {aba === "geral" && (
         <div className="vd-corpo">
           <div className="vd-corpo__principal">
-            {cartaoInformacoes}
-
-            <Cartao
-              titulo={<><Icone nome="documentos" tamanho={18} /> Arquivo do Documento</>}
-              acao={ultimo ? (
-                <span className="vd-cartao-acao doc-acoes-arquivo">
-                  <button className="botao botao--pequeno" onClick={() => anexos.abrir(ultimo)}>
-                    <Icone nome="visualizar" tamanho={13} /> Visualizar
-                  </button>
-                  <button className="botao botao--pequeno" onClick={() => anexos.baixar(ultimo)}>
-                    <Icone nome="baixar" tamanho={13} /> Baixar
-                  </button>
-                </span>
-              ) : pode && (
-                <button className="botao botao--pequeno vd-cartao-acao" onClick={() => entrada.current?.click()} disabled={anexos.enviando}>
-                  <Icone nome="mais" tamanho={13} /> {anexos.enviando ? "Enviando..." : "Anexar arquivo"}
-                </button>
-              )}
-            >
-              {!ultimo ? <p className="texto-corrido">Nenhum arquivo anexado.</p> : (
-                <div className="arquivo-destaque">
-                  <button type="button" className="arquivo-destaque__previa" onClick={() => anexos.abrir(ultimo)} title="Visualizar">
-                    {anexos.miniaturas[ultimo.id_arquivo]
-                      ? <img src={anexos.miniaturas[ultimo.id_arquivo]} alt={ultimo.nome} />
-                      : <span className="arquivo-destaque__pdf"><Icone nome="documento" tamanho={40} />PDF</span>}
-                  </button>
-                  <div>
-                    <Linhas linhas={[
-                      ["Nome do arquivo", ultimo.nome],
-                      ["Tipo", ultimo.tipo === "application/pdf" ? "PDF" : ultimo.tipo.replace("image/", "").toUpperCase()],
-                      ["Tamanho", tamanhoArquivo(ultimo.bytes)],
-                      ["Data de upload", dataHora(ultimo.criado_em)],
-                      ["Enviado por", ultimo.enviado_por_nome],
-                    ]} />
-                    {arquivos.length > 1 && (
-                      <button type="button" className="os-ligadas__link doc-mais-arquivos" onClick={() => setAba("arquivo")}>
-                        Ver todos os {arquivos.length} arquivos
-                      </button>
-                    )}
-                  </div>
+            <section className="cartao doc-arquivo">
+              {!ultimo ? (
+                <div className="doc-arquivo__sem">
+                  <Icone nome="documentos" tamanho={28} />
+                  <span>Nenhum arquivo anexado a este documento.</span>
+                  {pode && (
+                    <button className="botao botao--primario" onClick={() => entrada.current?.click()} disabled={anexos.enviando}>
+                      <Icone nome="mais" tamanho={14} monocromatico /> {anexos.enviando ? "Enviando..." : "Anexar arquivo"}
+                    </button>
+                  )}
                 </div>
+              ) : (
+                <>
+                  <div className="doc-arquivo__info">
+                    <div className="doc-arquivo__tipo" data-tipo={ultimo.tipo === "application/pdf" ? "pdf" : "img"}>
+                      <Icone nome="arquivo-texto" tamanho={40} />
+                      <span>{ultimo.tipo === "application/pdf" ? "PDF" : ultimo.tipo.replace("image/", "").replace("jpeg", "jpg").toUpperCase()}</span>
+                    </div>
+                    <div className="doc-arquivo__textos">
+                      <span className="doc-arquivo__selo">Documento do Veículo</span>
+                      <strong className="doc-arquivo__nome" title={ultimo.nome}>{ultimo.nome}</strong>
+                      <span className="doc-arquivo__sub">{d.categoria ? `${d.tipo_documento} (${d.categoria})` : d.tipo_documento}</span>
+                      <dl className="doc-arquivo__dados">
+                        <div><Icone nome="arquivo-texto" tamanho={16} /><dt>Tamanho</dt><dd>{tamanhoArquivo(ultimo.bytes)}</dd></div>
+                        <div><Icone nome="calendar" tamanho={16} /><dt>Adicionado em</dt><dd>{dataHora(ultimo.criado_em)}</dd></div>
+                        <div><Icone nome="user" tamanho={16} /><dt>Adicionado por</dt><dd>{vazio(ultimo.enviado_por_nome)}</dd></div>
+                      </dl>
+                      <div className="doc-arquivo__botoes">
+                        <button className="botao" onClick={() => anexos.abrir(ultimo)}>
+                          <Icone nome="visualizar" tamanho={15} /> Visualizar
+                        </button>
+                        <button className="botao botao--primario" onClick={() => anexos.baixar(ultimo)}>
+                          <Icone nome="baixar" tamanho={15} monocromatico /> Baixar
+                        </button>
+                      </div>
+                      {arquivos.length > 1 && (
+                        <button type="button" className="os-ligadas__link doc-mais-arquivos" onClick={() => setAba("arquivo")}>
+                          Ver todos os {arquivos.length} arquivos
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <PreviaArquivo arquivo={ultimo} miniatura={anexos.miniaturas[ultimo.id_arquivo]}
+                                 aoAbrir={() => anexos.abrir(ultimo)} />
+                </>
               )}
-            </Cartao>
+            </section>
+
+            {cartaoInformacoes}
 
             <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Histórico do Documento</>}
                     acao={<button className="botao botao--pequeno vd-cartao-acao" onClick={() => setAba("historico")}>Ver todo</button>}>
@@ -384,9 +426,10 @@ export default function DocumentoDetalhe() {
               </div>
             </Cartao>
 
-            <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Histórico de Versões</>}>{versoes}</Cartao>
-
-            {avisoVencimento}
+            <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Histórico de Versões</>}>
+              {versoes}
+              {avisoVencimento && <div className="doc-versoes__aviso">{avisoVencimento}</div>}
+            </Cartao>
           </div>
         </div>
       )}

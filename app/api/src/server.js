@@ -209,8 +209,11 @@ async function iniciarServidor() {
   const ROTA_FOTO_QR = /^\/api\/qrcode\/(foto\/[^/]+|fiscal\/[^/]+\/fotos|fiscal\/[^/]+\/ocorrencia\/\d+\/arquivos)\/?$/;
   // Fotos do servico diario (21/10): leitor de 12 MB na rota (routes/servicoEquipe.js).
   const ROTA_FOTO_SERVICO = /^\/api\/fiscalizacao\/servico-diario\/equipe\/\d+\/fotos\/?$/;
+  // Foto do veiculo (26/10): leitor de 8 MB na rota (routes/frotas.js).
+  const ROTA_FOTO_VEICULO = /^\/api\/frotas\/veiculos\/\d+\/foto\/?$/;
   app.use((req, res, next) =>
-    ROTA_ANEXO_DOCUMENTO.test(req.path) || ROTA_FOTO_QR.test(req.path) || ROTA_FOTO_SERVICO.test(req.path) ? next() : jsonPadrao(req, res, next)
+    ROTA_ANEXO_DOCUMENTO.test(req.path) || ROTA_FOTO_QR.test(req.path) || ROTA_FOTO_SERVICO.test(req.path)
+      || ROTA_FOTO_VEICULO.test(req.path) ? next() : jsonPadrao(req, res, next)
   );
 
   /*

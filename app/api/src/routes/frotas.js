@@ -31,7 +31,10 @@ export const veiculos = criarCrud({
   id: "id_veiculo",
   entidade: "veiculo",
   select: `veiculo.*, setor.nome AS setor,
-           (SELECT codigo FROM qr_code q WHERE q.id_veiculo = veiculo.id_veiculo) AS qr_codigo`,
+           (SELECT codigo FROM qr_code q WHERE q.id_veiculo = veiculo.id_veiculo) AS qr_codigo,
+           -- Foto do veiculo (migracao 050): so a data, para a tela saber se
+           -- existe e trocar a imagem quando ela mudar.
+           (SELECT f.atualizado_em FROM veiculo_foto f WHERE f.id_veiculo = veiculo.id_veiculo) AS foto_em`,
   from: "veiculo JOIN setor ON setor.id_setor = veiculo.id_setor",
   busca: ["veiculo.placa", "veiculo.marca", "veiculo.modelo", "veiculo.renavam", "veiculo.chassi"],
   filtros: {
@@ -89,6 +92,72 @@ export const veiculos = criarCrud({
     // precisar editar recebe "Gerenciar veiculos" em Perfis e Permissoes.
     gerenciar: ["FROTAS_GERENCIAR_VEICULOS"],
   },
+});
+
+/*
+ * Foto do veiculo (migracao 050, pedido de 26/10). Uma por veiculo, JPG ou
+ * PNG ate 5 MB, guardada no banco. Enviar de novo troca a foto.
+ */
+const TIPOS_FOTO = ["image/jpeg", "image/png", "image/webp"];
+const MAX_FOTO = 5 * 1024 * 1024;
+const corpoDeFoto = json({ limit: "8mb" });
+
+veiculos.get("/:id/foto", autenticar, exigePermissao(VER, "FISCALIZACAO_VISUALIZAR"), async (req, res, next) => {
+  try {
+    const { rows } = await query("SELECT tipo, conteudo FROM veiculo_foto WHERE id_veiculo = $1", [Number(req.params.id)]);
+    if (!rows[0]) return res.status(404).json({ erro: "Veículo sem foto." });
+    res.setHeader("Content-Type", rows[0].tipo);
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    res.send(rows[0].conteudo);
+  } catch (e) {
+    next(e);
+  }
+});
+
+veiculos.put("/:id/foto", corpoDeFoto, autenticar, exigePermissao("FROTAS_GERENCIAR_VEICULOS"), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const m = /^data:([a-z/+.-]+);base64,([A-Za-z0-9+/=]+)$/i.exec(String(req.body?.dataUrl || "").trim());
+    if (!m) return res.status(400).json({ erro: "Foto inválida." });
+    const tipo = m[1].toLowerCase();
+    if (!TIPOS_FOTO.includes(tipo)) return res.status(400).json({ erro: "Envie a foto em JPG ou PNG." });
+    const buffer = Buffer.from(m[2], "base64");
+    if (!buffer.length || buffer.length > MAX_FOTO) return res.status(400).json({ erro: "A foto precisa ter até 5 MB." });
+    const { rows: existe } = await query("SELECT placa FROM veiculo WHERE id_veiculo = $1", [id]);
+    if (!existe[0]) return res.status(404).json({ erro: "Veículo não encontrado." });
+    const { rows } = await query(
+      `INSERT INTO veiculo_foto (id_veiculo, tipo, bytes, conteudo, enviado_por, atualizado_em)
+       VALUES ($1, $2, $3, $4, $5, now())
+       ON CONFLICT (id_veiculo) DO UPDATE
+         SET tipo = EXCLUDED.tipo, bytes = EXCLUDED.bytes, conteudo = EXCLUDED.conteudo,
+             enviado_por = EXCLUDED.enviado_por, atualizado_em = now()
+       RETURNING atualizado_em AS foto_em`,
+      [id, tipo, buffer.length, buffer, req.usuario.id_usuario]
+    );
+    await registrarAuditoria({
+      idUsuario: req.usuario.id_usuario, acao: "ALTERAR", entidade: "veiculo",
+      idRegistro: id, dadosNovos: { foto: `${tipo}, ${buffer.length} bytes` },
+    });
+    res.json(rows[0]);
+  } catch (e) {
+    next(e);
+  }
+});
+
+veiculos.delete("/:id/foto", autenticar, exigePermissao("FROTAS_GERENCIAR_VEICULOS"), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const { rowCount } = await query("DELETE FROM veiculo_foto WHERE id_veiculo = $1", [id]);
+    if (rowCount) {
+      await registrarAuditoria({
+        idUsuario: req.usuario.id_usuario, acao: "ALTERAR", entidade: "veiculo",
+        idRegistro: id, dadosNovos: { foto: "removida" },
+      });
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
 });
 
 // ---------- Checklists ----------
@@ -1229,6 +1298,8 @@ documentos.get("/:id/ficha", autenticar, exigePermissao(VER), async (req, res, n
               v.placa, v.marca, v.modelo, s.nome AS responsavel,
               v.tipo_veiculo, v.tipo_combustivel, v.ano_fabricacao, v.ano_modelo,
               v.chassi, v.renavam, v.quilometragem_atual, v.status AS veiculo_status,
+              -- Foto do veiculo (migracao 050) para o topo da tela (26/10).
+              (SELECT f.atualizado_em FROM veiculo_foto f WHERE f.id_veiculo = v.id_veiculo) AS foto_em,
               (SELECT s3.nome FROM checklist_frotas c3 JOIN servidor s3 ON s3.id_servidor = c3.id_servidor
                 WHERE c3.id_veiculo = v.id_veiculo AND c3.status = 'ABERTO'
                 ORDER BY c3.data_abertura DESC LIMIT 1) AS condutor_atual,

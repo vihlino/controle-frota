@@ -14,7 +14,7 @@ import Modal from "./Modal.jsx";
 import Icone from "./Icone.jsx";
 import { useConfirmacaoSenha } from "./ConfirmarSenha.jsx";
 import { Texto, Selecao, Area } from "./Campos.jsx";
-import { api } from "../lib/api.js";
+import { api, apiArquivo } from "../lib/api.js";
 import { opcoes } from "../lib/formato.js";
 import { VINCULOS } from "../lib/vinculos.js";
 
@@ -35,6 +35,37 @@ const VAZIO = {
 };
 
 /*
+ * Foto do veiculo (26/10): a imagem escolhida e reduzida no proprio navegador
+ * (no maximo 1600 px, JPG) antes de subir - a foto do celular tem 4 a 8 MB e
+ * o cartao do topo nao precisa disso. Fundo branco para PNG transparente.
+ */
+function reduzirFoto(arquivo) {
+  return new Promise((ok, falha) => {
+    const url = URL.createObjectURL(arquivo);
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const w = Math.round(img.width * k);
+      const h = Math.round(img.height * k);
+      const tela = document.createElement("canvas");
+      tela.width = w;
+      tela.height = h;
+      const ctx = tela.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      ok(tela.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      falha(new Error("Não foi possível ler a imagem. Use uma foto JPG ou PNG."));
+    };
+    img.src = url;
+  });
+}
+
+/*
  * soViatura (18/10): aberto pela tela de Viaturas. O setor fica travado em
  * Fiscalizacao - e o setor que faz do veiculo uma viatura.
  */
@@ -46,6 +77,46 @@ export default function FormularioVeiculo({ veiculo = null, aoFechar, aoSalvar, 
   const [erroForm, setErroForm] = useState("");
   const [salvando, setSalvando] = useState(false);
   const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
+  // Foto: a que ja existe (para mostrar) e o que a pessoa fez nesta janela.
+  const [fotoVista, setFotoVista] = useState(null);  // URL para o <img>
+  const [fotoNova, setFotoNova] = useState(null);    // data URL a enviar
+  const [tirarFoto, setTirarFoto] = useState(false);
+  useEffect(() => {
+    if (!veiculo?.foto_em) return undefined;
+    let url = null;
+    apiArquivo(`/frotas/veiculos/${veiculo.id_veiculo}/foto?v=${encodeURIComponent(veiculo.foto_em)}`)
+      .then((u) => { url = u; setFotoVista(u); })
+      .catch(() => {});
+    return () => { if (url) URL.revokeObjectURL(url); };
+  }, [veiculo?.id_veiculo, veiculo?.foto_em]);
+  async function escolherFoto(e) {
+    const arquivo = e.target.files?.[0];
+    e.target.value = "";
+    if (!arquivo) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(arquivo.type)) {
+      setErroForm("Escolha uma foto JPG ou PNG.");
+      return;
+    }
+    try {
+      const dataUrl = await reduzirFoto(arquivo);
+      setFotoNova(dataUrl);
+      setFotoVista(dataUrl);
+      setTirarFoto(false);
+      setErroForm("");
+    } catch (erro) {
+      setErroForm(erro.message);
+    }
+  }
+  function removerFoto() {
+    setFotoNova(null);
+    setFotoVista(null);
+    setTirarFoto(Boolean(veiculo?.foto_em));
+  }
+  // Depois de gravar o veiculo: sobe a foto nova ou apaga a antiga.
+  async function gravarFoto(idVeiculo) {
+    if (fotoNova) await api(`/frotas/veiculos/${idVeiculo}/foto`, { method: "PUT", body: { dataUrl: fotoNova } });
+    else if (tirarFoto) await api(`/frotas/veiculos/${idVeiculo}/foto`, { method: "DELETE" });
+  }
 
   useEffect(() => {
     api("/setores").then((lista) => {
@@ -80,7 +151,8 @@ export default function FormularioVeiculo({ veiculo = null, aoFechar, aoSalvar, 
         vinculo: formulario.vinculo || null,
       };
       if (editando === "novo") {
-        await api("/frotas/veiculos", { method: "POST", body: corpo });
+        const novo = await api("/frotas/veiculos", { method: "POST", body: corpo });
+        if (novo?.id_veiculo) await gravarFoto(novo.id_veiculo);
       } else {
         // So a EDICAO pede senha: mudar placa, KM ou setor de um veiculo que
         // ja tem checklists e OS altera historico.
@@ -93,6 +165,7 @@ export default function FormularioVeiculo({ veiculo = null, aoFechar, aoSalvar, 
           return;
         }
         await api(`/frotas/veiculos/${editando}`, { method: "PUT", body: corpo });
+        await gravarFoto(editando);
       }
       aoSalvar?.();
       aoFechar();
@@ -133,6 +206,27 @@ export default function FormularioVeiculo({ veiculo = null, aoFechar, aoSalvar, 
             O campo obrigatorio leva "*" no rotulo; o opcional nao leva
             nada. Escrever "(opcional)" era dizer duas vezes a mesma
             coisa. */}
+        <h3 className="formulario__secao">Foto do veículo</h3>
+        <div className="foto-veiculo" data-largo="sim">
+          <div className="foto-veiculo__quadro">
+            {fotoVista
+              ? <img src={fotoVista} alt="Foto do veículo" />
+              : <Icone nome="kpi-car" tamanho={40} />}
+          </div>
+          <div className="foto-veiculo__acoes">
+            <label className="botao">
+              <Icone nome="oc-camera" tamanho={15} /> {fotoVista ? "Trocar foto" : "Adicionar foto"}
+              <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={escolherFoto} />
+            </label>
+            {fotoVista && (
+              <button type="button" className="botao" onClick={removerFoto}>
+                <Icone nome="lixo" tamanho={15} /> Remover
+              </button>
+            )}
+            <small className="campo__ajuda">JPG ou PNG. A foto aparece no topo dos Detalhes do Veículo.</small>
+          </div>
+        </div>
+
         <h3 className="formulario__secao">Dados gerais</h3>
         {/* A placa aparece em caixa alta enquanto a pessoa digita. Quem
             grava mesmo e a API (normalizacoes de frotas.js); isto e so

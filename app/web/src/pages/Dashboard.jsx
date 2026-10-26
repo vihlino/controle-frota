@@ -8,7 +8,7 @@
  * Os paineis de cada aba estao em pages/painel/.
  */
 import { useEffect, useState } from "react";
-import { Link, useOutletContext } from "react-router-dom";
+import { Link, useOutletContext, useSearchParams } from "react-router-dom";
 import Cartao from "../components/Cartao.jsx";
 import Icone from "../components/Icone.jsx";
 import Kpi from "../components/Kpi.jsx";
@@ -27,7 +27,12 @@ export default function Dashboard() {
   const { usuario } = useSessao();
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState("");
-  const [aba, setAba] = useState(null);
+  // A aba aberta fica no endereco (?painel=frotas|fiscalizacao|ti): o
+  // sininho do topo le dali de qual modulo mostrar os avisos (26/10), e a aba
+  // sobrevive ao recarregar a pagina.
+  const [parametros, definirParametros] = useSearchParams();
+  const aba = parametros.get("painel");
+  const setAba = (chave) => definirParametros({ painel: chave }, { replace: true });
 
   useEffect(() => {
     const primeiroNome = (usuario?.nome || "").split(" ")[0];
@@ -41,7 +46,7 @@ export default function Dashboard() {
     api("/dashboard")
       .then((r) => {
         setDados(r);
-        setAba(Object.keys(r)[0] || null);
+        if (!r[parametros.get("painel")] && Object.keys(r)[0]) setAba(Object.keys(r)[0]);
       })
       .catch((e) => setErro(e.message));
   }, []);

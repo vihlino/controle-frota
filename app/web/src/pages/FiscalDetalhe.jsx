@@ -21,9 +21,12 @@ import { data, dataHora, hora, numero, rotulo } from "../lib/formato.js";
 import FiltroPeriodo, { dentroDoPeriodo } from "../components/FiltroPeriodo.jsx";
 import { cpf as mascaraCpf, telefone as mascaraTelefone } from "../lib/mascaras.js";
 import { useSessao } from "../lib/sessao.jsx";
-import { CartaoPessoa, iniciais, situacaoCnh, Item, Linhas } from "./ServidorDetalhe.jsx";
+import { CartaoPessoa, HistoricoCnh, iniciais, situacaoCnh, Item, Linhas } from "./ServidorDetalhe.jsx";
 import JanelaCadastro from "../components/JanelaCadastro.jsx";
 import MultasPessoa from "../components/MultasPessoa.jsx";
+import AtualizarCnh from "../components/AtualizarCnh.jsx";
+import ListaResumo from "../components/ListaResumo.jsx";
+import { resumoSinistro } from "../components/ResumosLista.jsx";
 import { CONFIG_SERVIDOR } from "./admin/Servidores.jsx";
 
 const vazio = (v) => (v === null || v === undefined || v === "" ? "—" : v);
@@ -93,6 +96,9 @@ export default function FiscalDetalhe() {
     window.scrollTo({ top: 0 });
   };
   const podeEditar = podeVer("FROTAS_GERENCIAR_SERVIDORES") || podeVer("FISCALIZACAO_GERENCIAR_FISCAIS");
+  // "Atualizar CNH" (26/10): mesma regra do Editar desta tela.
+  const podeCnh = podeEditar;
+  const [atualizandoCnh, setAtualizandoCnh] = useState(false);
 
   useEffect(() => {
     definirCabecalho({ titulo: "", legenda: "" });
@@ -392,9 +398,16 @@ export default function FiscalDetalhe() {
         </>
       )}
 
+      {/* Mesma aba CNH do Motorista (26/10): Informacoes, Historico de
+          renovacao e Uso das viaturas. */}
       {aba === "cnh" && (
-        <div className="ficha-2 ficha-bloco">
-          <Cartao titulo={<><Icone nome="cnh" tamanho={18} /> Carteira Nacional de Habilitação</>}>
+        <div className="sd-cnh ficha-bloco">
+          <Cartao titulo={<><Icone nome="cnh" tamanho={18} /> Informações da CNH</>}
+                  acao={podeCnh && (
+                    <button className="botao botao--pequeno vd-cartao-acao" onClick={() => setAtualizandoCnh(true)}>
+                      <Icone nome="editar" tamanho={14} /> Atualizar CNH
+                    </button>
+                  )}>
             {!f.condutor ? (
               <p className="texto-corrido">Este fiscal não está cadastrado como condutor, por isso não tem CNH registrada.</p>
             ) : (
@@ -407,6 +420,7 @@ export default function FiscalDetalhe() {
               ]} />
             )}
           </Cartao>
+          <HistoricoCnh pessoa={f} />
           <Cartao titulo={<><Icone nome="informacao" tamanho={18} /> Uso das viaturas</>}>
             <Linhas linhas={[
               ["Condutor", f.condutor ? "Sim" : "Não"],
@@ -456,12 +470,16 @@ export default function FiscalDetalhe() {
         </Cartao>
       )}
 
+      {/* Como a aba Sinistros do Motorista (26/10): lista e resumo ao lado.
+          "Abrir em Sinistros" so para quem ve o Frotas (a tela e de la). */}
       {aba === "sinistros" && (
-        <Cartao titulo={<><Icone nome="sinistro" tamanho={18} /> Sinistros como condutor</>}>
-          <Tabela linhas={f.sinistros || []} colunas={COL_SINISTRO}
-                  aoAbrir={podeVer("FROTAS_VISUALIZAR") ? abrirSinistro : undefined}
-                  vazio="Nenhum sinistro registrado." />
-        </Cartao>
+        <ListaResumo
+          titulo={<><Icone nome="sinistro" tamanho={18} /> Lista de Sinistros do Condutor</>}
+          linhas={f.sinistros || []} colunas={COL_SINISTRO} chave={(x) => x.id_sinistro} unidade="sinistros"
+          vazio="Nenhum sinistro registrado."
+          resumo={(x) => resumoSinistro(x, { condutor: false })}
+          abrir={podeVer("FROTAS_VISUALIZAR")
+            ? { rotulo: "Abrir em Sinistros", destino: (x) => `/frotas/sinistros/${x.id_sinistro}` } : null} />
       )}
 
       {aba === "multas" && <MultasPessoa servidor={f} aoMudar={() => setRecarga((n) => n + 1)} />}
@@ -476,6 +494,11 @@ export default function FiscalDetalhe() {
         <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Histórico de Atividades</>}>
           <Tabela linhas={atividades} colunas={COL_ATIVIDADE} vazio="Nenhuma atividade registrada." />
         </Cartao>
+      )}
+
+      {atualizandoCnh && (
+        <AtualizarCnh pessoa={f} aoFechar={() => setAtualizandoCnh(false)}
+                      aoSalvar={() => setRecarga((n) => n + 1)} />
       )}
 
       {editando && (

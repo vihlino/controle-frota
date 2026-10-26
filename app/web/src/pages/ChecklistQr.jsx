@@ -721,7 +721,10 @@ export default function ChecklistQr() {
               hora={saida.hora} setHora={(h) => setSaida((s) => ({ ...s, hora: h }))}
               km={saida.odometro} setKm={(v) => setSaida((s) => ({ ...s, odometro: v }))}
               confere={kmConfere} setConfere={setKmConfere}
-              kmAtual={veiculo.quilometragem_atual} formatarKm={numero} />
+              kmAtual={veiculo.quilometragem_atual} formatarKm={numero}
+              // Igual ao checklist da Fiscalizacao (26/10): Data de saida |
+              // Horario | Hodometro, com o Sim/Nao pequeno dentro do campo do KM.
+              data={saida.data || inicio.data} />
           )}
 
           {/* O percurso so existe na chegada. */}

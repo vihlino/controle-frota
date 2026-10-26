@@ -21,11 +21,15 @@ import Cartao from "../components/Cartao.jsx";
 import Icone from "../components/Icone.jsx";
 import Trilha from "../components/Trilha.jsx";
 import Selo from "../components/Selo.jsx";
+import { Paginacao } from "../components/Tabela.jsx";
+import ListaResumo from "../components/ListaResumo.jsx";
+import { resumoSinistro } from "../components/ResumosLista.jsx";
 import { api } from "../lib/api.js";
 import { data, dataHora, dinheiro, hora, numero, rotulo } from "../lib/formato.js";
 import { cpf as mascaraCpf, telefone as mascaraTelefone } from "../lib/mascaras.js";
 import { useSessao } from "../lib/sessao.jsx";
 import JanelaCadastro from "../components/JanelaCadastro.jsx";
+import AtualizarCnh from "../components/AtualizarCnh.jsx";
 import MultasPessoa, { SeloMulta, SeloGravidade } from "../components/MultasPessoa.jsx";
 import { Equipamentos } from "./frotas/Checklists.jsx";
 import { CONFIG_SERVIDOR } from "./admin/Servidores.jsx";
@@ -144,31 +148,140 @@ export function Linhas({ linhas }) {
 }
 
 /** Tabela de uma lista (checklists, OS, sinistros) vinda da API do modulo. */
-function Lista({ caminho, colunas, aoAbrir, vazio: textoVazio }) {
+/*
+ * Com `unidade` (aba Checklists, 26/10) a lista vem de 10 em 10 e ganha
+ * embaixo o mesmo rodape das telas de lista: "Mostrando 1 a 10 de 31
+ * checklists", o Exibir e as paginas. O `caminho` vem sem pagina/porPagina.
+ */
+// Exportada (26/10): a aba Checklists dos Detalhes do Veiculo usa a mesma lista.
+export function Lista({ caminho, colunas, aoAbrir, vazio: textoVazio, unidade, ativo }) {
   const [linhas, setLinhas] = useState(null);
   const [erro, setErro] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const [porPagina, setPorPagina] = useState(10);
+  const [info, setInfo] = useState({ total: 0, paginas: 1 });
+  useEffect(() => { setPagina(1); }, [caminho]);
+  const endereco = unidade ? `${caminho}&pagina=${pagina}&porPagina=${porPagina}` : caminho;
   useEffect(() => {
     setLinhas(null);
-    api(caminho)
-      .then((r) => setLinhas(Array.isArray(r) ? r : r.itens || []))
+    api(endereco)
+      .then((r) => {
+        setLinhas(Array.isArray(r) ? r : r.itens || []);
+        if (!Array.isArray(r)) setInfo({ total: r.total || 0, paginas: r.paginas || 1 });
+      })
       .catch((e) => setErro(e.message));
-  }, [caminho]);
+  }, [endereco]);
   if (erro) return <div className="vazio">{erro}</div>;
   if (!linhas) return <div className="carregando">Carregando...</div>;
   if (!linhas.length) return <p className="texto-corrido">{textoVazio}</p>;
   return (
+    <>
     <div className="rolagem-x">
       <table className="tabela vd-tabela tabela-ficha">
         <thead><tr>{colunas.map((c) => <th key={c.rotulo}>{c.rotulo}</th>)}</tr></thead>
         <tbody>
           {linhas.map((l, i) => (
-            <tr key={i} className="vd-tabela__linha" onClick={() => aoAbrir(l)}>
+            <tr key={i} className="vd-tabela__linha" onClick={() => aoAbrir(l)}
+                data-ativo={ativo && ativo(l) ? "sim" : undefined}>
               {colunas.map((c) => <td key={c.rotulo} className={c.classe}>{c.render(l)}</td>)}
             </tr>
           ))}
         </tbody>
       </table>
     </div>
+    {unidade && (
+      <Paginacao pagina={pagina} setPagina={setPagina} porPagina={porPagina} setPorPagina={setPorPagina}
+                 total={info.total} paginas={info.paginas} unidade={unidade} />
+    )}
+    </>
+  );
+}
+
+/*
+ * Aba Sinistros (26/10): a lista de sinistros do condutor e, ao clicar num
+ * deles, um resumo no lado direito da tela com "Ver mais", que abre os
+ * Detalhes do Sinistro com tudo o que aconteceu. A lista ja traz os campos do
+ * sinistro, entao o resumo nao precisa de outra chamada.
+ */
+function SinistrosPessoa({ idServidor }) {
+  // A lista e o resumo ao lado vem do ListaResumo (o mesmo padrao das abas do
+  // veiculo); o botao do resumo diz para onde leva: "Abrir em Sinistros".
+  const colunas = [
+    { rotulo: "Nº do Sinistro", render: (x) => <strong>{vazio(x.numero)}</strong> },
+    { rotulo: "Data", render: (x) => data(x.data) },
+    { rotulo: "Veículo", render: (x) => (
+      <span className="celula-dupla"><strong>{x.placa}</strong><span>{x.marca} {x.modelo}</span></span>
+    ) },
+    { rotulo: "Tipo", render: (x) => rotulo("tipoSinistro", x.tipo) },
+    // Sem "coluna-flexivel": ela reserva mais da metade da tabela e, com a
+    // lista na largura toda, sobrava um vao enorme no Local.
+    { rotulo: "Local", render: (x) => (
+      <span className="sd-local" title={x.local || ""}>{vazio(x.local)}</span>
+    ) },
+    { rotulo: "Situação", render: (x) => <Selo valor={x.status} /> },
+  ];
+  return (
+    <ListaResumo
+      titulo={<><Icone nome="sinistro" tamanho={18} /> Lista de Sinistros do Condutor</>}
+      caminho={`/frotas/sinistros?servidor=${idServidor}`}
+      colunas={colunas} chave={(x) => x.id_sinistro} unidade="sinistros"
+      vazio="Nenhum sinistro registrado."
+      resumo={(x) => resumoSinistro(x, { condutor: false })}
+      abrir={{ rotulo: "Abrir em Sinistros", destino: (x) => `/frotas/sinistros/${x.id_sinistro}` }} />
+  );
+}
+
+/*
+ * Historico de renovacao da CNH (26/10): a CNH atual em cima e, embaixo, as
+ * anteriores, guardadas pelo banco toda vez que a CNH e alterada (migracao
+ * 049). Usado tambem nos Detalhes do Fiscal.
+ */
+export function HistoricoCnh({ pessoa: p }) {
+  const atual = p.condutor && (p.cnh || p.cnh_data_validade)
+    ? [{ chave: "atual", atual: true, ...p }] : [];
+  const linhas = [...atual, ...(p.cnh_historico || []).map((h) => ({ chave: h.id_historico, ...h }))];
+  return (
+    <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Histórico de renovação</>}>
+      {linhas.length === 0 ? (
+        <p className="texto-corrido">Nenhuma CNH registrada.</p>
+      ) : (
+        <div className="rolagem-x">
+          <table className="tabela vd-tabela tabela-ficha">
+            <thead>
+              <tr><th>CNH</th><th>Categoria</th><th>Emissão</th><th>Validade</th><th>Substituída em</th></tr>
+            </thead>
+            <tbody>
+              {linhas.map((l) => (
+                <tr key={l.chave}>
+                  <td>
+                    <span className="celula-dupla">
+                      <strong>{vazio(l.cnh)}</strong>
+                      <span>{l.atual ? "Atual" : "Anterior"}</span>
+                    </span>
+                  </td>
+                  <td>{vazio(l.categoria_cnh)}</td>
+                  <td>{l.cnh_data_emissao ? data(l.cnh_data_emissao) : "—"}</td>
+                  <td>{l.cnh_data_validade ? data(l.cnh_data_validade) : "—"}</td>
+                  <td>
+                    {l.atual ? <Selo texto="Em uso" tom="verde" /> : (
+                      <span className="celula-dupla">
+                        <strong>{dataHora(l.substituida_em)}</strong>
+                        {(l.motivo || l.alterado_por) && (
+                          <span>{[l.motivo, l.alterado_por && `por ${l.alterado_por}`].filter(Boolean).join(" · ")}</span>
+                        )}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="vd2-nota" style={{ marginTop: 10 }}>
+        Quando a CNH é alterada ou renovada, os dados da anterior ficam guardados aqui.
+      </p>
+    </Cartao>
   );
 }
 
@@ -225,6 +338,10 @@ export default function ServidorDetalhe() {
   const base = motorista ? "/frotas/motoristas" : admin ? "/admin/servidores" : "/frotas/servidores";
   const nomeTela = motorista ? "Motorista" : "Servidor";
   const podeEditar = podeVer(motorista ? "FROTAS_GERENCIAR_SERVIDORES" : "ADMIN_GERENCIAR_SERVIDORES");
+  // "Atualizar CNH" (26/10): quem gerencia servidores pelo Frotas ou pela
+  // Administracao (a mesma regra da rota).
+  const podeCnh = podeVer("FROTAS_GERENCIAR_SERVIDORES") || podeVer("ADMIN_GERENCIAR_SERVIDORES");
+  const [atualizandoCnh, setAtualizandoCnh] = useState(false);
 
   useEffect(() => {
     definirCabecalho({ titulo: "", legenda: "" });
@@ -300,7 +417,7 @@ export default function ServidorDetalhe() {
   ];
   const caminho = (modulo, n) => `/frotas/${modulo}?servidor=${id}&porPagina=${n}`;
   // Periodo da aba Checklists (18/10): vai como filtro para a API.
-  const caminhoChecklists = `${caminho("checklists", 200)}${periodo.de ? `&dataDe=${periodo.de}` : ""}${periodo.ate ? `&dataAte=${periodo.ate}` : ""}`;
+  const caminhoChecklists = `/frotas/checklists?servidor=${id}${periodo.de ? `&dataDe=${periodo.de}` : ""}${periodo.ate ? `&dataAte=${periodo.ate}` : ""}`;
   const verTodos = (chave, total) => (
     <button className="botao botao--pequeno vd-cartao-acao" onClick={() => setAba(chave)}>
       Ver todos ({numero(total || 0)})
@@ -416,48 +533,54 @@ export default function ServidorDetalhe() {
             </Cartao>
           </div>
 
-          {/* Checklists na largura toda, com as colunas da tela Checklists;
-              embaixo, Sinistros e Multas lado a lado, do mesmo tamanho (26/10). */}
-          <div className="ficha-bloco">
+          {/* Ordem pedida pelo Cesar (26/10): Ultimos Checklists | Ultimos
+              Sinistros e, embaixo, Ultimas Multas | Historico de Atividades.
+              Os Checklists ficam mais largos (todas as colunas da tela
+              Checklists); em tela menor cada cartao ocupa a linha toda. */}
+          <div className="ficha-2 sd-par sd-par--largo ficha-bloco">
             <Cartao className="sd-checklists" titulo={<><Icone nome="checklist" tamanho={18} /> Últimos Checklists</>}
                     acao={verTodos("checklists", r.checklists)}>
               <Lista caminho={caminho("checklists", 5)} colunas={COL_CHECKLIST}
                      vazio="Nenhum checklist registrado."
                      aoAbrir={(c) => navegar(`/frotas/checklists/${c.id_checklist}`)} />
             </Cartao>
-          </div>
-
-          <div className="ficha-2 sd-par ficha-bloco">
             <Cartao titulo={<><Icone nome="sinistro" tamanho={18} /> Últimos Sinistros</>}
                     acao={verTodos("sinistros", r.sinistros)}>
               <Lista caminho={caminho("sinistros", 5)} colunas={COL_SINISTRO}
                      vazio="Nenhum sinistro registrado."
                      aoAbrir={(x) => navegar(`/frotas/sinistros/${x.id_sinistro}`)} />
             </Cartao>
+          </div>
+
+          <div className="ficha-2 sd-par ficha-bloco">
             <Cartao titulo={<><Icone nome="alert-triangle" tamanho={18} /> Últimas Multas</>}
                     acao={verTodos("multas", r.multas)}>
               <Lista caminho={`/frotas/multas?servidor=${id}&porPagina=5`} colunas={COL_MULTA}
                      vazio="Nenhuma multa registrada."
                      aoAbrir={() => setAba("multas")} />
             </Cartao>
-          </div>
-
-          <div className="ficha-bloco">
             <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Histórico de Atividades</>}
                     acao={(
                       <button className="botao botao--pequeno vd-cartao-acao" onClick={() => setAba("historico")}>
                         Ver todos ({numero(atividades.length)})
                       </button>
                     )}>
-              <Atividades itens={atividades.slice(0, 5)} aoAbrir={abrirAtividade} />
+              <Atividades itens={atividades.slice(0, 5)} aoAbrir={abrirAtividade} compacto />
             </Cartao>
           </div>
         </>
       )}
 
+      {/* Aba CNH (26/10): Informacoes da CNH, Historico de renovacao e Uso da
+          frota. */}
       {aba === "cnh" && (
-        <div className="ficha-2 ficha-bloco">
-          <Cartao titulo={<><Icone nome="cnh" tamanho={18} /> Carteira Nacional de Habilitação</>}>
+        <div className="sd-cnh ficha-bloco">
+          <Cartao titulo={<><Icone nome="cnh" tamanho={18} /> Informações da CNH</>}
+                  acao={podeCnh && (
+                    <button className="botao botao--pequeno vd-cartao-acao" onClick={() => setAtualizandoCnh(true)}>
+                      <Icone nome="editar" tamanho={14} /> Atualizar CNH
+                    </button>
+                  )}>
             {!s.condutor ? (
               <p className="texto-corrido">
                 Este servidor não está cadastrado como condutor, por isso não tem CNH registrada.
@@ -472,6 +595,7 @@ export default function ServidorDetalhe() {
               ]} />
             )}
           </Cartao>
+          <HistoricoCnh pessoa={s} />
           <Cartao titulo={<><Icone nome="informacao" tamanho={18} /> Uso da frota</>}>
             <Linhas linhas={[
               ["Condutor", s.condutor ? "Sim" : "Não"],
@@ -493,7 +617,7 @@ export default function ServidorDetalhe() {
       {aba === "checklists" && (
         <Cartao className="sd-checklists" titulo={<><Icone nome="checklist" tamanho={18} /> Checklists
           <FiltroPeriodo id="periodo-checklists" de={periodo.de} ate={periodo.ate} aoMudar={setPeriodo} /></>}>
-          <Lista caminho={caminhoChecklists} colunas={COL_CHECKLIST}
+          <Lista caminho={caminhoChecklists} colunas={COL_CHECKLIST} unidade="checklists"
                  vazio="Nenhum checklist registrado."
                  aoAbrir={(c) => navegar(`/frotas/checklists/${c.id_checklist}`)} />
         </Cartao>
@@ -501,18 +625,17 @@ export default function ServidorDetalhe() {
 
       {aba === "multas" && <MultasPessoa servidor={s} aoMudar={() => setRecarga((n) => n + 1)} />}
 
-      {aba === "sinistros" && (
-        <Cartao titulo={<><Icone nome="sinistro" tamanho={18} /> Sinistros como condutor</>}>
-          <Lista caminho={caminho("sinistros", 200)} colunas={COL_SINISTRO}
-                 vazio="Nenhum sinistro registrado."
-                 aoAbrir={(x) => navegar(`/frotas/sinistros/${x.id_sinistro}`)} />
-        </Cartao>
-      )}
+      {aba === "sinistros" && <SinistrosPessoa idServidor={id} />}
 
       {aba === "historico" && (
         <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Histórico de Atividades</>}>
           <Atividades itens={atividades} aoAbrir={abrirAtividade} />
         </Cartao>
+      )}
+
+      {atualizandoCnh && (
+        <AtualizarCnh pessoa={s} aoFechar={() => setAtualizandoCnh(false)}
+                      aoSalvar={() => setRecarga((n) => n + 1)} />
       )}
 
       {editando && (

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import Cartao from "../../components/Cartao.jsx";
 import Icone from "../../components/Icone.jsx";
 import Kpi from "../../components/Kpi.jsx";
+import PainelAlertas from "../../components/PainelAlertas.jsx";
 import Selo from "../../components/Selo.jsx";
 import VeiculoCel from "../../components/VeiculoCel.jsx";
 import { data, hora, numero } from "../../lib/formato.js";
@@ -38,6 +39,10 @@ export default function PainelFiscalizacao({ dados }) {
              nota="Enviados" tom="roxo" />
       </div>
 
+      {/* Alertas e Acoes rapidas na coluna vertical a direita, como no painel
+          de Frotas (26/10). Os alertas sao so os da Fiscalizacao. */}
+      <div className="painel-frotas">
+        <div className="painel-frotas__principal">
       <div className="grade-2">
         <Cartao titulo="Serviço diário — em andamento"
                 acao={<Link className="cartao__acao" to="/fiscalizacao/servico-diario">Ver todos</Link>}>
@@ -161,31 +166,38 @@ export default function PainelFiscalizacao({ dados }) {
         </Cartao>
       </div>
 
-      <Cartao titulo="Ações rápidas">
-        <div className="acoes-rapidas">
-          <Link className="acao-rapida" to="/fiscalizacao/servico-diario?novo=1">
-            + Serviço Diário
-          </Link>
-          <Link className="acao-rapida" to="/fiscalizacao/ocorrencias?novo=1">
-            + Ocorrência
-          </Link>
-          {/* Sem "+": esta tela so LISTA os checklists, que nascem no celular
-              pelo QR Code do veiculo. Um "+" prometeria um cadastro que nao
-              existe aqui. */}
-          <Link className="acao-rapida" to="/fiscalizacao/checklists">
-            <Icone nome="checklist" tamanho={20} /> Ver Checklists
-          </Link>
-          <Link className="acao-rapida" to="/fiscalizacao/equipes">
-            <Icone nome="fisc-servidores" tamanho={20} /> Ver Equipes
-          </Link>
-          <Link className="acao-rapida" to="/fiscalizacao/viaturas">
-            <Icone nome="fisc-viatura" tamanho={20} /> Ver Viaturas
-          </Link>
-          <Link className="acao-rapida" to="/fiscalizacao/relatorios">
-            <Icone nome="chart-line" tamanho={20} /> Relatórios
-          </Link>
         </div>
-      </Cartao>
+
+        <aside className="painel-frotas__lateral">
+        <PainelAlertas modulo="FISCALIZACAO" />
+
+        <Cartao titulo="Ações rápidas">
+          <div className="lista-lateral">
+            <Link className="acao-rapida" to="/fiscalizacao/servico-diario?novo=1">
+              + Serviço Diário
+            </Link>
+            <Link className="acao-rapida" to="/fiscalizacao/ocorrencias?novo=1">
+              + Ocorrência
+            </Link>
+            {/* Sem "+": esta tela so LISTA os checklists, que nascem no celular
+                pelo QR Code do veiculo. Um "+" prometeria um cadastro que nao
+                existe aqui. Icones do tamanho do "+", como no Frotas. */}
+            <Link className="acao-rapida acao-rapida--icone" to="/fiscalizacao/checklists">
+              <Icone nome="checklist" tamanho={12} /> Ver Checklists
+            </Link>
+            <Link className="acao-rapida acao-rapida--icone" to="/fiscalizacao/equipes">
+              <Icone nome="fisc-servidores" tamanho={12} /> Ver Equipes
+            </Link>
+            <Link className="acao-rapida acao-rapida--icone" to="/fiscalizacao/viaturas">
+              <Icone nome="fisc-viatura" tamanho={12} /> Ver Viaturas
+            </Link>
+            <Link className="acao-rapida acao-rapida--icone" to="/fiscalizacao/relatorios">
+              <Icone nome="chart-line" tamanho={12} /> Relatórios
+            </Link>
+          </div>
+        </Cartao>
+        </aside>
+      </div>
     </>
   );
 }

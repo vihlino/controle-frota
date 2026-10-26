@@ -9,8 +9,12 @@
  * conferencia do ultimo checklist), Observacoes e, a direita, o ultimo
  * checklist, a ultima manutencao, a ultima inspecao e os documentos.
  *
- * Fica de fora o que o SITRA nao tem: fotos do veiculo, abastecimento,
- * ocorrencias (so na Fiscalizacao), data de aquisicao, proxima revisao por KM.
+ * Fica de fora o que o SITRA nao tem: abastecimento, ocorrencias (so na
+ * Fiscalizacao), data de aquisicao, proxima revisao por KM.
+ *
+ * 26/10 (desenho do Cesar): o cartao do topo ganhou a FOTO do veiculo
+ * (cadastrada no Editar, migracao 050), o tipo num selo a direita e um icone
+ * em cada dado; "Informacoes Rapidas" com o icone num quadrinho.
  */
 import { useEffect, useState } from "react";
 import { useOutletContext, useParams, useNavigate, useSearchParams } from "react-router-dom";
@@ -23,6 +27,11 @@ import RegistrarSinistro from "../../components/RegistrarSinistro.jsx";
 import FormularioDocumento from "../../components/FormularioDocumento.jsx";
 import QrCodeVeiculo from "../../components/QrCodeVeiculo.jsx";
 import FormularioVeiculo from "../../components/FormularioVeiculo.jsx";
+import FiltroPeriodo from "../../components/FiltroPeriodo.jsx";
+import { Lista } from "../ServidorDetalhe.jsx";
+import { Equipamentos } from "./Checklists.jsx";
+import ListaResumo from "../../components/ListaResumo.jsx";
+import { resumoSinistro, resumoInspecao, resumoOs, resumoDocumento, SeloInspecao, FREQUENCIA_INSPECAO } from "../../components/ResumosLista.jsx";
 import { api, apiArquivo } from "../../lib/api.js";
 import { data, dataHora, dinheiro, hora, numero, rotulo, numeroOs, ROTULOS } from "../../lib/formato.js";
 import { vinculo } from "../../lib/vinculos.js";
@@ -60,50 +69,48 @@ function SeloAtividade({ h }) {
   return <Selo valor={h.status} />;
 }
 
-/** Rotulo + valor da faixa do topo. */
-function Item({ rotulo: r, children }) {
+/** Rotulo + valor da faixa do topo, com icone (desenho de 26/10). */
+function Item({ rotulo: r, icone, children }) {
   return (
-    <div className="vd-resumo__item">
-      <span className="vd-resumo__rotulo">{r}</span>
-      <span className="vd-resumo__valor">{children}</span>
+    <div className="vd3-dado">
+      {icone && <Icone nome={icone} tamanho={16} />}
+      <div>
+        <span className="vd3-dado__rotulo" title={r}>{r}</span>
+        <span className="vd3-dado__valor">{children}</span>
+      </div>
     </div>
   );
 }
 
-/** Tabela compacta de uma aba (os registros do veiculo naquele modulo). */
-function AbaLista({ caminho, colunas, aoAbrir, vazio: textoVazio, rodape }) {
-  const [linhas, setLinhas] = useState(null);
-  const [erro, setErro] = useState("");
+/** Foto do veiculo (ou o quadro vazio). A rota exige o token, por isso blob. */
+function FotoVeiculo({ veiculo: v, podeEditar, aoEditar }) {
+  const [url, setUrl] = useState(null);
   useEffect(() => {
-    setLinhas(null);
-    api(caminho)
-      .then((r) => setLinhas(Array.isArray(r) ? r : r.itens || []))
-      .catch((e) => setErro(e.message));
-  }, [caminho]);
-  if (erro) return <div className="vazio">{erro}</div>;
-  if (!linhas) return <div className="carregando">Carregando...</div>;
-  if (!linhas.length) return <div className="vazio">{textoVazio}</div>;
+    setUrl(null);
+    if (!v.foto_em) return undefined;
+    let criada = null;
+    apiArquivo(`/frotas/veiculos/${v.id_veiculo}/foto?v=${encodeURIComponent(v.foto_em)}`)
+      .then((u) => { criada = u; setUrl(u); })
+      .catch(() => {});
+    return () => { if (criada) URL.revokeObjectURL(criada); };
+  }, [v.id_veiculo, v.foto_em]);
   return (
-    <>
-      <div className="rolagem-x">
-        <table className="tabela vd-tabela">
-          <thead>
-            <tr>{colunas.map((c) => <th key={c.rotulo}>{c.rotulo}</th>)}</tr>
-          </thead>
-          <tbody>
-            {linhas.map((l, i) => (
-              <tr key={i} className={aoAbrir ? "vd-tabela__linha" : undefined}
-                  onClick={aoAbrir ? () => aoAbrir(l) : undefined}>
-                {colunas.map((c) => <td key={c.rotulo} className={c.classe}>{c.render(l)}</td>)}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {rodape}
-    </>
+    <div className="vd3-foto">
+      {url ? <img src={url} alt={`Foto do veículo ${v.placa}`} /> : (
+        <div className="vd3-foto__vazia">
+          <Icone nome="kpi-car" tamanho={24} />
+          <span>Sem foto</span>
+          {podeEditar && (
+            <button type="button" className="botao botao--pequeno" onClick={aoEditar}>
+              <Icone nome="oc-camera" tamanho={14} /> Adicionar foto
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
+
 
 export default function VeiculoDetalhe() {
   const { id } = useParams();
@@ -129,6 +136,8 @@ export default function VeiculoDetalhe() {
   // Cartoes da Visao Geral: o ultimo de cada coisa e os documentos.
   const [ultimos, setUltimos] = useState({});
   const [docs, setDocs] = useState(null);
+  // Periodo da aba Checklists (26/10), como na ficha do Motorista.
+  const [periodoCk, setPeriodoCk] = useState({ de: "", ate: "" });
 
   useEffect(() => {
     definirCabecalho({ titulo: "", legenda: "" });
@@ -181,15 +190,6 @@ export default function VeiculoDetalhe() {
     { chave: "historico", rotulo: "Histórico", icone: "historico" },
   ];
 
-  const caminho = (modulo) => `/frotas/${modulo}?veiculo=${id}&porPagina=50`;
-  const verTudo = (modulo, texto) => (
-    <div className="vd-rodape-aba">
-      <button type="button" className="os-ligadas__link"
-              onClick={() => navegar(`/frotas/${modulo}?veiculo=${id}`)}>
-        {texto}
-      </button>
-    </div>
-  );
 
   // ----- Visao Geral (modelo de 06/10) -----
   const EQUIPAMENTOS = [
@@ -242,14 +242,16 @@ export default function VeiculoDetalhe() {
     }
   }
 
+  // Informacoes Rapidas (desenho de 26/10): o icone num quadrinho; a placa
+  // em amarelo e o ultimo checklist em verde, como no desenho.
   const rapidas = [
-    { icone: "kpi-car-front", rotulo: "Placa", valor: v.placa },
-    { icone: "documento", rotulo: "Renavam", valor: v.renavam },
+    { icone: "placa", rotulo: "Placa", valor: v.placa, tom: "amarelo" },
+    { icone: "arquivo-texto", rotulo: "Renavam", valor: v.renavam },
     { icone: "kpi-steering", rotulo: "Chassi", valor: v.chassi },
-    { icone: "visualizar", rotulo: "Cor", valor: v.cor },
-    { icone: "aviso-oleo", rotulo: "Combustível", valor: v.tipo_combustivel ? rotulo("combustivel", v.tipo_combustivel) : null },
+    { icone: "paleta", rotulo: "Cor", valor: v.cor },
+    { icone: "combustivel", rotulo: "Combustível", valor: v.tipo_combustivel ? rotulo("combustivel", v.tipo_combustivel) : null },
     { icone: "odometro", rotulo: "Quilometragem atual", valor: `${numero(v.quilometragem_atual)} km` },
-    { icone: "concluidas", rotulo: "Último checklist", valor: r.ultimo_checklist ? dataHora(r.ultimo_checklist) : null },
+    { icone: "concluidas", rotulo: "Último checklist", valor: r.ultimo_checklist ? dataHora(r.ultimo_checklist) : null, tom: "verde" },
     { icone: "kpi-wrench", rotulo: "Última manutenção", valor: r.ultima_manutencao ? data(r.ultima_manutencao) : null },
   ];
 
@@ -284,35 +286,41 @@ export default function VeiculoDetalhe() {
         </div>
       </div>
 
-      <div className="vd2-topo">
-        <section className="cartao vd2-veiculo">
-          <div className="vd2-veiculo__linha">
-            <div className="vd2-veiculo__placa">
-              <strong>{v.placa}</strong>
-              <Selo valor={v.status} />
+      <div className="vd3-topo">
+        <section className="cartao vd3-veiculo">
+          <FotoVeiculo veiculo={v} podeEditar={podeVeiculo} aoEditar={() => setJanela("veiculo")} />
+          <div className="vd3-veiculo__corpo">
+            <div className="vd3-veiculo__linha">
+              <div className="vd3-veiculo__placa">
+                <strong>{v.placa}</strong>
+                <Selo valor={v.status} />
+              </div>
+              <span className="vd3-tipo">
+                <Icone nome="kpi-car" tamanho={13} /> {rotulo("tipoVeiculo", v.tipo_veiculo)}
+              </span>
             </div>
-          </div>
-          <span className="vd2-veiculo__modelo">{v.marca} {v.modelo}</span>
-          <div className="vd2-veiculo__dados">
-            <Item rotulo="Ano/Modelo">{`${v.ano_fabricacao} / ${v.ano_modelo}`}</Item>
-            <Item rotulo="Tipo de veículo">{rotulo("tipoVeiculo", v.tipo_veiculo)}</Item>
-            <Item rotulo="Setor">{vazio(v.setor)}</Item>
-            <Item rotulo="Uso">{v.vinculo ? vinculo(v.vinculo) : "—"}</Item>
-          </div>
-          <div className="vd2-veiculo__dados">
-            <Item rotulo="Odômetro atual">{`${numero(v.quilometragem_atual)} km`}</Item>
-            <Item rotulo="Condutor atual">{vazio(r.condutor_atual)}</Item>
-            <Item rotulo="Próxima inspeção">{r.proxima_inspecao ? data(r.proxima_inspecao) : "—"}</Item>
-            <Item rotulo="Viatura da fiscalização">{v.viatura ? "Sim" : "Não"}</Item>
+            <span className="vd3-veiculo__modelo">{v.marca} {v.modelo}</span>
+            <div className="vd3-veiculo__dados">
+              <Item icone="calendar" rotulo="Ano de fabricação">{vazio(v.ano_fabricacao)}</Item>
+              <Item icone="calendar" rotulo="Ano modelo">{vazio(v.ano_modelo)}</Item>
+              <Item icone="organograma" rotulo="Setor">{vazio(v.setor)}</Item>
+              <Item icone="camadas" rotulo="Uso">{v.vinculo ? vinculo(v.vinculo) : "—"}</Item>
+            </div>
+            <div className="vd3-veiculo__dados">
+              <Item icone="odometro" rotulo="Odômetro atual">{`${numero(v.quilometragem_atual)} km`}</Item>
+              <Item icone="user" rotulo="Condutor atual">{vazio(r.condutor_atual)}</Item>
+              <Item icone="calendario-check" rotulo="Próxima inspeção">{r.proxima_inspecao ? data(r.proxima_inspecao) : "—"}</Item>
+              <Item icone="kpi-wrench" rotulo="Viatura da fiscalização">{v.viatura ? "Sim" : "Não"}</Item>
+            </div>
           </div>
         </section>
 
-        <section className="cartao vd2-rapidas">
-          <h2 className="cartao__titulo">Informações Rápidas</h2>
-          <div className="vd2-rapidas__grade">
+        <section className="cartao vd3-rapidas">
+          <h2 className="vd3-rapidas__titulo"><Icone nome="arquivo-texto" tamanho={16} /> Informações Rápidas</h2>
+          <div className="vd3-rapidas__grade">
             {rapidas.map((x) => (
-              <div className="vd2-rapidas__item" key={x.rotulo}>
-                <Icone nome={x.icone} tamanho={20} />
+              <div className="vd3-rapidas__item" key={x.rotulo}>
+                <span className="vd3-rapidas__icone" data-tom={x.tom}><Icone nome={x.icone} tamanho={14} /></span>
                 <div>
                   <span>{x.rotulo}</span>
                   <strong>{vazio(x.valor)}</strong>
@@ -527,148 +535,137 @@ export default function VeiculoDetalhe() {
 
       {aba === "qrcode" && <QrCodeVeiculo veiculo={v} aoGerar={recarregar} />}
 
+      {/* Abas de lista com o resumo ao lado e "Abrir em <tela>" (26/10), como
+          a aba Sinistros dos Detalhes do Motorista. */}
       {aba === "documentos" && (
-        <Cartao titulo="Documentos do veículo"
-                acao={podeDoc && (
-                  <button className="botao botao--pequeno vd-cartao-acao" onClick={() => setJanela("documento")}>
-                    <Icone nome="mais" tamanho={13} /> Novo documento
-                  </button>
-                )}>
-          <AbaLista
-            key={`doc-${recarga}`}
-            caminho={caminho("documentos")}
-            vazio="Nenhum documento cadastrado para este veículo."
-            aoAbrir={(d) => navegar(`/frotas/documentos/${d.id_documento}`)}
-            colunas={[
-              { rotulo: "Documento", render: (d) => d.tipo_documento },
-              { rotulo: "Categoria", render: (d) => (d.categoria ? <Selo texto={d.categoria} tom="azul" /> : "—") },
-              { rotulo: "Nº / Referência", render: (d) => vazio(d.numero_documento) },
-              { rotulo: "Vencimento", render: (d) => {
-                const p = prazo(d.dias_para_vencer);
-                return (
-                  <span className="celula-dupla">
-                    <strong>{d.data_validade ? data(d.data_validade) : "Não vence"}</strong>
-                    {p && <span className={`prazo prazo--${p.tom}`}>{p.texto}</span>}
-                  </span>
-                );
-              } },
-              { rotulo: "Arquivos", render: (d) => d.arquivos || "—" },
-              { rotulo: "Situação", render: (d) => <Selo valor={d.status} /> },
-            ]}
-            rodape={verTudo("documentos", "Abrir em Documentos")}
-          />
-        </Cartao>
+        <ListaResumo key={`doc-${recarga}`}
+          titulo={<><Icone nome="documentos" tamanho={18} /> Documentos do veículo</>}
+          acao={podeDoc && (
+            <button className="botao botao--pequeno vd-cartao-acao" onClick={() => setJanela("documento")}>
+              <Icone nome="mais" tamanho={13} /> Novo documento
+            </button>
+          )}
+          caminho={`/frotas/documentos?veiculo=${id}`} chave={(d) => d.id_documento} unidade="documentos"
+          vazio="Nenhum documento cadastrado para este veículo."
+          colunas={[
+            { rotulo: "Documento", render: (d) => <strong>{d.tipo_documento}</strong> },
+            { rotulo: "Categoria", render: (d) => (d.categoria ? <Selo texto={d.categoria} tom="azul" /> : "—") },
+            { rotulo: "Nº / Referência", render: (d) => vazio(d.numero_documento) },
+            { rotulo: "Vencimento", render: (d) => {
+              const p = prazo(d.dias_para_vencer);
+              return (
+                <span className="celula-dupla">
+                  <strong>{d.data_validade ? data(d.data_validade) : "Não vence"}</strong>
+                  {p && <span className={`prazo prazo--${p.tom}`}>{p.texto}</span>}
+                </span>
+              );
+            } },
+            { rotulo: "Arquivos", render: (d) => d.arquivos || "—" },
+            { rotulo: "Situação", render: (d) => <Selo valor={d.status} /> },
+          ]}
+          resumo={resumoDocumento}
+          abrir={{ rotulo: "Abrir em Documentos", destino: (d) => `/frotas/documentos/${d.id_documento}` }} />
       )}
 
+      {/* Igual a aba Checklists dos Detalhes do Motorista (26/10): filtro de
+          periodo no titulo, as colunas da tela Checklists (com o Condutor no
+          lugar do veiculo) e 10 por pagina com o rodape de contagem. */}
       {aba === "checklists" && (
-        <Cartao titulo="Checklists do veículo">
-          <AbaLista
-            caminho={caminho("checklists")}
+        <Cartao className="sd-checklists" titulo={<><Icone nome="checklist" tamanho={18} /> Checklists
+          <FiltroPeriodo id="periodo-checklists-veiculo" de={periodoCk.de} ate={periodoCk.ate} aoMudar={setPeriodoCk} /></>}>
+          <Lista
+            caminho={`/frotas/checklists?veiculo=${id}${periodoCk.de ? `&dataDe=${periodoCk.de}` : ""}${periodoCk.ate ? `&dataAte=${periodoCk.ate}` : ""}`}
+            unidade="checklists"
             vazio="Nenhum checklist registrado para este veículo."
             aoAbrir={(c) => navegar(`/frotas/checklists/${c.id_checklist}`)}
             colunas={[
-              { rotulo: "Data", render: (c) => data(c.data_abertura) },
-              { rotulo: "Condutor", render: (c) => c.condutor },
-              { rotulo: "Saída", render: (c) => (
+              { rotulo: "Enviado em", render: (c) => <strong>{dataHora(c.criado_em)}</strong> },
+              { rotulo: "Condutor", render: (c) => vazio(c.condutor) },
+              { rotulo: "Saída (hora / KM)", render: (c) => (
                 <span className="celula-dupla"><strong>{hora(c.hora_saida)}</strong><span>{numero(c.odometro_saida)} km</span></span>
               ) },
-              { rotulo: "Chegada", render: (c) => (c.hora_chegada ? (
+              { rotulo: "Chegada (hora / KM)", render: (c) => (c.odometro_chegada === null || c.odometro_chegada === undefined ? "—" : (
                 <span className="celula-dupla"><strong>{hora(c.hora_chegada)}</strong><span>{numero(c.odometro_chegada)} km</span></span>
-              ) : "—") },
-              { rotulo: "KM rodado", render: (c) => (c.km_rodado ? `${numero(c.km_rodado)} km` : "—") },
-              { rotulo: "Percurso", classe: "coluna-flexivel", render: (c) => (
-                <span className="celula-cortada" title={c.percurso || ""}>{vazio(c.percurso)}</span>
-              ) },
+              )) },
+              { rotulo: "Fechado em", render: (c) => (!c.data_finalizacao
+                ? <span className="texto-fraco">Em aberto</span>
+                : <strong>{dataHora(c.data_finalizacao)}</strong>) },
+              { rotulo: "KM rodado", render: (c) => (c.km_rodado === null || c.km_rodado === undefined ? "—" : `${numero(c.km_rodado)} km`) },
+              { rotulo: "Equipamentos", render: (c) => <Equipamentos itens={c.equipamentos} /> },
               { rotulo: "Situação", render: (c) => <Selo valor={c.status} /> },
             ]}
-            rodape={verTudo("checklists", "Abrir em Checklists")}
           />
         </Cartao>
       )}
 
       {aba === "inspecoes" && (
-        <Cartao titulo="Inspeções do veículo"
-                acao={podeInspecao && (
-                  <button className="botao botao--pequeno vd-cartao-acao"
-                          onClick={() => navegar(`/frotas/inspecoes?agendar=1&veiculo=${id}`)}>
-                    <Icone nome="mais" tamanho={13} /> Agendar inspeção
-                  </button>
-                )}>
-          <AbaLista
-            caminho={caminho("inspecoes")}
-            vazio="Nenhuma inspeção registrada para este veículo."
-            aoAbrir={(i) => navegar(`/frotas/inspecoes/${i.id_inspecao}`)}
-            colunas={[
-              { rotulo: "Nº", render: (i) => vazio(i.numero) },
-              { rotulo: "Data", render: (i) => data(i.data_realizacao || i.data_programada) },
-              { rotulo: "Frequência", render: (i) => FREQUENCIA[i.tipo] || i.tipo },
-              { rotulo: "Responsável", render: (i) => vazio(i.responsavel) },
-              { rotulo: "Itens com ressalva", render: (i) => (i.status === "FINALIZADA" ? i.itens_com_ressalva || 0 : "—") },
-              { rotulo: "Situação", render: (i) => (
-                i.status === "ABERTA" ? <Selo texto="Pendente" tom="amarelo" /> : (() => {
-                  const a = ROTULOS.analiseInspecao[i.analise];
-                  return a ? <Selo texto={a.texto} tom={a.tom} /> : <Selo texto="Concluída" tom="verde" />;
-                })()
-              ) },
-            ]}
-            rodape={verTudo("inspecoes", "Abrir em Inspeções")}
-          />
-        </Cartao>
+        <ListaResumo
+          titulo={<><Icone nome="inspecao" tamanho={18} /> Inspeções do veículo</>}
+          acao={podeInspecao && (
+            <button className="botao botao--pequeno vd-cartao-acao"
+                    onClick={() => navegar(`/frotas/inspecoes?agendar=1&veiculo=${id}`)}>
+              <Icone nome="mais" tamanho={13} /> Agendar inspeção
+            </button>
+          )}
+          caminho={`/frotas/inspecoes?veiculo=${id}`} chave={(i) => i.id_inspecao} unidade="inspeções"
+          vazio="Nenhuma inspeção registrada para este veículo."
+          colunas={[
+            { rotulo: "Nº", render: (i) => <strong>{vazio(i.numero)}</strong> },
+            { rotulo: "Data", render: (i) => data(i.data_realizacao || i.data_programada) },
+            { rotulo: "Frequência", render: (i) => FREQUENCIA_INSPECAO[i.tipo] || i.tipo },
+            { rotulo: "Responsável", render: (i) => vazio(i.responsavel) },
+            { rotulo: "Itens com ressalva", render: (i) => (i.status === "FINALIZADA" ? i.itens_com_ressalva || 0 : "—") },
+            { rotulo: "Situação", render: (i) => <SeloInspecao i={i} /> },
+          ]}
+          resumo={resumoInspecao}
+          abrir={{ rotulo: "Abrir em Inspeções", destino: (i) => `/frotas/inspecoes/${i.id_inspecao}` }} />
       )}
 
       {aba === "manutencoes" && (
-        <Cartao titulo="Manutenções do veículo"
-                acao={podeOs && (
-                  <button className="botao botao--pequeno vd-cartao-acao" onClick={() => setJanela("os")}>
-                    <Icone nome="mais" tamanho={13} /> Registrar OS
-                  </button>
-                )}>
-          <AbaLista
-            key={`os-${recarga}`}
-            caminho={caminho("manutencoes")}
-            vazio="Nenhuma OS registrada para este veículo."
-            aoAbrir={(o) => navegar(`/frotas/manutencoes/${o.id_os}`)}
-            colunas={[
-              { rotulo: "Nº da OS", render: (o) => numeroOs(o.numero) },
-              { rotulo: "Data", render: (o) => data(o.data_agendada || o.data_abertura) },
-              { rotulo: "Tipo", render: (o) => rotulo("tipoOs", o.tipo) },
-              { rotulo: "Descrição", classe: "coluna-flexivel", render: (o) => (
-                <span className="celula-cortada" title={o.descricao || ""}>{primeiraLinha(o.descricao) || "—"}</span>
-              ) },
-              { rotulo: "Oficina", render: (o) => vazio(o.oficina) },
-              { rotulo: "Custo", render: (o) => (o.custo !== null && o.custo !== undefined ? dinheiro(o.custo) : "—") },
-              { rotulo: "Situação", render: (o) => <Selo valor={o.status} /> },
-            ]}
-            rodape={verTudo("manutencoes", "Abrir em Manutenções")}
-          />
-        </Cartao>
+        <ListaResumo key={`os-${recarga}`}
+          titulo={<><Icone nome="kpi-wrench" tamanho={18} /> Manutenções do veículo</>}
+          acao={podeOs && (
+            <button className="botao botao--pequeno vd-cartao-acao" onClick={() => setJanela("os")}>
+              <Icone nome="mais" tamanho={13} /> Registrar OS
+            </button>
+          )}
+          caminho={`/frotas/manutencoes?veiculo=${id}`} chave={(o) => o.id_os} unidade="ordens de serviço"
+          vazio="Nenhuma OS registrada para este veículo."
+          colunas={[
+            { rotulo: "Nº da OS", render: (o) => <strong>{numeroOs(o.numero)}</strong> },
+            { rotulo: "Data", render: (o) => data(o.data_agendada || o.data_abertura) },
+            { rotulo: "Tipo", render: (o) => rotulo("tipoOs", o.tipo) },
+            { rotulo: "Descrição", render: (o) => (
+              <span className="sd-local" title={o.descricao || ""}>{primeiraLinha(o.descricao) || "—"}</span>
+            ) },
+            { rotulo: "Oficina", render: (o) => vazio(o.oficina) },
+            { rotulo: "Custo", render: (o) => (o.custo !== null && o.custo !== undefined ? dinheiro(o.custo) : "—") },
+            { rotulo: "Situação", render: (o) => <Selo valor={o.status} /> },
+          ]}
+          resumo={resumoOs}
+          abrir={{ rotulo: "Abrir em Manutenções", destino: (o) => `/frotas/manutencoes/${o.id_os}` }} />
       )}
 
       {aba === "sinistros" && (
-        <Cartao titulo="Sinistros do veículo"
-                acao={podeSinistro && (
-                  <button className="botao botao--pequeno vd-cartao-acao" onClick={() => setJanela("sinistro")}>
-                    <Icone nome="mais" tamanho={13} /> Registrar sinistro
-                  </button>
-                )}>
-          <AbaLista
-            key={`sin-${recarga}`}
-            caminho={caminho("sinistros")}
-            vazio="Nenhum sinistro registrado para este veículo."
-            aoAbrir={(s) => navegar(`/frotas/sinistros/${s.id_sinistro}`)}
-            colunas={[
-              { rotulo: "Nº", render: (s) => vazio(s.numero) },
-              { rotulo: "Data", render: (s) => `${data(s.data)} ${hora(s.hora)}` },
-              { rotulo: "Tipo", render: (s) => rotulo("tipoSinistro", s.tipo) },
-              { rotulo: "Local", classe: "coluna-flexivel", render: (s) => (
-                <span className="celula-cortada" title={s.local}>{s.local}</span>
-              ) },
-              { rotulo: "Condutor", render: (s) => vazio(s.condutor) },
-              { rotulo: "Situação", render: (s) => <Selo valor={s.status} /> },
-            ]}
-            rodape={verTudo("sinistros", "Abrir em Sinistros")}
-          />
-        </Cartao>
+        <ListaResumo key={`sin-${recarga}`}
+          titulo={<><Icone nome="sinistro" tamanho={18} /> Sinistros do veículo</>}
+          acao={podeSinistro && (
+            <button className="botao botao--pequeno vd-cartao-acao" onClick={() => setJanela("sinistro")}>
+              <Icone nome="mais" tamanho={13} /> Registrar sinistro
+            </button>
+          )}
+          caminho={`/frotas/sinistros?veiculo=${id}`} chave={(x) => x.id_sinistro} unidade="sinistros"
+          vazio="Nenhum sinistro registrado para este veículo."
+          colunas={[
+            { rotulo: "Nº do Sinistro", render: (x) => <strong>{vazio(x.numero)}</strong> },
+            { rotulo: "Data", render: (x) => `${data(x.data)} ${hora(x.hora)}` },
+            { rotulo: "Tipo", render: (x) => rotulo("tipoSinistro", x.tipo) },
+            { rotulo: "Local", render: (x) => <span className="sd-local" title={x.local || ""}>{vazio(x.local)}</span> },
+            { rotulo: "Condutor", render: (x) => vazio(x.condutor) },
+            { rotulo: "Situação", render: (x) => <Selo valor={x.status} /> },
+          ]}
+          resumo={(x) => resumoSinistro(x, { veiculo: false })}
+          abrir={{ rotulo: "Abrir em Sinistros", destino: (x) => `/frotas/sinistros/${x.id_sinistro}` }} />
       )}
 
       {aba === "historico" && (
