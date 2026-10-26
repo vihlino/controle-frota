@@ -69,7 +69,10 @@ function TelaRelatorios() {
    */
   const moduloDaTela = fiscalizacao ? "FISCALIZACAO" : "FROTAS";
   const temOsDois = podeVer("FROTAS_VISUALIZAR") && podeVer("FISCALIZACAO_VISUALIZAR");
-  const lista = useLista("relatorios", { busca: "", tipo: "", status: "", dataDe: "", dataAte: "", modulo: moduloDaTela });
+  // ?status=MEU_ATESTE: o alerta "Relatorio para atestar" abre a lista ja no
+  // filtro "Aguardando meu ateste" (26/10).
+  const [paramsIniciais] = useSearchParams();
+  const lista = useLista("relatorios", { busca: "", tipo: "", status: paramsIniciais.get("status") || "", dataDe: "", dataAte: "", modulo: moduloDaTela });
   const modulo = lista.filtros.modulo || moduloDaTela;
   const [tipos, setTipos] = useState([]);
   const [gerando, setGerando] = useState(false);

@@ -22,7 +22,8 @@ export default function PainelFiscalizacao({ dados }) {
 
   return (
     <>
-      <div className="kpis">
+      {/* Cartoes dividindo a linha inteira, como no painel de Frotas (26/10). */}
+      <div className="kpis kpis--esticar">
         <Kpi icone="fisc-servidores" rotulo="Equipes em serviço"
              valor={kpis.equipesEmServico}
              nota={`${pctEquipes}% do total`} tom="verde" />

@@ -21,7 +21,7 @@ import { data, dataHora, hora, numero, rotulo } from "../lib/formato.js";
 import FiltroPeriodo, { dentroDoPeriodo } from "../components/FiltroPeriodo.jsx";
 import { cpf as mascaraCpf, telefone as mascaraTelefone } from "../lib/mascaras.js";
 import { useSessao } from "../lib/sessao.jsx";
-import { iniciais, situacaoCnh, Item, Linhas } from "./ServidorDetalhe.jsx";
+import { CartaoPessoa, iniciais, situacaoCnh, Item, Linhas } from "./ServidorDetalhe.jsx";
 import JanelaCadastro from "../components/JanelaCadastro.jsx";
 import MultasPessoa from "../components/MultasPessoa.jsx";
 import { CONFIG_SERVIDOR } from "./admin/Servidores.jsx";
@@ -289,33 +289,8 @@ export default function FiscalDetalhe() {
         </div>
       </div>
 
-      <section className="vd-resumo sd-resumo">
-        <div className="sd-pessoa">
-          <span className="sd-avatar" aria-hidden="true">{iniciais(f.nome)}</span>
-          <div className="sd-pessoa__dados">
-            <span className="vd-resumo__rotulo">Nome completo</span>
-            <span className="sd-pessoa__nome">
-              <strong>{f.nome}</strong>
-              <Selo texto={f.status ? "Ativo" : "Inativo"} tom={f.status ? "verde" : "vermelho"} />
-            </span>
-            <span className="sd-pessoa__linha">
-              Matrícula: <strong>{f.matricula}</strong>
-              <span className="sd-sep">|</span>
-              CPF: <strong>{mascaraCpf(f.cpf)}</strong>
-            </span>
-          </div>
-        </div>
-        <div className="vd-resumo__grade vd-resumo__grade--4">
-          <div className="vd-resumo__coluna"><Item rotulo="Telefone">{vazio(mascaraTelefone(f.telefone))}</Item></div>
-          <div className="vd-resumo__coluna"><Item rotulo="E-mail">{vazio(f.email)}</Item></div>
-          <div className="vd-resumo__coluna">
-            <Item rotulo="Equipe atual">
-              {equipeAtual ? `${equipeAtual.numero}${equipeAtual.turno ? ` · ${capitalizar(equipeAtual.turno)}` : ""}` : "—"}
-            </Item>
-          </div>
-          <div className="vd-resumo__coluna"><Item rotulo="Cargo / Função">{vazio(cargo)}</Item></div>
-        </div>
-      </section>
+      <CartaoPessoa pessoa={f} cargo={cargo}
+                    equipe={equipeAtual ? `Equipe ${equipeAtual.numero}${equipeAtual.turno ? ` · ${capitalizar(equipeAtual.turno)}` : ""}` : null} />
 
       <div className="abas vd-abas" role="tablist">
         {ABAS.map((a) => (

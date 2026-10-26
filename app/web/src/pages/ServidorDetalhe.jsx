@@ -22,11 +22,12 @@ import Icone from "../components/Icone.jsx";
 import Trilha from "../components/Trilha.jsx";
 import Selo from "../components/Selo.jsx";
 import { api } from "../lib/api.js";
-import { data, dataHora, hora, numero, rotulo } from "../lib/formato.js";
+import { data, dataHora, dinheiro, hora, numero, rotulo } from "../lib/formato.js";
 import { cpf as mascaraCpf, telefone as mascaraTelefone } from "../lib/mascaras.js";
 import { useSessao } from "../lib/sessao.jsx";
 import JanelaCadastro from "../components/JanelaCadastro.jsx";
-import MultasPessoa, { SeloMulta } from "../components/MultasPessoa.jsx";
+import MultasPessoa, { SeloMulta, SeloGravidade } from "../components/MultasPessoa.jsx";
+import { Equipamentos } from "./frotas/Checklists.jsx";
 import { CONFIG_SERVIDOR } from "./admin/Servidores.jsx";
 
 const vazio = (v) => (v === null || v === undefined || v === "" ? "—" : v);
@@ -54,6 +55,72 @@ export function situacaoCnh(s) {
   if (d === 0) return { texto: "Vence hoje", tom: "vermelho" };
   if (d <= 30) return { texto: `Vence em ${d} dia${d === 1 ? "" : "s"}`, tom: "amarelo" };
   return { texto: "Válida", tom: "verde" };
+}
+
+/** Idade em anos completos a partir de "aaaa-mm-dd". */
+function idade(nasc) {
+  if (!nasc) return null;
+  const [a, m, d] = String(nasc).slice(0, 10).split("-").map(Number);
+  const h = new Date();
+  let i = h.getFullYear() - a;
+  if (h.getMonth() + 1 < m || (h.getMonth() + 1 === m && h.getDate() < d)) i -= 1;
+  return i;
+}
+
+/**
+ * Cartao da pessoa no topo das fichas de Motorista, Servidor e Fiscal
+ * (desenho do Cesar, 26/10): iniciais, nome e situacao, matricula e CPF,
+ * telefone e e-mail com icone; e quatro colunas com icone - Data de
+ * nascimento (idade), Setor (equipe, no fiscal), Cargo / Funcao (condutor) e
+ * CNH (categoria e validade). O desenho tinha "Vinculo / Efetivo desde": o
+ * SITRA nao guarda tipo de vinculo nem data de admissao, entao essa coluna
+ * virou a CNH, que o sistema tem.
+ */
+export function CartaoPessoa({ pessoa: p, cargo, equipe }) {
+  const anos = idade(p.data_nascimento);
+  const cnh = situacaoCnh(p);
+  const Coluna = ({ icone, rotulo: r, valor, apoio, tomApoio }) => (
+    <div className="pc-coluna">
+      <span className="pc-coluna__icone"><Icone nome={icone} tamanho={18} /></span>
+      <div className="pc-coluna__textos">
+        <span className="pc-coluna__rotulo">{r}</span>
+        <strong className="pc-coluna__valor">{valor}</strong>
+        {apoio && <span className="pc-coluna__apoio" data-tom={tomApoio || undefined}>{apoio}</span>}
+      </div>
+    </div>
+  );
+  return (
+    <section className="pc-cartao">
+      <div className="pc-pessoa">
+        <span className="pc-avatar" aria-hidden="true">{iniciais(p.nome)}</span>
+        <div className="pc-pessoa__dados">
+          <span className="pc-pessoa__nome">
+            <strong>{p.nome}</strong>
+            <Selo texto={p.status ? "Ativo" : "Inativo"} tom={p.status ? "verde" : "vermelho"} />
+          </span>
+          <span className="pc-pessoa__linha">
+            Matrícula: <strong>{p.matricula}</strong>
+            <span className="sd-sep">|</span>
+            CPF: <strong>{mascaraCpf(p.cpf)}</strong>
+          </span>
+          <span className="pc-pessoa__contato">
+            <span><Icone nome="telefone" tamanho={16} /> {vazio(mascaraTelefone(p.telefone))}</span>
+            <span className="sd-sep">|</span>
+            <span><Icone nome="email" tamanho={16} /> {vazio(p.email)}</span>
+          </span>
+        </div>
+      </div>
+      <Coluna icone="calendar" rotulo="Data de nascimento" valor={p.data_nascimento ? data(p.data_nascimento) : "—"}
+              apoio={anos !== null ? `${anos} anos` : null} />
+      <Coluna icone="organograma" rotulo="Setor" valor={vazio(p.setor)} apoio={equipe || null} />
+      <Coluna icone="maleta" rotulo="Cargo / Função" valor={vazio(cargo)}
+              apoio={`Condutor: ${p.condutor ? "Sim" : "Não"}`} />
+      <Coluna icone="cnh" rotulo="CNH"
+              valor={p.condutor || p.categoria_cnh ? `Categoria ${vazio(p.categoria_cnh)}` : "Não é condutor"}
+              apoio={p.cnh_data_validade ? `${cnh.texto === "Válida" ? "Válida até" : cnh.texto + " ·"} ${data(p.cnh_data_validade)}` : null}
+              tomApoio={cnh.tom} />
+    </section>
+  );
 }
 
 /** Rotulo + valor de uma coluna da faixa do topo. */
@@ -194,16 +261,35 @@ export default function ServidorDetalhe() {
     { chave: "historico", rotulo: "Histórico", icone: "historico" },
   ];
 
+  // As mesmas colunas da tela Checklists (pedido do Cesar, 26/10). Sem a
+  // coluna Condutor: aqui o condutor e sempre a propria pessoa da ficha.
   const COL_CHECKLIST = [
-    { rotulo: "Data / Hora", render: (c) => `${data(c.data_abertura)} ${hora(c.hora_saida)}` },
-    { rotulo: "Veículo", render: (c) => (
+    { rotulo: "Enviado em", render: (c) => <strong>{dataHora(c.criado_em)}</strong> },
+    { rotulo: "Placa / Veículo", render: (c) => (
       <span className="celula-dupla"><strong>{c.placa}</strong><span>{c.marca} {c.modelo}</span></span>
     ) },
-    { rotulo: "Percurso", classe: "coluna-flexivel", render: (c) => (
-      <span className="celula-cortada" title={c.percurso || ""}>{vazio(c.percurso)}</span>
+    { rotulo: "Saída (hora / KM)", render: (c) => (
+      <span className="celula-dupla"><strong>{hora(c.hora_saida)}</strong><span>{numero(c.odometro_saida)} km</span></span>
     ) },
-    { rotulo: "KM rodado", render: (c) => (c.km_rodado ? `${numero(c.km_rodado)} km` : "—") },
+    { rotulo: "Chegada (hora / KM)", render: (c) => (c.odometro_chegada === null || c.odometro_chegada === undefined ? "—" : (
+      <span className="celula-dupla"><strong>{hora(c.hora_chegada)}</strong><span>{numero(c.odometro_chegada)} km</span></span>
+    )) },
+    { rotulo: "Fechado em", render: (c) => (!c.data_finalizacao
+      ? <span className="texto-fraco">Em aberto</span>
+      : <strong>{dataHora(c.data_finalizacao)}</strong>) },
+    { rotulo: "KM rodado", render: (c) => (c.km_rodado === null || c.km_rodado === undefined ? "—" : `${numero(c.km_rodado)} km`) },
+    { rotulo: "Equipamentos", render: (c) => <Equipamentos itens={c.equipamentos} /> },
     { rotulo: "Situação", render: (c) => <Selo valor={c.status} /> },
+  ];
+  // Card "Multas" da Visao Geral (26/10): as 5 ultimas; a linha abre a aba
+  // Multas, onde ficam os Detalhes da multa.
+  const COL_MULTA = [
+    { rotulo: "Nº do auto", render: (m) => vazio(m.numero_auto) },
+    { rotulo: "Data", render: (m) => data(m.data) },
+    { rotulo: "Veículo", render: (m) => m.placa },
+    { rotulo: "Gravidade", render: (m) => <SeloGravidade valor={m.gravidade} /> },
+    { rotulo: "Valor", render: (m) => (m.valor !== null && m.valor !== undefined ? dinheiro(m.valor) : "—") },
+    { rotulo: "Situação", render: (m) => <SeloMulta valor={m.status} /> },
   ];
   const COL_SINISTRO = [
     { rotulo: "Nº do Sinistro", render: (x) => vazio(x.numero) },
@@ -225,7 +311,8 @@ export default function ServidorDetalhe() {
     { chave: "checklists", rotulo: "Checklists", valor: r.checklists_6m, icone: "checklist", tom: "verde" },
     { chave: "sinistros", rotulo: "Sinistros", valor: r.sinistros_6m, icone: "sinistro", tom: "vermelho" },
     { chave: "multas", rotulo: "Multas", valor: r.multas, icone: "alert-triangle", tom: "amarelo",
-      rodape: `${numero(r.multas_abertas || 0)} em aberto · ${numero(r.pontos_12m || 0)} pts em 12 meses` },
+      // Uma frase por linha (26/10).
+      rodape: [`${numero(r.multas_abertas || 0)} em aberto`, `${numero(r.pontos_12m || 0)} pts em 12 meses`] },
   ];
 
   return (
@@ -259,29 +346,7 @@ export default function ServidorDetalhe() {
         </div>
       </div>
 
-      <section className="vd-resumo sd-resumo">
-        <div className="sd-pessoa">
-          <span className="sd-avatar" aria-hidden="true">{iniciais(s.nome)}</span>
-          <div className="sd-pessoa__dados">
-            <span className="vd-resumo__rotulo">Nome completo</span>
-            <span className="sd-pessoa__nome">
-              <strong>{s.nome}</strong>
-              <Selo texto={s.status ? "Ativo" : "Inativo"} tom={s.status ? "verde" : "vermelho"} />
-            </span>
-            <span className="sd-pessoa__linha">
-              Matrícula: <strong>{s.matricula}</strong>
-              <span className="sd-sep">|</span>
-              CPF: <strong>{mascaraCpf(s.cpf)}</strong>
-            </span>
-          </div>
-        </div>
-        <div className="vd-resumo__grade vd-resumo__grade--4">
-          <div className="vd-resumo__coluna"><Item rotulo="Telefone">{vazio(mascaraTelefone(s.telefone))}</Item></div>
-          <div className="vd-resumo__coluna"><Item rotulo="E-mail">{vazio(s.email)}</Item></div>
-          <div className="vd-resumo__coluna"><Item rotulo="Setor">{vazio(s.setor)}</Item></div>
-          <div className="vd-resumo__coluna"><Item rotulo="Cargo / Função">{vazio(cargo)}</Item></div>
-        </div>
-      </section>
+      <CartaoPessoa pessoa={s} cargo={cargo} />
 
       <div className="abas vd-abas" role="tablist">
         {ABAS.map((a) => (
@@ -330,7 +395,9 @@ export default function ServidorDetalhe() {
                     <span>
                       <span className="sd-card__rotulo">{c.rotulo}</span>
                       <strong>{numero(c.valor || 0)}</strong>
-                      <small>{c.rodape || "Últimos 6 meses"}</small>
+                      {Array.isArray(c.rodape)
+                        ? c.rodape.map((t) => <small key={t} className="sd-card__linha">{t}</small>)
+                        : <small>{c.rodape || "Últimos 6 meses"}</small>}
                     </span>
                   </button>
                 ))}
@@ -349,18 +416,29 @@ export default function ServidorDetalhe() {
             </Cartao>
           </div>
 
-          <div className="ficha-2 ficha-bloco">
-            <Cartao titulo={<><Icone nome="checklist" tamanho={18} /> Checklists</>}
+          {/* Checklists na largura toda, com as colunas da tela Checklists;
+              embaixo, Sinistros e Multas lado a lado, do mesmo tamanho (26/10). */}
+          <div className="ficha-bloco">
+            <Cartao className="sd-checklists" titulo={<><Icone nome="checklist" tamanho={18} /> Últimos Checklists</>}
                     acao={verTodos("checklists", r.checklists)}>
-              <Lista caminho={caminho("checklists", 5)} colunas={COL_CHECKLIST.filter((c) => c.rotulo !== "KM rodado")}
+              <Lista caminho={caminho("checklists", 5)} colunas={COL_CHECKLIST}
                      vazio="Nenhum checklist registrado."
                      aoAbrir={(c) => navegar(`/frotas/checklists/${c.id_checklist}`)} />
             </Cartao>
+          </div>
+
+          <div className="ficha-2 sd-par ficha-bloco">
             <Cartao titulo={<><Icone nome="sinistro" tamanho={18} /> Últimos Sinistros</>}
                     acao={verTodos("sinistros", r.sinistros)}>
               <Lista caminho={caminho("sinistros", 5)} colunas={COL_SINISTRO}
                      vazio="Nenhum sinistro registrado."
                      aoAbrir={(x) => navegar(`/frotas/sinistros/${x.id_sinistro}`)} />
+            </Cartao>
+            <Cartao titulo={<><Icone nome="alert-triangle" tamanho={18} /> Últimas Multas</>}
+                    acao={verTodos("multas", r.multas)}>
+              <Lista caminho={`/frotas/multas?servidor=${id}&porPagina=5`} colunas={COL_MULTA}
+                     vazio="Nenhuma multa registrada."
+                     aoAbrir={() => setAba("multas")} />
             </Cartao>
           </div>
 
@@ -413,7 +491,7 @@ export default function ServidorDetalhe() {
       )}
 
       {aba === "checklists" && (
-        <Cartao titulo={<><Icone nome="checklist" tamanho={18} /> Checklists
+        <Cartao className="sd-checklists" titulo={<><Icone nome="checklist" tamanho={18} /> Checklists
           <FiltroPeriodo id="periodo-checklists" de={periodo.de} ate={periodo.ate} aoMudar={setPeriodo} /></>}>
           <Lista caminho={caminhoChecklists} colunas={COL_CHECKLIST}
                  vazio="Nenhum checklist registrado."

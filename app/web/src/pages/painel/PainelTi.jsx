@@ -36,7 +36,8 @@ export default function PainelTi({ dados }) {
 
   return (
     <>
-      <div className="kpis">
+      {/* Cartoes dividindo a linha inteira, como no painel de Frotas (26/10). */}
+      <div className="kpis kpis--esticar">
         <Kpi icone="user" rotulo="Usuários ativos" valor={kpis.usuarios.ativos}
              nota={`${numero(kpis.usuarios.total)} cadastrados`} tom="azul" />
         <Kpi icone="fisc-servidores" rotulo="Servidores cadastrados" valor={kpis.servidores}

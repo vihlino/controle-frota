@@ -41,7 +41,8 @@ export default function Manutenções() {
   const fiscalizacao = useLocation().pathname.startsWith("/fiscalizacao");
   const base = fiscalizacao ? "/fiscalizacao/manutencoes" : "/frotas/manutencoes";
   const lista = useLista("frotas/manutencoes", {
-    busca: "", veiculo: parametros.get("veiculo") || "", status: "", tipo: "", gravidade: "", dataDe: "", dataAte: "",
+    // ?status=PENDENTE: o alerta "OS solicitada" do painel abre a lista ja filtrada.
+    busca: "", veiculo: parametros.get("veiculo") || "", status: parametros.get("status") || "", tipo: "", gravidade: "", dataDe: "", dataAte: "",
     ...(fiscalizacao ? { viatura: "true" } : {}),
   }, fiscalizacao ? { viatura: "true" } : {});
   const [veículos, setVeículos] = useState([]);

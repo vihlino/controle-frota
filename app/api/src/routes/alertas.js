@@ -30,7 +30,7 @@ router.get("/", autenticar, async (req, res, next) => {
   try {
     const { rows } = await query(
       `SELECT id_alerta, modulo, tipo, prioridade, titulo, mensagem,
-              status, data_criacao
+              entidade, id_registro, status, data_criacao
          FROM alerta
         WHERE status = 'PENDENTE'
           AND (id_usuario IS NULL OR id_usuario = $1)
@@ -44,13 +44,48 @@ router.get("/", autenticar, async (req, res, next) => {
       [req.usuario.id_usuario]
     );
     const calculados = await alertasCalculados(req.usuario.id_usuario, req.usuario?.permissoes || []);
-    const itens = [...calculados, ...rows];
+    // Os avisos gravados na tabela `alerta` nao traziam para onde ir: o clique
+    // nao levava a lugar nenhum (26/10). Cada um ganha o link pelo registro
+    // que aponta ou, sem registro, pela lista do tipo.
+    const itens = [...calculados, ...rows.map((a) => ({ ...a, link: a.link || linkDoAlerta(a) }))];
 
     res.json({ itens, naoLidos: itens.length });
   } catch (e) {
     next(e);
   }
 });
+
+/** Para onde leva um aviso gravado na tabela `alerta`. */
+function linkDoAlerta(a) {
+  const id = a.id_registro;
+  const fisc = a.modulo === "FISCALIZACAO";
+  if (id) {
+    const porEntidade = {
+      documento_veiculo: `/frotas/documentos/${id}`,
+      ordem_servico: `${fisc ? "/fiscalizacao" : "/frotas"}/manutencoes/${id}`,
+      veiculo: `/frotas/veiculos/${id}`,
+      servidor: `/frotas/motoristas/${id}`,
+      relatorio: `${fisc ? "/fiscalizacao" : "/frotas"}/relatorios/${id}`,
+      inspecao: `/frotas/inspecoes/${id}`,
+      sinistro: `/frotas/sinistros/${id}`,
+      ocorrencia: `/fiscalizacao/ocorrencias/${id}`,
+      checklist_frotas: `/frotas/checklists/${id}`,
+      checklist_fiscalizacao: `/fiscalizacao/checklists/${id}`,
+    }[a.entidade];
+    if (porEntidade) return porEntidade;
+  }
+  const tipo = String(a.tipo || "").toUpperCase();
+  if (tipo.startsWith("DOCUMENTO")) return `/frotas/documentos?status=${tipo.includes("VENCIDO") ? "VENCIDO" : "VENCENDO"}`;
+  if (tipo.includes("CNH")) return "/frotas/motoristas";
+  if (tipo.includes("MULTA")) return "/frotas/motoristas";
+  if (tipo.includes("ATESTE")) return `${fisc ? "/fiscalizacao" : "/frotas"}/relatorios?status=MEU_ATESTE`;
+  if (tipo.includes("INSPECAO")) return "/frotas/inspecoes";
+  if (tipo.includes("SINISTRO")) return "/frotas/sinistros";
+  // OS em aberto: a lista ja filtrada nas Pendentes (26/10).
+  if (tipo.includes("OS") || tipo.includes("MANUTENCAO")) return `${fisc ? "/fiscalizacao" : "/frotas"}/manutencoes?status=PENDENTE`;
+  if (fisc) return "/fiscalizacao/servico-diario";
+  return "/dashboard";
+}
 
 /**
  * Avisos que nascem de uma data chegando perto, montados na hora.
@@ -169,14 +204,16 @@ async function alertasCalculados(idUsuario, permissoes = []) {
   // CNH cadastrada, entao ninguem some daqui por causa deste filtro - so nao
   // entra quem foi marcado explicitamente como "nao e condutor".
   const cnh = await query(
-    `SELECT id_servidor, nome, matricula, cnh_data_validade,
-            (cnh_data_validade - CURRENT_DATE) AS dias
-       FROM servidor
-      WHERE status = TRUE
-        AND condutor = TRUE
-        AND cnh_data_validade IS NOT NULL
-        AND cnh_data_validade <= CURRENT_DATE + 30
-      ORDER BY cnh_data_validade
+    `SELECT s.id_servidor, s.nome, s.matricula, s.cnh_data_validade, s.condutor,
+            (unaccent_simples(COALESCE(c.nome, '')) = 'FISCAL DE TRANSITO') AS fiscal,
+            (s.cnh_data_validade - CURRENT_DATE) AS dias
+       FROM servidor s
+       LEFT JOIN cargo c ON c.id_cargo = s.id_cargo
+      WHERE s.status = TRUE
+        AND s.condutor = TRUE
+        AND s.cnh_data_validade IS NOT NULL
+        AND s.cnh_data_validade <= CURRENT_DATE + 30
+      ORDER BY s.cnh_data_validade
       LIMIT 20`
   );
 
@@ -194,10 +231,13 @@ async function alertasCalculados(idUsuario, permissoes = []) {
         : `A CNH de ${s.nome} (matrícula ${s.matricula}) vence em ${s.dias} dia(s).`,
       entidade: "servidor",
       id_registro: s.id_servidor,
-      // Para onde o clique leva: a lista de motoristas JA PESQUISADA pelo
-      // nome. Sem isso o alerta dizia quem era, mas abria a lista inteira e a
-      // pessoa tinha de procurar de novo o que o proprio alerta acabou de dizer.
-      link: `/frotas/motoristas?busca=${encodeURIComponent(s.nome)}`,
+      // Para onde o clique leva: a FICHA da pessoa, na aba CNH (26/10). O
+      // link antigo (lista pesquisada pelo nome) abria a lista inteira, porque
+      // a tela de Motoristas nao le a pesquisa do endereco. Fiscal vai para a
+      // ficha do fiscal, como na multa.
+      link: `${s.fiscal && ve("FISCALIZACAO_VISUALIZAR") ? "/fiscalizacao/fiscais"
+        : ve("FROTAS_VISUALIZAR") ? "/frotas/motoristas"
+          : ve("ADMIN_VISUALIZAR") ? "/admin/servidores" : "/frotas/motoristas"}/${s.id_servidor}?aba=cnh`,
       status: "PENDENTE",
       data_criacao: new Date().toISOString(),
     });

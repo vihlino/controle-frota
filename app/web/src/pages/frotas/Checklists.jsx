@@ -22,7 +22,8 @@ import { useSessao } from "../../lib/sessao.jsx";
 
 // Mostra os quatro equipamentos obrigatorios de forma compacta. O que o
 // condutor marcou como ausente fica vermelho.
-function Equipamentos({ itens }) {
+// Exportado: a ficha do Motorista/Servidor usa as mesmas colunas (26/10).
+export function Equipamentos({ itens }) {
   const porNome = Object.fromEntries((itens || []).map((e) => [e.equipamento, e]));
   return (
     <span className="equipamentos">

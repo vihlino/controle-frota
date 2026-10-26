@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Cartao from "../../components/Cartao.jsx";
 import Icone from "../../components/Icone.jsx";
 import Kpi from "../../components/Kpi.jsx";
+import MenuSuspenso from "../../components/MenuSuspenso.jsx";
 import Selo from "../../components/Selo.jsx";
 import VeiculoCel from "../../components/VeiculoCel.jsx";
 import { dataHora, hora, numero, porcentagem } from "../../lib/formato.js";
@@ -50,6 +51,40 @@ export default function PainelFrotas({ dados }) {
     else if (item.entidade === "documento_veiculo") navegar("/frotas/documentos");
   }
 
+  // Os avisos agrupados pelo titulo ("Documento vencido", "Multa vencida"...),
+  // na ordem de gravidade que ja vem da lista. null = carregando.
+  const gruposAlerta = alertas === null ? null : Object.values(
+    alertas.reduce((acc, a) => {
+      (acc[a.titulo] = acc[a.titulo] || { titulo: a.titulo, tipo: a.tipo, prioridade: a.prioridade, itens: [] }).itens.push(a);
+      return acc;
+    }, {})
+  );
+
+  // Um aviso so: abre o proprio registro. Varios: abre uma listinha logo
+  // abaixo do botao com cada aviso (ex.: as 3 multas vencendo, cada uma com o
+  // motorista, a placa e o valor); clicar num deles abre a ficha certa. Quando
+  // existe uma lista que ja mostra todos (documentos, OS, relatorios), o fim
+  // da listinha tem o "Ver todos".
+  const [grupoAberto, setGrupoAberto] = useState(null);
+  const ancoraGrupo = useRef(null);
+  const fecharGrupo = () => setGrupoAberto(null);
+  const LISTA_DO_TIPO = (g) => {
+    const doc = `/frotas/documentos?status=${/vencid/i.test(g.titulo) ? "VENCIDO" : "VENCENDO"}`;
+    // Relatorio: a tela do modulo do relatorio (Frotas ou Fiscalizacao).
+    const rel = g.itens.every((i) => String(i.link || "").startsWith("/fiscalizacao")) ? "/fiscalizacao/relatorios" : "/frotas/relatorios";
+    return {
+      DOCUMENTO_VENCENDO: doc, DOCUMENTO_VENCIDO: doc,
+      OS_PENDENTE: "/frotas/manutencoes?status=PENDENTE",
+      MANUTENCAO: "/frotas/manutencoes?status=PENDENTE",
+      ATESTE_PENDENTE: `${rel}?status=MEU_ATESTE`,
+    }[g.tipo];
+  };
+  function abrirGrupo(g, evento) {
+    if (g.itens.length === 1) { abrirAlerta(g.itens[0]); return; }
+    ancoraGrupo.current = evento.currentTarget;
+    setGrupoAberto((atual) => (atual?.titulo === g.titulo ? null : g));
+  }
+
   return (
     <>
       {/* kpis--esticar: no painel os cartoes dividem a linha inteira. Com a
@@ -69,6 +104,10 @@ export default function PainelFrotas({ dados }) {
              tom="roxo" />
       </div>
 
+      {/* Alertas e Acoes rapidas numa coluna vertical a direita (pedido de
+          26/10); o resto do painel fica na coluna principal. */}
+      <div className="painel-frotas">
+        <div className="painel-frotas__principal">
       <div className="grade-2">
         <Cartao titulo="Últimos checklists"
                 acao={<Link className="cartao__acao" to="/frotas/checklists">Ver todos</Link>}>
@@ -145,34 +184,6 @@ export default function PainelFrotas({ dados }) {
         </Cartao>
       </div>
 
-      {/* Alertas antes dos vencimentos (pedido de 23/10). */}
-      <Cartao titulo="Alertas"
-              acao={alertas && alertas.length > 0 && (
-                <span className="cartao__acao cartao__acao--texto">
-                  {`${numero(alertas.length)} aviso${alertas.length === 1 ? "" : "s"}`}
-                </span>
-              )}
-              className="painel-alertas">
-        {alertas === null ? (
-          <div className="vazio">Carregando avisos...</div>
-        ) : alertas.length === 0 ? (
-          <div className="vazio">Nenhum aviso no momento.</div>
-        ) : (
-          <div className="painel-alertas__lista">
-            {alertas.map((item) => (
-              <button key={item.id_alerta} type="button" className="painel-alerta"
-                      onClick={() => abrirAlerta(item)}>
-                <span className={`alerta-item__marca alerta-item__marca--${(item.prioridade || "BAIXA").toLowerCase()}`} />
-                <span className="alerta-item__texto">
-                  <span className="alerta-item__titulo">{item.titulo}</span>
-                  <span className="alerta-item__mensagem">{item.mensagem}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-      </Cartao>
-
       <div className="grade-2">
         {/* O link ja leva a lista FILTRADA por Vencendo. Mandar para a lista
             inteira obrigaria a refazer na mao o filtro que o cartao acabou de
@@ -232,31 +243,80 @@ export default function PainelFrotas({ dados }) {
         </Cartao>
       </div>
 
-      {/* cartao--ajustado: o cartao termina no ultimo botao, em vez de
-          atravessar a tela inteira com um vazio a direita (pedido de 23/10). */}
-      <Cartao titulo="Ações rápidas" className="cartao--ajustado">
-        {/* Cada atalho abre o FORMULARIO, nao a lista. Antes todos paravam na
-            listagem e a pessoa ainda tinha que achar o botao de cadastrar -
-            o atalho nao encurtava nada. As telas que cadastram por janela
-            recebem ?novo=1, lido pelo gerador de paginas. */}
-        <div className="acoes-rapidas">
-          <Link className="acao-rapida" to="/frotas/veiculos?novo=1">
-            + Cadastrar veículo
-          </Link>
-          <Link className="acao-rapida" to="/frotas/inspecoes?agendar=1">
-            + Nova inspeção
-          </Link>
-          <Link className="acao-rapida" to="/frotas/manutencoes?registrar=1">
-            + Registrar OS
-          </Link>
-          <Link className="acao-rapida" to="/frotas/documentos?novo=1">
-            + Adicionar documento
-          </Link>
-          <Link className="acao-rapida" to="/frotas/relatorios">
-            <Icone nome="chart-line" tamanho={20} /> Relatórios
-          </Link>
         </div>
-      </Cartao>
+
+        <aside className="painel-frotas__lateral">
+        <Cartao titulo="Alertas">
+          <div className="lista-lateral">
+            {gruposAlerta === null ? (
+              <span className="painel-rodape__vazio">Carregando avisos...</span>
+            ) : gruposAlerta.length === 0 ? (
+              <span className="painel-rodape__vazio">Nenhum aviso no momento.</span>
+            ) : (
+              gruposAlerta.map((g) => (
+                <button key={g.titulo} type="button" className="acao-rapida acao-rapida--alerta"
+                        onClick={(e) => abrirGrupo(g, e)} aria-expanded={grupoAberto?.titulo === g.titulo}>
+                  <span className={`alerta-item__marca alerta-item__marca--${(g.prioridade || "BAIXA").toLowerCase()}`} />
+                  <span className="lista-lateral__texto">{g.titulo}</span>
+                  <span className="acao-rapida__conta">{numero(g.itens.length)}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </Cartao>
+
+        <MenuSuspenso aberto={Boolean(grupoAberto)} aoFechar={fecharGrupo} ancora={ancoraGrupo}
+                      largura={380} alinhamento="esquerda" classe="menu-suspenso--alertas">
+          {grupoAberto && (
+            <>
+              <div className="menu-suspenso__cabecalho">
+                <div className="topo__usuario-nome">{grupoAberto.titulo}</div>
+                <div className="topo__usuario-perfil">{`${grupoAberto.itens.length} avisos`}</div>
+              </div>
+              <div className="alertas-lista">
+                {grupoAberto.itens.map((item) => (
+                  <button key={item.id_alerta} role="menuitem" className="alerta-item"
+                          onClick={() => { fecharGrupo(); abrirAlerta(item); }}>
+                    <span className={`alerta-item__marca alerta-item__marca--${(item.prioridade || "BAIXA").toLowerCase()}`} />
+                    <span className="alerta-item__texto">
+                      <span className="alerta-item__mensagem">{item.mensagem}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {LISTA_DO_TIPO(grupoAberto) && (
+                <button role="menuitem" className="painel-grupo__todos"
+                        onClick={() => { const d = LISTA_DO_TIPO(grupoAberto); fecharGrupo(); navegar(d); }}>
+                  Ver todos <Icone nome="seta-direita" tamanho={14} />
+                </button>
+              )}
+            </>
+          )}
+        </MenuSuspenso>
+
+        <Cartao titulo="Ações rápidas">
+          {/* Cada atalho abre o FORMULARIO, nao a lista. As telas que cadastram
+              por janela recebem ?novo=1, lido pelo gerador de paginas. */}
+          <div className="lista-lateral">
+            <Link className="acao-rapida" to="/frotas/veiculos?novo=1">
+              + Cadastrar veículo
+            </Link>
+            <Link className="acao-rapida" to="/frotas/inspecoes?agendar=1">
+              + Nova inspeção
+            </Link>
+            <Link className="acao-rapida" to="/frotas/manutencoes?registrar=1">
+              + Registrar OS
+            </Link>
+            <Link className="acao-rapida" to="/frotas/documentos?novo=1">
+              + Adicionar documento
+            </Link>
+            <Link className="acao-rapida acao-rapida--icone" to="/frotas/relatorios">
+              <Icone nome="chart-line" tamanho={12} /> Relatórios
+            </Link>
+          </div>
+        </Cartao>
+        </aside>
+      </div>
     </>
   );
 }

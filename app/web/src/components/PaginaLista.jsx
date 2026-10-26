@@ -14,7 +14,6 @@ import Trilha from "./Trilha.jsx";
 import AjudaTela from "./AjudaTela.jsx";
 import Kpi from "./Kpi.jsx";
 import { Tabela, Paginacao } from "./Tabela.jsx";
-import { numero } from "../lib/formato.js";
 
 // Molde de toda tela de listagem do SITRA: trilha, titulo, botao de acao,
 // KPIs opcionais, barra de filtros, tabela e rodape com paginacao.
@@ -86,16 +85,15 @@ export default function PaginaLista({
       )}
 
       <section className="cartao">
-        <header className="cartao__topo cartao__topo--tabela">
-          <span className="cartao__contagem">
-            {resultado ? `${numero(resultado.total)} ${unidade}` : "Carregando..."}
-          </span>
-          {aoExportar && (
+        {/* Sem o titulo "27 motoristas" em cima da tabela (pedido do Cesar,
+            26/10): o total ja aparece embaixo, na paginacao. */}
+        {aoExportar && (
+          <header className="cartao__topo cartao__topo--tabela">
             <button className="botao cartao__acao-botao" onClick={aoExportar}>
               <Icone nome="arrow-up" tamanho={15} /> Exportar
             </button>
-          )}
-        </header>
+          </header>
+        )}
 
         {erro ? (
           <div className="vazio">{erro}</div>

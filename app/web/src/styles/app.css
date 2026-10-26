@@ -2607,37 +2607,31 @@ button { font: inherit; cursor: pointer; }
 }
 
 /* ============================================================
-   ALERTAS NO PAINEL (Dashboard › Frotas)
-   Os mesmos avisos do sino, em grade: duas ou tres colunas conforme a
-   largura da tela, rolando por dentro quando passam de quatro linhas.
+   PAINEL DE FROTAS (26/10): Alertas e Acoes rapidas numa coluna vertical a
+   direita, presa no alto ao rolar; o resto na coluna principal. Abaixo de
+   1200px a coluna vai para o fim da pagina.
    ============================================================ */
-.painel-alertas { margin-bottom: 18px; }
-.cartao__acao--texto { color: var(--texto-2); font-weight: var(--peso-medio); }
-.painel-alertas__lista {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
-  gap: var(--e-2);
-  max-height: 300px;
-  overflow-y: auto;
-  padding-right: var(--e-1);
+.painel-frotas { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.painel-frotas__principal { min-width: 0; }
+.painel-frotas__principal > .grade-2 { grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); }
+/* Os tres blocos de vencimento viram duas colunas (ou uma) em vez de vazar. */
+.painel-frotas__principal .vencimentos { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.painel-frotas__lateral { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 16px; }
+.lista-lateral { display: flex; flex-direction: column; gap: var(--e-2); }
+.lista-lateral .acao-rapida { justify-content: flex-start; width: 100%; white-space: normal; text-align: left; }
+.lista-lateral__texto { flex: 1; min-width: 0; }
+.lista-lateral .acao-rapida__conta { margin-left: auto; }
+@media (max-width: 1200px) {
+  .painel-frotas { grid-template-columns: minmax(0, 1fr); }
+  .painel-frotas__lateral { position: static; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 }
-.painel-alerta {
-  display: flex;
-  gap: var(--e-3);
-  align-items: flex-start;
-  width: 100%;
-  padding: var(--e-3);
-  text-align: left;
-  background: var(--superficie);
-  border: 1px solid var(--borda);
-  border-radius: var(--raio);
-  color: var(--texto);
-  cursor: pointer;
-  transition: border-color var(--transicao), background var(--transicao);
-}
-.painel-alerta:hover {
-  border-color: var(--marca);
-  background: var(--marca-fraca);
+.painel-rodape__vazio { font-size: var(--t-sm); color: var(--texto-2); padding: var(--e-2) 0; }
+.acao-rapida--alerta { cursor: pointer; font-family: inherit; }
+.acao-rapida--alerta .alerta-item__marca { margin-top: 0; }
+.acao-rapida__conta {
+  min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px;
+  display: inline-grid; place-items: center;
+  background: var(--superficie-3); color: var(--texto); font-size: 12px; font-weight: 700;
 }
 
 .alertas-lista__vazio {
@@ -4952,3 +4946,81 @@ th .eqp-item__icone { width: 22px; height: 22px; border-radius: 6px; }
 .qr-data-fixa { position: relative; display: block; }
 .qr-data-fixa .icone { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); color: var(--texto-2); pointer-events: none; }
 .qf-tela .qr-saida-linha--data .qr-data-fixa input[type="date"]:not([type="checkbox"]):not([type="file"]) { padding-right: 18px; }
+/* Listinha do botao de alerta do painel com varios avisos (26/10). */
+.menu-suspenso .painel-grupo__todos {
+  justify-content: center; margin-top: 4px; border-top: 1px solid var(--borda);
+  border-radius: 0; color: var(--marca-texto); font-weight: 600; font-size: 13px;
+}
+.acao-rapida--alerta[aria-expanded="true"] { border-color: var(--marca); background: var(--marca-fraca); }
+/* Relatorios: icone do tamanho do "+" dos outros atalhos (26/10). */
+.acao-rapida--icone { gap: 6px; }
+.acao-rapida--icone .icone { color: var(--texto); }
+
+/* Fichas de Motorista, Servidor e Fiscal (26/10): Dados Pessoais, Vinculacao
+   e Resumo com a mesma largura e a mesma altura; o Resumo fica mais enxuto
+   para nao esticar os outros dois. Sinistros e Multas tambem do mesmo tamanho. */
+.ficha-3.sd-linha1 { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; }
+.ficha-2.sd-par { align-items: stretch; }
+.sd-checklists th { white-space: nowrap; }
+.sd-linha1 .sd-resumo-cards { gap: 10px; }
+.sd-linha1 .sd-card { padding: 10px; gap: 8px; }
+.sd-linha1 .sd-card small { font-size: 11.5px; }
+.sd-linha1 .sd-card strong { font-size: 20px; }
+.sd-linha1 .sd-card small { line-height: 1.3; }
+@media (max-width: 1300px) {
+  .ficha-3.sd-linha1 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .ficha-3.sd-linha1 { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- Cartao da pessoa: fichas de Motorista, Servidor e Fiscal
+   (desenho de 26/10) ---------- */
+.pc-cartao {
+  display: grid;
+  grid-template-columns: auto repeat(4, minmax(150px, 1fr));
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+  margin-bottom: 16px;
+}
+.pc-pessoa { display: flex; align-items: center; gap: 22px; padding: 20px 24px; min-width: 0; }
+.pc-avatar {
+  flex: none; width: 100px; height: 88px; border-radius: 10px;
+  display: grid; place-items: center;
+  background: var(--marca-suave); border: 1px solid #F7D27A;
+  color: #8a5a00; font-size: 32px; font-weight: 700;
+}
+.pc-pessoa__dados { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pc-pessoa__nome { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+.pc-pessoa__nome strong { font-size: 22px; font-weight: 700; line-height: 1.2; }
+.pc-pessoa__linha { font-size: 13.5px; color: var(--texto-2); white-space: nowrap; }
+.pc-pessoa__linha strong { color: var(--texto); font-weight: 600; }
+.pc-pessoa__contato { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 0; font-size: 13.5px; color: var(--texto-2); margin-top: 4px; white-space: nowrap; }
+.pc-pessoa__contato > span:not(.sd-sep) { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.pc-pessoa__contato .icone { color: var(--texto); flex: none; }
+.pc-coluna {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 22px 20px; border-left: 1px solid var(--borda); min-width: 0;
+}
+.pc-coluna__icone { flex: none; line-height: 0; margin-top: 1px; color: var(--texto); }
+.pc-coluna__textos { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pc-coluna__rotulo { font-size: 12.5px; color: var(--texto-2); }
+.pc-coluna__valor { font-size: 15px; font-weight: 700; color: var(--texto); overflow-wrap: anywhere; }
+.pc-coluna__apoio { font-size: 13px; color: var(--texto-2); }
+.pc-coluna__apoio[data-tom="vermelho"] { color: var(--vermelho-texto); font-weight: 600; }
+.pc-coluna__apoio[data-tom="amarelo"] { color: var(--ambar-texto); font-weight: 600; }
+/* Abaixo de 1500px a pessoa ocupa a linha de cima inteira e as 4 colunas
+   ficam embaixo: lado a lado o nome e o CPF quebravam (tela de 1440). */
+@media (max-width: 1500px) {
+  .pc-cartao { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .pc-pessoa { grid-column: 1 / -1; border-bottom: 1px solid var(--borda); }
+  .pc-coluna:nth-child(2) { border-left: 0; }
+}
+@media (max-width: 720px) {
+  .pc-cartao { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pc-coluna:nth-child(4) { border-left: 0; }
+  .pc-pessoa { flex-wrap: wrap; }
+  .pc-pessoa__nome, .pc-pessoa__linha, .pc-pessoa__contato { white-space: normal; flex-wrap: wrap; }
+}
