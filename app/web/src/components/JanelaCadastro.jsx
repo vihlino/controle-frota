@@ -15,6 +15,7 @@
  */
 import { useEffect, useState } from "react";
 import Modal from "./Modal.jsx";
+import TituloSecao from "./TituloSecao.jsx";
 import Icone from "./Icone.jsx";
 import { useConfirmacaoSenha } from "./ConfirmarSenha.jsx";
 import { Texto, Selecao, Data, Area } from "./Campos.jsx";
@@ -191,7 +192,7 @@ export default function JanelaCadastro({ config, id, aoFechar, aoSalvar }) {
               .filter((c, i, lista) => !c.secao || (lista[i + 1] && !lista[i + 1].secao))
               .map((c, i) =>
                 c.secao
-                  ? <h3 className="formulario__secao" key={`secao-${i}`}>{c.secao}</h3>
+                  ? <TituloSecao key={`secao-${i}`}>{c.secao}</TituloSecao>
                   : renderCampo(c)
               )}
           </form>

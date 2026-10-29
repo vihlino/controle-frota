@@ -21,6 +21,7 @@ import { useConfirmacaoSenha } from "./ConfirmarSenha.jsx";
 import { Texto, Data, Area } from "./Campos.jsx";
 import { api } from "../lib/api.js";
 import { numero, numeroOs, rotulo } from "../lib/formato.js";
+import TituloSecao from "./TituloSecao.jsx";
 
 const hoje = () => {
   const d = new Date();
@@ -157,7 +158,7 @@ export default function FecharOs({ os, aoFechar, aoSalvar }) {
                 placeholder="Descreva o serviço que foi realizado..."
                 {...campo("servico_realizado")} />
 
-          <h3 className="modal-secao">Informações complementares (opcional)</h3>
+          <TituloSecao>Informações complementares (opcional)</TituloSecao>
           <CampoDinheiro rotulo="Custo final" id="fo-custo" valor={formulario.custo_final}
                          aoMudar={(v) => setFormulario((f) => ({ ...f, custo_final: v }))} />
           <Data rotulo="Data de finalização" id="fo-finalizacao" {...campo("data_conclusao")} />
@@ -167,7 +168,7 @@ export default function FecharOs({ os, aoFechar, aoSalvar }) {
           <Area rotulo="Observações" id="fo-obs" largo placeholder="Observações adicionais..."
                 {...campo("observacoes_fechamento")} />
 
-          <h3 className="modal-secao">Itens verificados / serviços prestados</h3>
+          <TituloSecao>Itens verificados / serviços prestados</TituloSecao>
           <div className="campo" data-largo="sim">
             <ItensOs itens={itens} aoMudar={setItens} />
           </div>

@@ -14,6 +14,8 @@ import Selo from "./Selo.jsx";
 import AbaRegistros from "./AbaRegistros.jsx";
 import AnexosRegistro from "./AnexosRegistro.jsx";
 import RegistrarOs from "./RegistrarOs.jsx";
+import AgendarInspecao from "./AgendarInspecao.jsx";
+import EditarInspecao from "./EditarInspecao.jsx";
 import FormularioDocumento from "./FormularioDocumento.jsx";
 import { PainelInspecao, PainelOs, PainelDocumento, PainelOcorrencia } from "./PaineisRegistro.jsx";
 import { SeloInspecao, FREQUENCIA_INSPECAO } from "./ResumosLista.jsx";
@@ -28,8 +30,20 @@ const Clamp = ({ texto }) => <span className="as-clamp" title={texto || ""}>{vaz
 export function AbaInspecoesVeiculo({ veiculo: v, podeGerenciar }) {
   const navegar = useNavigate();
   const abrir = (i) => navegar(`/frotas/inspecoes/${i.id_inspecao}`);
+  // 29/10: Nova e Editar abrem a janela aqui mesmo, sem sair do veiculo.
+  // Pendente reagenda (AgendarInspecao); concluida corrige os itens.
+  const [janela, setJanela] = useState(null); // { novo } | { agendada } | { feita }
+  const [recarga, setRecarga] = useState(0);
+  const editar = async (i) => {
+    try {
+      const completa = await api(`/frotas/inspecoes/${i.id_inspecao}`);
+      setJanela(completa.status === "ABERTA" ? { agendada: completa } : { feita: completa });
+    } catch (e) { alert(e.message); }
+  };
+  const recarregar = () => setRecarga((n) => n + 1);
   return (
-    <AbaRegistros
+    <>
+    <AbaRegistros recarga={recarga}
       titulo="Lista de Inspeções" icone="inspecao" placeholder="Buscar por nº, responsável..."
       situacoes={[
         { valor: "ABERTA", rotulo: "Pendente", campo: "status" },
@@ -37,7 +51,7 @@ export function AbaInspecoesVeiculo({ veiculo: v, podeGerenciar }) {
         { valor: "ANALISADO", rotulo: "Analisado", campo: "analise" },
         { valor: "APROVADO", rotulo: "Aprovado", campo: "analise" },
       ]}
-      novo={podeGerenciar && { rotulo: "Nova Inspeção", aoClicar: () => navegar(`/frotas/inspecoes?agendar=1&veiculo=${v.id_veiculo}`) }}
+      novo={podeGerenciar && { rotulo: "Nova Inspeção", aoClicar: () => setJanela({ novo: true }) }}
       caminho={`/frotas/inspecoes?veiculo=${v.id_veiculo}`} chave={(i) => i.id_inspecao} unidade="inspeções"
       vazio="Nenhuma inspeção registrada para este veículo."
       colunas={[
@@ -51,16 +65,26 @@ export function AbaInspecoesVeiculo({ veiculo: v, podeGerenciar }) {
       ]}
       acoes={(i) => [
         { rotulo: "Abrir em Inspeções", icone: "visualizar", aoClicar: () => abrir(i) },
-        ...(podeGerenciar ? [{ rotulo: "Editar", icone: "editar", aoClicar: () => abrir(i) }] : []),
+        ...(podeGerenciar ? [{ rotulo: "Editar", icone: "editar", aoClicar: () => editar(i) }] : []),
       ]}
       painel={(i, { fechar }) => (
         <PainelInspecao linha={i} veiculo={v} aoFechar={fechar} destino={`/frotas/inspecoes/${i.id_inspecao}`}
-                        aoEditar={podeGerenciar ? () => abrir(i) : null} />
+                        aoEditar={podeGerenciar ? () => editar(i) : null} />
       )}
       baixo={(i, versao) => (
         <AnexosRegistro key={`${i.id_inspecao}-${versao}`} tituloFotos="Fotos da Inspeção" podeGerenciar={podeGerenciar}
                         caminhoLista={`/frotas/inspecoes/${i.id_inspecao}/arquivos`} caminhoArquivo="/frotas/inspecoes/arquivos" />
       )} />
+    {janela?.novo && (
+      <AgendarInspecao idVeiculo={v.id_veiculo} travarVeiculo aoFechar={() => setJanela(null)} aoSalvar={recarregar} />
+    )}
+    {janela?.agendada && (
+      <AgendarInspecao inspecao={janela.agendada} travarVeiculo aoFechar={() => setJanela(null)} aoSalvar={recarregar} />
+    )}
+    {janela?.feita && (
+      <EditarInspecao inspecao={janela.feita} aoFechar={() => setJanela(null)} aoSalvar={recarregar} />
+    )}
+    </>
   );
 }
 
@@ -73,7 +97,13 @@ const SITUACOES_OS = [
   { valor: "CANCELADA", rotulo: "Cancelada" },
 ];
 
-export function AbaManutencoesVeiculo({ veiculo: v, podeGerenciar, fiscalizacao = false, aoMudar }) {
+/**
+ * caminho/vazio/checklist: a aba Manutencao dos Detalhes do Checklist (29/10)
+ * usa a mesma tela, so com as OS daquele checklist; a OS nova nasce ligada a ele.
+ * aoNovo/podeNovo: a aba Manutencao da Inspecao abre a OS pela propria tela
+ * (ja preenchida com os itens com ressalva) e so depois da inspecao feita.
+ */
+export function AbaManutencoesVeiculo({ veiculo: v, podeGerenciar, fiscalizacao = false, aoMudar, caminho, vazio: textoVazio, checklist, aoNovo, podeNovo = true, semMenu = false }) {
   const navegar = useNavigate();
   const [janela, setJanela] = useState(null); // "novo" | os (edicao)
   const [recarga, setRecarga] = useState(0);
@@ -86,9 +116,9 @@ export function AbaManutencoesVeiculo({ veiculo: v, podeGerenciar, fiscalizacao 
       <AbaRegistros
         titulo="Lista de Manutenções" icone="kpi-wrench" placeholder="Buscar por nº, descrição, oficina..."
         situacoes={SITUACOES_OS} recarga={recarga}
-        novo={podeGerenciar && { rotulo: "Nova Manutenção", aoClicar: () => setJanela("novo") }}
-        caminho={`/frotas/manutencoes?veiculo=${v.id_veiculo}`} chave={(o) => o.id_os} unidade="manutenções"
-        vazio="Nenhuma manutenção registrada para este veículo."
+        novo={podeGerenciar && podeNovo && { rotulo: "Nova Manutenção", aoClicar: aoNovo || (() => setJanela("novo")) }}
+        caminho={caminho || `/frotas/manutencoes?veiculo=${v.id_veiculo}`} chave={(o) => o.id_os} unidade="manutenções"
+        vazio={textoVazio || "Nenhuma manutenção registrada para este veículo."}
         colunas={[
           { rotulo: "Nº da OS", render: (o) => <strong>{numeroOs(o.numero)}</strong> },
           { rotulo: "Data", render: (o) => data(o.data_fechamento || o.data_agendada || o.data_abertura) },
@@ -98,10 +128,10 @@ export function AbaManutencoesVeiculo({ veiculo: v, podeGerenciar, fiscalizacao 
           { rotulo: "Custo (R$)", render: (o) => (o.custo != null ? dinheiro(o.custo).replace(/^R\$\s?/, "") : "—") },
           { rotulo: "Status", render: (o) => <Selo valor={o.status} /> },
         ]}
-        acoes={(o) => [
+        acoes={(o) => (semMenu ? [] : [
           { rotulo: "Abrir em Manutenções", icone: "visualizar", aoClicar: () => navegar(`${base}/${o.id_os}`) },
           ...(podeGerenciar ? [{ rotulo: "Editar", icone: "editar", aoClicar: () => editar(o) }] : []),
-        ]}
+        ])}
         painel={(o, { fechar }) => (
           <PainelOs linha={o} veiculo={v} aoFechar={fechar} destino={`${base}/${o.id_os}`}
                     aoEditar={podeGerenciar ? () => editar(o) : null} />
@@ -112,6 +142,7 @@ export function AbaManutencoesVeiculo({ veiculo: v, podeGerenciar, fiscalizacao 
         )} />
       {janela && (
         <RegistrarOs os={janela === "novo" ? undefined : janela} idVeiculo={String(v.id_veiculo)}
+                     checklist={janela === "novo" ? checklist : undefined}
                      aoFechar={() => setJanela(null)}
                      aoSalvar={() => { setRecarga((n) => n + 1); aoMudar?.(); }} />
       )}

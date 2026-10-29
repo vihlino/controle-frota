@@ -192,7 +192,8 @@ const FILTRO_HISTORICO = {
               OR (a.entidade = 'usuario'
                   AND a.id_registro IN (SELECT id_usuario FROM usuario WHERE id_servidor = $1)))`,
   os: "(a.entidade = 'ordem_servico' AND a.id_registro = $1)",
-  checklist: "(a.entidade = 'checklist' AND a.id_registro = $1)",
+  // 29/10: a correcao dos itens (sub-abas do checklist) entra no historico.
+  checklist: "(a.entidade IN ('checklist', 'checklist_equipamento') AND a.id_registro = $1)",
   sinistro: `((a.entidade IN ('sinistro', 'sinistro_envolvido') AND a.id_registro = $1)
               OR (a.entidade = 'sinistro_arquivo'
                   AND COALESCE(a.dados_novos->>'id_sinistro', a.dados_anteriores->>'id_sinistro') = $1::text))`,

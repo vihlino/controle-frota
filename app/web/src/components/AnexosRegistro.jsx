@@ -19,12 +19,46 @@ import { dataHora } from "../lib/formato.js";
 const tamanho = (b) => (b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1).replace(".", ",")} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
 const tipoCurto = (t) => (t === "application/pdf" ? "PDF" : t === "image/png" ? "PNG" : t === "image/jpeg" ? "JPG" : "Arquivo");
 
-export default function AnexosRegistro({ caminhoLista, caminhoArquivo, tituloFotos, podeGerenciar, aoVerTodos }) {
+export default function AnexosRegistro({ caminhoLista, caminhoArquivo, tituloFotos, podeGerenciar, aoVerTodos, compacto = false }) {
   const anexos = useArquivos(caminhoLista, caminhoArquivo);
   const entrada = useRef(null);
   const todos = anexos.arquivos || [];
   const fotos = todos.filter((a) => a.tipo.startsWith("image/"));
   const docs = todos.filter((a) => !a.tipo.startsWith("image/"));
+
+  // Compacto (29/10, Visao Geral da OS): a caixa de arrastar e a lista curta.
+  if (compacto) {
+    return (
+      <div className="ar-compacto">
+        <input ref={entrada} type="file" hidden multiple accept="image/jpeg,image/png,application/pdf"
+               onChange={(e) => { anexos.enviar(e.target.files); e.target.value = ""; }} />
+        {podeGerenciar && (
+          <button type="button" className="ar-compacto__caixa" disabled={anexos.enviando}
+                  onClick={() => entrada.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.preventDefault(); anexos.enviar(e.dataTransfer.files); }}>
+            <Icone nome="exportar" tamanho={22} monocromatico />
+            <span><strong>{anexos.enviando ? "Enviando..." : "Clique para anexar arquivos ou arraste aqui"}</strong>
+              <small>Imagens e PDF (máx. 10 MB)</small></span>
+          </button>
+        )}
+        {anexos.arquivos === null ? <div className="carregando">Carregando...</div>
+          : todos.length === 0 ? (!podeGerenciar && <p className="pck-vazio">Nenhum arquivo anexado.</p>) : (
+            <ul className="as-docs">
+              {todos.slice(-3).reverse().map((a) => (
+                <li key={a.id_arquivo}>
+                  <span className="ad-tipo" data-tipo={tipoCurto(a.tipo)}>{tipoCurto(a.tipo)}</span>
+                  <span className="as-docs__textos"><strong title={a.nome}>{a.nome}</strong><small>{tamanho(a.bytes)} • {dataHora(a.criado_em)}</small></span>
+                  <button type="button" className="botao botao--pequeno as-olho" aria-label={`Abrir ${a.nome}`} onClick={() => anexos.abrir(a)}>
+                    <Icone nome="visualizar" tamanho={14} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+      </div>
+    );
+  }
 
   return (
     <div className="as-baixo">

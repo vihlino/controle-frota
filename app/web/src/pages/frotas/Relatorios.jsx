@@ -20,7 +20,6 @@ import { useLista } from "../../components/useLista.js";
 import { api } from "../../lib/api.js";
 import { data, dataHora, numero } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
-import { SimNao } from "../../components/RegistrarSinistro.jsx";
 
 const SITUACOES = [
   { valor: "GERADO", rotulo: "Sem ateste" },
@@ -32,6 +31,22 @@ const SITUACOES = [
 const FILTRO_SITUACAO = [{ valor: "MEU_ATESTE", rotulo: "Aguardando meu ateste" }, ...SITUACOES];
 const FORM_VAZIO = { tipo: "", periodo_inicio: "", periodo_fim: "", precisa_ateste: null, quantidade: "1", atestantes: [""] };
 const ORDINAL = ["1º", "2º", "3º"];
+/** Icone e cor de cada tipo de relatorio, pelo nome (desenho de 29/10). */
+const ICONES_TIPO = [
+  [/entrada|sa[ií]da|movimenta/i, "kpi-car", "azul"],
+  [/manuten/i, "kpi-wrench", "verde"],
+  [/checklist/i, "checklist", "roxo"],
+  [/inspe/i, "search", "amarelo"],
+  [/sinistro/i, "alert-triangle", "vermelho"],
+  [/documento/i, "documento", "azul"],
+  [/indicador|desempenho/i, "chart-line", "roxo"],
+  [/ocorr/i, "fisc-ocorrencias", "laranja"],
+  [/servi[cç]o/i, "calendar", "azul"],
+  [/pontua/i, "fisc-bolt", "amarelo"],
+  [/equipamento/i, "eq-cone", "laranja"],
+  [/multa/i, "dinheiro", "vermelho"],
+];
+const iconeTipo = (nome) => ICONES_TIPO.find(([re]) => re.test(nome || "")) || [null, "arquivo-texto", "azul"];
 const TOM_STATUS = {
   GERADO: "azul", AGUARDANDO_ATESTE: "amarelo",
   ATESTADO: "verde", CANCELADO: "vermelho",
@@ -265,13 +280,14 @@ function TelaRelatorios() {
       {gerando && (
         <Modal
           titulo="Gerar relatório"
-          legenda="Escolha o período e o tipo. Cada tipo tem um modelo padrão."
+          legenda="Escolha o período e o tipo de relatório. Cada tipo tem um modelo padrão."
+          icone="arquivo-texto"
           aoFechar={() => setGerando(false)}
           rodape={
             <>
               <button className="botao" onClick={() => setGerando(false)}>Cancelar</button>
               <button className="botao botao--primario" form="form-relatório" disabled={salvando}>
-                {salvando ? "Gerando..." : "Gerar relatório"}
+                <Icone nome="arquivo-texto" tamanho={15} monocromatico /> {salvando ? "Gerando..." : "Gerar relatório"}
               </button>
             </>
           }
@@ -294,14 +310,17 @@ function TelaRelatorios() {
                       setFormulario((f) => ({ ...f, periodo_fim: e.target.value }))} />
             </div>
 
-            <div className="tipos-relatorio">
+            <div className="gr-rotulo"><strong>Tipo de relatório <span className="campo__obrigatorio">*</span></strong>
+              <small>Selecione o tipo de relatório que deseja gerar.</small></div>
+            <div className="tipos-relatorio gr-tipos">
               {tipos.map((t) => (
-                <label key={t.tipo} className="tipo-relatorio" data-ativo={formulario.tipo === t.tipo}>
+                <label key={t.tipo} className="tipo-relatorio gr-tipo" data-ativo={formulario.tipo === t.tipo}>
                   <input
                     type="radio" name="tipo" value={t.tipo} required
                     checked={formulario.tipo === t.tipo}
                     onChange={(e) => setFormulario((f) => ({ ...f, tipo: e.target.value }))}
                   />
+                  <span className="gr-tipo__icone" data-tom={iconeTipo(t.nome)[2]}><Icone nome={iconeTipo(t.nome)[1]} tamanho={22} monocromatico /></span>
                   <span>
                     <strong>{t.nome}</strong>
                     <small>{t.descricao}</small>
@@ -317,11 +336,18 @@ function TelaRelatorios() {
             )}
 
             <div className="rel-ateste">
-              <h3 className="rel-ateste__titulo">Ateste</h3>
+              <div className="gr-rotulo"><strong>Ateste</strong><small>Informe se o relatório precisa ser atestado.</small></div>
+              <div className="gr-ateste">
+                {[[true, "Sim", "O relatório será gerado com área para assinatura/ateste."],
+                  [false, "Não", "O relatório será gerado sem área para assinatura."]].map(([v, r, d]) => (
+                  <label key={r} className="gr-ateste__opcao" data-ativo={formulario.precisa_ateste === v}>
+                    <input type="radio" name="precisa_ateste" required checked={formulario.precisa_ateste === v}
+                           onChange={() => setFormulario((f) => ({ ...f, precisa_ateste: v }))} />
+                    <span><strong>{r}</strong><small>{d}</small></span>
+                  </label>
+                ))}
+              </div>
               <div className="formulario-grade">
-                <SimNao nome="precisa_ateste" rotulo="O relatório precisa ser atestado? *"
-                        valor={formulario.precisa_ateste}
-                        aoMudar={(v) => setFormulario((f) => ({ ...f, precisa_ateste: v }))} />
                 {formulario.precisa_ateste && (
                   <Selecao rotulo="Quantas pessoas vão atestar? *" id="quantidade"
                            opcoes={[{ valor: "1", rotulo: "1 pessoa" }, { valor: "2", rotulo: "2 pessoas" }, { valor: "3", rotulo: "3 pessoas" }]}

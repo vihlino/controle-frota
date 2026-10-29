@@ -18,6 +18,7 @@ import { Texto, Selecao, Data, Area } from "./Campos.jsx";
 import { api } from "../lib/api.js";
 import { enviarArquivo } from "../lib/arquivos.js";
 import { useSessao } from "../lib/sessao.jsx";
+import TituloSecao from "./TituloSecao.jsx";
 
 export const GRAVIDADES = [
   { valor: "LEVE", rotulo: "Leve", pontos: 3, valorMulta: "88.38", tom: "azul" },
@@ -182,7 +183,7 @@ export default function RegistrarMulta({ servidor, multa = null, aoFechar, aoSal
         {erro && <div className="login__erro">{erro}</div>}
         <form id="form-multa" className="formulario-grade" onSubmit={salvar}>
           <fieldset className="multa-campos" disabled={somenteLeitura}>
-            <h3 className="formulario__secao">Infração</h3>
+            <TituloSecao>Infração</TituloSecao>
             <Selecao rotulo="Veículo *" id="multa-veiculo" required vazio="Selecione"
                      opcoes={veiculos.map((v) => ({ valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}` }))}
                      {...campo("id_veiculo")} />
@@ -200,7 +201,7 @@ export default function RegistrarMulta({ servidor, multa = null, aoFechar, aoSal
             <Texto rotulo="Pontos na CNH" id="multa-pontos" type="number" min="0" max="40" {...campo("pontos")} />
             <Texto rotulo="Valor (R$)" id="multa-valor" type="number" min="0" step="0.01" {...campo("valor")} placeholder="Ex.: 130,16" />
 
-            <h3 className="formulario__secao">Pagamento</h3>
+            <TituloSecao>Pagamento</TituloSecao>
             <Data rotulo="Vencimento" id="multa-vencimento" {...campo("vencimento")} />
             <Selecao rotulo="Situação *" id="multa-status" required
                      opcoes={SITUACOES_MULTA.map((s) => ({ valor: s.valor, rotulo: s.rotulo }))}
@@ -212,7 +213,7 @@ export default function RegistrarMulta({ servidor, multa = null, aoFechar, aoSal
                   placeholder="Ex.: Recurso protocolado em 15/06" />
           </fieldset>
 
-          <h3 className="formulario__secao">Anexos (auto de infração, notificação, comprovante)</h3>
+          <TituloSecao>Anexos (auto de infração, notificação, comprovante)</TituloSecao>
           <div className="campo" data-largo="sim">
             {editando ? (
               <ArquivosAnexados

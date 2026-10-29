@@ -37,6 +37,7 @@ import Ocorrencias from "./pages/fiscalizacao/Ocorrencias.jsx";
 import ChecklistsFiscalizacao from "./pages/fiscalizacao/ChecklistsFiscalizacao.jsx";
 import Pontuacao from "./pages/fiscalizacao/Pontuacao.jsx";
 import PontuacaoItens from "./pages/fiscalizacao/PontuacaoItens.jsx";
+import PontuacaoItemDetalhe from "./pages/fiscalizacao/PontuacaoItemDetalhe.jsx";
 import Equipamentos from "./pages/fiscalizacao/Equipamentos.jsx";
 import EquipamentoDetalhe from "./pages/fiscalizacao/EquipamentoDetalhe.jsx";
 
@@ -160,6 +161,7 @@ export default function App() {
         <Route path="/fiscalizacao/motoristas" element={<Navigate to="/fiscalizacao/fiscais" replace />} />
         <Route path="/fiscalizacao/pontuacao" element={<ComPermissao codigo="FISCALIZACAO_GERENCIAR_PONTUACAO"><Pontuacao /></ComPermissao>} />
         <Route path="/fiscalizacao/pontuacao/itens" element={<ComPermissao codigo="FISCALIZACAO_GERENCIAR_PONTUACAO"><PontuacaoItens /></ComPermissao>} />
+        <Route path="/fiscalizacao/pontuacao/itens/:id" element={<ComPermissao codigo="FISCALIZACAO_GERENCIAR_PONTUACAO"><PontuacaoItemDetalhe /></ComPermissao>} />
         <Route path="/fiscalizacao/relatorios" element={<ComPermissao codigo="RELATORIOS_VISUALIZAR"><Relatorios key="fiscalizacao" /></ComPermissao>} />
         <Route path="/fiscalizacao/relatorios/:id" element={<RelatorioVer key="fiscalizacao" />} />
 

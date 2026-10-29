@@ -316,6 +316,37 @@ export const pontuacaoItens = criarCrud({
 });
 
 /*
+ * Uso de um item de pontuacao (Detalhes do item, 29/10): quantas ocorrencias
+ * e lancamentos usaram o item, a viatura em que mais apareceu e o ultimo uso.
+ */
+pontuacaoItens.get("/:id/uso", autenticar, exigePermissao("FISCALIZACAO_GERENCIAR_PONTUACAO"), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const { rows } = await query(
+      `WITH usos AS (
+         SELECT r.*,
+                CASE r.entidade_origem
+                  WHEN 'ocorrencia' THEN (SELECT d.id_veiculo FROM distribuicao_ocorrencia d
+                                           WHERE d.id_ocorrencia = r.id_registro_origem AND d.id_veiculo IS NOT NULL
+                                           ORDER BY d.data DESC, d.hora DESC LIMIT 1)
+                  WHEN 'checklist_fiscalizacao' THEN (SELECT c.id_veiculo FROM checklist_fiscalizacao c WHERE c.id_checklist = r.id_registro_origem)
+                END AS id_veiculo
+           FROM pontuacao_registro r WHERE r.id_item = $1)
+       SELECT (SELECT COUNT(*)::int FROM usos) AS lancamentos,
+              (SELECT COUNT(DISTINCT id_registro_origem)::int FROM usos WHERE entidade_origem = 'ocorrencia') AS ocorrencias,
+              (SELECT COALESCE(SUM(pontos_aplicados), 0) FROM usos) AS pontos,
+              (SELECT MAX(data_registro) FROM usos) AS ultimo_uso,
+              (SELECT v.placa FROM usos u JOIN veiculo v ON v.id_veiculo = u.id_veiculo
+                GROUP BY v.placa ORDER BY COUNT(*) DESC, v.placa LIMIT 1) AS viatura_frequente,
+              (SELECT a.data_hora FROM auditoria a WHERE a.entidade = 'pontuacao_item' AND a.id_registro = $1
+                ORDER BY a.data_hora DESC LIMIT 1) AS ultima_alteracao`, [id]);
+    res.json(rows[0]);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/*
  * Integrantes da equipe (09/10): a tela manda a lista inteira de fiscais.
  * Quem saiu ganha data_fim = hoje (o historico continua valendo para as
  * ocorrencias e a pontuacao daquele periodo); quem entrou comeca hoje.
@@ -778,6 +809,9 @@ router.get("/checklists/:id/ficha", autenticar, exigePermissao(VER), async (req,
     const c = await query(
       `SELECT c.*, (c.odometro_chegada - c.odometro_saida) AS km_rodado,
               v.placa, v.marca, v.modelo, v.tipo_veiculo,
+              -- 29/10: faixa do veiculo com a foto nos Detalhes do Checklist.
+              v.tipo_combustivel, v.ano_fabricacao, v.ano_modelo, v.status AS veiculo_status,
+              (SELECT f.atualizado_em FROM veiculo_foto f WHERE f.id_veiculo = v.id_veiculo) AS foto_em,
               eq.numero AS equipe,
               sd.data AS servico_data, sd.turno AS servico_turno, sd.status AS servico_status,
               co.nome AS coordenador, co.matricula AS coordenador_matricula,

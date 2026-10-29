@@ -8,6 +8,8 @@
  * condutor viu, e uma mudanca no jeito de marcar vale para os dois lados.
  */
 import { Fragment } from "react";
+import Icone from "./Icone.jsx";
+import TituloSecao from "./TituloSecao.jsx";
 
 const OPCOES = [
   { valor: "NORMAL", rotulo: "Conforme", tom: "verde" },
@@ -20,7 +22,57 @@ const OPCOES = [
  * @param {Array<{item: string, grupo?: string, resultado: string, observacao?: string}>} p.itens
  * @param {(indice: number, mudanca: object) => void} p.aoMudar
  */
-export default function ItensInspecao({ itens, aoMudar }) {
+/** Icone de cada grupo (o mesmo dos Detalhes da Inspecao). */
+export const ICONE_GRUPO_INSPECAO = {
+  "Níveis de fluidos (com o motor frio)": ["aviso-oleo", "azul", "Verifique os níveis e informe o status de cada item."],
+  "Pneus e rodas": ["pneu", "roxo", "Verifique as condições dos pneus e rodas."],
+  "Sistema elétrico e iluminação": ["lampada", "amarelo", "Verifique o funcionamento dos itens de iluminação."],
+  "Visibilidade e itens de emergência": ["alert-triangle", "vermelho", "Verifique a visibilidade e os itens obrigatórios."],
+  "Conservação e higiene": ["limpeza", "verde", "Verifique a limpeza e a conservação."],
+  "Testes dinâmicos e interior": ["kpi-steering", "laranja", "Verifique os comandos e o interior."],
+};
+
+/*
+ * `cartoes` (29/10, desenho do Cesar para o Editar inspecao da gestao): o
+ * titulo do grupo vira faixa colorida com icone e os itens ficam em cartoes,
+ * dois por linha. O QR Code continua com a lista simples, feita para celular.
+ */
+export default function ItensInspecao({ itens, aoMudar, cartoes = false }) {
+  if (cartoes) {
+    return (
+      <div className="ii">
+        {itens.map((it, i) => {
+          const [ic, tom, desc] = ICONE_GRUPO_INSPECAO[it.grupo] || ["checklist", "azul", null];
+          return (
+            <Fragment key={`${it.grupo || ""}-${it.item}-${i}`}>
+              {it.grupo && it.grupo !== itens[i - 1]?.grupo && (
+                <TituloSecao icone={ic} tom={tom} descricao={desc}>{it.grupo}</TituloSecao>
+              )}
+              <div className="ii__item" data-resultado={it.resultado}>
+                <span className="ii__icone"><Icone nome={ic} tamanho={26} /></span>
+                <div className="ii__corpo">
+                  <span className="ii__nome">{it.item}</span>
+                  <div className="ii__opcoes">
+                    {OPCOES.map((o) => (
+                      <button key={o.valor} type="button" className="ii__opcao" data-tom={o.tom}
+                              data-ativo={it.resultado === o.valor ? "sim" : undefined}
+                              onClick={() => aoMudar(i, { resultado: o.valor })}>
+                        {o.rotulo}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {it.resultado !== "NORMAL" && (
+                  <input className="ii__obs" placeholder="O que foi observado?" value={it.observacao || ""}
+                         onChange={(e) => aoMudar(i, { observacao: e.target.value })} />
+                )}
+              </div>
+            </Fragment>
+          );
+        })}
+      </div>
+    );
+  }
   return (
     <div className="qr-inspecao__itens">
       {itens.map((it, i) => (

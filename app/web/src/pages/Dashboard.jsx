@@ -39,6 +39,7 @@ export default function Dashboard() {
     definirCabecalho({
       titulo: `${saudacao()}, ${primeiroNome}!`,
       legenda: dataPorExtenso(),
+      icone: new Date().getHours() >= 18 || new Date().getHours() < 5 ? "lua" : "sol",
     });
   }, [definirCabecalho, usuario]);
 

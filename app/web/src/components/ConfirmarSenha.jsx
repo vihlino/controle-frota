@@ -47,6 +47,7 @@ export function useConfirmacaoSenha() {
   const [justificativa, setJustificativa] = useState("");
   const [erro, setErro] = useState("");
   const [verificando, setVerificando] = useState(false);
+  const [verSenha, setVerSenha] = useState(false);
   // Guarda o resolve da Promise em aberto, para responder quando o usuario
   // confirmar ou cancelar.
   const resolver = useRef(null);
@@ -55,6 +56,7 @@ export function useConfirmacaoSenha() {
     setSenha("");
     setJustificativa("");
     setErro("");
+    setVerSenha(false);
     setPedido({
       titulo: opcoes.titulo || "Confirme sua senha",
       aviso: opcoes.aviso || "",
@@ -140,10 +142,12 @@ export function useConfirmacaoSenha() {
   const elemento = pedido ? (
     <Modal
       titulo={pedido.titulo}
+      icone={pedido.perigo ? "lixo" : "alterar-senha"}
+      tom={pedido.perigo ? "vermelho" : "azul"}
       aoFechar={() => responder(false)}
       // Editar e Excluir do MESMO tamanho: sao a mesma pergunta (quem e voce e
       // por que), e janelas de larguras diferentes pareciam coisas diferentes.
-      largura={480}
+      largura={620}
       compacto
       rodape={
         <>
@@ -168,9 +172,21 @@ export function useConfirmacaoSenha() {
         {/* A frase e uma OBSERVACAO sobre o que vai acontecer - menor e no
             centro, para nao competir com os campos, que sao o que a pessoa
             precisa preencher. */}
-        <p className="confirmar-senha__texto confirmar-senha__texto--nota">
-          {pedido.aviso || "Digite sua senha para confirmar esta ação."}
-        </p>
+        {pedido.perigo ? (
+          <div className="cs-alerta">
+            <span className="cs-alerta__marca">!</span>
+            <span>{(() => {
+              // "Esta ação não pode ser desfeita:" em negrito, como no desenho.
+              const t = pedido.aviso || "";
+              const i = t.indexOf(":");
+              return i > 0 ? <><strong>{t.slice(0, i + 1)}</strong>{t.slice(i + 1)}</> : t;
+            })()}</span>
+          </div>
+        ) : (
+          <p className="confirmar-senha__texto confirmar-senha__texto--nota">
+            {pedido.aviso || "Digite sua senha para confirmar esta ação."}
+          </p>
+        )}
         {erro && <div className="login__erro">{erro}</div>}
 
         {/* O motivo vem ANTES da senha: e o que exige pensar. A senha e
@@ -178,15 +194,19 @@ export function useConfirmacaoSenha() {
         {pedido.justificativa && (
           <div className="campo">
             <label htmlFor="justificativa-confirmacao">{pedido.rotuloJustificativa}</label>
-            <textarea
-              id="justificativa-confirmacao"
-              rows={3}
-              required
-              minLength={5}
-              value={justificativa}
-              placeholder={pedido.dicaJustificativa}
-              onChange={(ev) => setJustificativa(ev.target.value)}
-            />
+            <span className="campo-area">
+              <textarea
+                id="justificativa-confirmacao"
+                rows={3}
+                required
+                minLength={5}
+                maxLength={500}
+                value={justificativa}
+                placeholder={pedido.dicaJustificativa}
+                onChange={(ev) => setJustificativa(ev.target.value)}
+              />
+              <span className="campo-area__contador">{justificativa.length}/500</span>
+            </span>
           </div>
         )}
 
@@ -195,9 +215,11 @@ export function useConfirmacaoSenha() {
             e texto de verdade, fica com a largura inteira. */}
         <div className="campo campo--senha">
           <label htmlFor="senha-confirmacao">Sua senha *</label>
+          <span className="cs-senha">
+          <span className="cs-senha__cadeado" aria-hidden="true"><Icone nome="alterar-senha" tamanho={16} monocromatico /></span>
           <input
             id="senha-confirmacao"
-            type="password"
+            type={verSenha ? "text" : "password"}
             autoComplete="current-password"
             autoFocus={!pedido.justificativa}
             required
@@ -205,6 +227,11 @@ export function useConfirmacaoSenha() {
             placeholder="Digite sua senha de acesso"
             onChange={(ev) => setSenha(ev.target.value)}
           />
+          <button type="button" className="cs-senha__olho" aria-label={verSenha ? "Esconder a senha" : "Mostrar a senha"}
+                  onClick={() => setVerSenha((v) => !v)}>
+            <Icone nome="visualizar" tamanho={16} monocromatico />
+          </button>
+          </span>
         </div>
       </form>
     </Modal>

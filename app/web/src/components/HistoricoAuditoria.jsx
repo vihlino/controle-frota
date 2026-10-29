@@ -18,6 +18,7 @@ const NOMES = {
   sinistro: { CRIAR: ["Registro", "Sinistro registrado"], EDITAR: ["Edição", "Dados do sinistro alterados"],
     EXCLUIR: ["Exclusão", "Sinistro excluído"] },
   checklist: { EDITAR: ["Correção", "Checklist corrigido pela gestão"], EXCLUIR: ["Exclusão", "Checklist excluído"] },
+  checklist_equipamento: { EDITAR: ["Correção", "Itens conferidos corrigidos pela gestão"] },
   documento: { CRIAR: ["Cadastro", "Documento cadastrado"], EDITAR: ["Edição", "Informações do documento alteradas"],
     EXCLUIR: ["Exclusão", "Documento excluído"] },
 };

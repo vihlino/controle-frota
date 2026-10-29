@@ -1,15 +1,25 @@
 /**
  * ChecklistDetalhe.jsx - Detalhes do Checklist do Veiculo.
  *
- * Desenho do Cesar (06/10), o mais parecido possivel, no padrao das telas de
- * detalhes: faixa do veiculo; abas Visao geral, Checklist de saida, Checklist
- * de entrada, Manutencao e Historico. Na visao geral, a conferencia dos
- * equipamentos na saida e na chegada lado a lado, o percurso, o resumo e os
- * chamados de manutencao abertos pelo condutor no QR Code.
+ * Desenho do Cesar de 29/10:
+ *   Topo        faixa do veiculo com a FOTO (FaixaVeiculo) e setor, data,
+ *               motorista, percurso e status (nas sub-abas, o hodometro)
+ *   Visao Geral Checklist de Saida e de Entrada lado a lado (itens, status,
+ *               observacao e rodape com KM, local e fotos), Rota/Percurso,
+ *               Resumo do Checklist; a direita Status do Checklist,
+ *               Manutencao e Ultimos Checklists deste Veiculo
+ *   Saida /     "Itens do Checklist de Saida/Chegada" com os tres estados
+ *   Entrada     (Conforme / Nao conforme / Nao verificado) e a observacao; a
+ *               direita Informacoes do Checklist, Rota/Percurso, Fotos do
+ *               Veiculo e Acoes (corrigir os itens, com senha e justificativa)
+ *   Manutencao  a mesma tela da aba Manutencoes do veiculo, so com as OS
+ *               deste checklist; a OS nova nasce ligada a ele
+ *   Historico   linha do tempo e correcoes da gestao
  *
- * Fica de fora o que o SITRA nao tem: foto do veiculo e nivel de combustivel.
- * O checklist so tem quatro itens (os equipamentos obrigatorios) e cada um e
- * Conforme ou Nao conforme - nao existe "Atencao" aqui.
+ * Fica de fora o que o checklist do Frotas nao tem: os itens alem dos quatro
+ * equipamentos (combustivel, oleo, pneus...), foto por item, local de
+ * chegada, rascunho e "Finalizar" (o checklist e preenchido pelo condutor no
+ * QR Code; aqui a gestao consulta e corrige).
  */
 import { useEffect, useState } from "react";
 import { useOutletContext, useParams, useNavigate, useSearchParams } from "react-router-dom";
@@ -17,12 +27,13 @@ import Cartao from "../../components/Cartao.jsx";
 import Icone from "../../components/Icone.jsx";
 import Trilha from "../../components/Trilha.jsx";
 import Selo from "../../components/Selo.jsx";
-import ResumoVeiculo from "../../components/ResumoVeiculo.jsx";
+import FaixaVeiculo from "../../components/FaixaVeiculo.jsx";
 import HistoricoAuditoria from "../../components/HistoricoAuditoria.jsx";
-import RegistrarOs from "../../components/RegistrarOs.jsx";
 import CorrigirChecklist from "../../components/CorrigirChecklist.jsx";
+import { AbaManutencoesVeiculo } from "../../components/AbasVeiculo.jsx";
+import { useConfirmacaoSenha } from "../../components/ConfirmarSenha.jsx";
 import { api, apiArquivo } from "../../lib/api.js";
-import { data, dataHora, hora, numero, numeroOs, rotulo } from "../../lib/formato.js";
+import { data, dataHora, hora, numero, numeroOs } from "../../lib/formato.js";
 import { useSessao } from "../../lib/sessao.jsx";
 
 const EQUIPAMENTOS = [
@@ -31,30 +42,26 @@ const EQUIPAMENTOS = [
   { chave: "TRIANGULO", nome: "Triângulo" },
   { chave: "CHAVE_RODA", nome: "Chave de roda" },
 ];
+const ESTADOS = [
+  { valor: "C", texto: "Conforme", tom: "verde", marca: "✓" },
+  { valor: "N", texto: "Não conforme", tom: "vermelho", marca: "!" },
+  { valor: "V", texto: "Não verificado", tom: "cinza", marca: "–" },
+];
 const vazio = (v) => (v === null || v === undefined || v === "" ? "—" : v);
-
-function Item({ rotulo: r, children }) {
-  return (
-    <div className="vd-resumo__item">
-      <span className="vd-resumo__rotulo">{r}</span>
-      <span className="vd-resumo__valor">{children}</span>
-    </div>
-  );
-}
+const estadoDe = (c) => (!c ? "V" : c.conforme ? "C" : "N");
+const fotosTexto = (n) => `${n} foto${n === 1 ? "" : "s"}`;
 
 function StatusItem({ conferido }) {
-  if (!conferido) return <span className="ck-status" data-tom="cinza"><span className="ck-status__ponto">–</span> Não verificado</span>;
-  return conferido.conforme
-    ? <span className="ck-status" data-tom="verde"><span className="ck-status__ponto">✓</span> Conforme</span>
-    : <span className="ck-status" data-tom="vermelho"><span className="ck-status__ponto">!</span> Não conforme</span>;
+  const e = ESTADOS.find((x) => x.valor === estadoDe(conferido));
+  return <span className="ck-status" data-tom={e.tom}><span className="ck-status__ponto">{e.marca}</span> {e.texto}</span>;
 }
 
-/** Cartao de um momento (saida ou chegada): os 4 itens e o rodape com KM e fotos. */
-function CartaoMomento({ titulo, realizadoEm, itens, rodape, aguardando }) {
+/** Cartao de um momento na Visao Geral: os 4 itens e o rodape com KM e fotos. */
+function CartaoMomento({ icone, titulo, realizadoEm, itens, rodape, aguardando }) {
   return (
     <Cartao
-      titulo={<><Icone nome="checklist" tamanho={18} /> {titulo}</>}
-      acao={realizadoEm && <span className="ck-realizado vd-cartao-acao">Realizado em {realizadoEm}</span>}
+      titulo={<><Icone nome={icone} tamanho={18} /> {titulo}</>}
+      acao={realizadoEm && <span className="ck-realizado vd-cartao-acao"><Icone nome="calendar" tamanho={13} /> Realizado em {realizadoEm}</span>}
     >
       {aguardando ? (
         <div className="insp-nota"><Icone nome="informacao" tamanho={16} /><span>{aguardando}</span></div>
@@ -91,36 +98,62 @@ function CartaoMomento({ titulo, realizadoEm, itens, rodape, aguardando }) {
   );
 }
 
+/** Linhas "rotulo | valor" com icone dos cartoes da direita. */
+function Linhas({ linhas }) {
+  return (
+    <dl className="ck2-linhas">
+      {linhas.map(([icone, r, v, apoio]) => (
+        <div key={r}>
+          <dt><Icone nome={icone} tamanho={15} /> {r}</dt>
+          <dd>{vazio(v)}{apoio ? <small>{apoio}</small> : null}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 export default function ChecklistDetalhe() {
   const { id } = useParams();
   const navegar = useNavigate();
   const { definirCabecalho } = useOutletContext();
   const { podeVer } = useSessao();
   const [checklist, setChecklist] = useState(null);
+  const [veiculo, setVeiculo] = useState(null);
+  const [ultimos, setUltimos] = useState(null);
   const [erro, setErro] = useState("");
   const [fotos, setFotos] = useState([]);
   const [recarga, setRecarga] = useState(0);
-  const [abrindoOs, setAbrindoOs] = useState(false);
-  // Editar abre a correcao aqui mesmo (08/10), sem ir para a lista.
   const [corrigindo, setCorrigindo] = useState(false);
+  // Correcao dos itens na propria sub-aba: { momento, itens: {CHAVE: {estado, observacao}} }
+  const [edicao, setEdicao] = useState(null);
+  const [salvando, setSalvando] = useState(false);
+  const [erroEdicao, setErroEdicao] = useState("");
+  const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
   const [parametros, definirParametros] = useSearchParams();
   const aba = parametros.get("aba") || "geral";
   const setAba = (chave) => {
     const p = new URLSearchParams(parametros);
     if (chave === "geral") p.delete("aba"); else p.set("aba", chave);
     definirParametros(p, { replace: true });
+    setEdicao(null);
   };
 
-  useEffect(() => {
-    definirCabecalho({ titulo: "", legenda: "" });
-  }, [definirCabecalho]);
+  useEffect(() => { definirCabecalho({ titulo: "", legenda: "" }); }, [definirCabecalho]);
 
   useEffect(() => {
     api(`/frotas/checklists/${id}`).then(setChecklist).catch((e) => setErro(e.message));
   }, [id, recarga]);
 
-  // As fotos: primeiro a lista, depois o binario de cada uma (a rota exige o
-  // token, entao vira endereco de memoria).
+  // Veiculo (foto, situacao, tipo) e os ultimos checklists dele.
+  const idVeiculo = checklist?.id_veiculo;
+  useEffect(() => {
+    if (!idVeiculo) return;
+    api(`/frotas/veiculos/${idVeiculo}`).then(setVeiculo).catch(() => {});
+    api(`/frotas/checklists?veiculo=${idVeiculo}&porPagina=4`)
+      .then((r) => setUltimos(r?.itens || [])).catch(() => setUltimos([]));
+  }, [idVeiculo, recarga]);
+
+  // Fotos: a lista e depois o binario de cada uma (a rota exige o token).
   useEffect(() => {
     if (!checklist) return undefined;
     let vivo = true;
@@ -153,6 +186,7 @@ export default function ChecklistDetalhe() {
   const chamados = c.chamados || [];
   const podeEditar = podeVer("FROTAS_EDITAR_CHECKLIST");
   const podeOs = podeVer("FROTAS_GERENCIAR_OS");
+  const recarregar = () => setRecarga((n) => n + 1);
 
   // Resumo: as conferencias dos quatro itens na saida e na chegada.
   const conferencias = [...naSaida, ...naChegada];
@@ -164,6 +198,25 @@ export default function ChecklistDetalhe() {
 
   const saidaEm = `${data(c.data_abertura)} ${hora(c.hora_saida)}`;
   const chegadaEm = c.data_devolucao ? `${data(c.data_devolucao)} ${hora(c.hora_chegada)}` : null;
+  const seloStatus = semChegada ? <Selo texto="Em uso" tom="azul" /> : <Selo texto="Concluído" tom="verde" />;
+
+  // Faixa do veiculo: a mesma dos Detalhes do Documento, com os dados do checklist.
+  const v = veiculo ? { ...veiculo, veiculo_status: veiculo.status } : {
+    id_veiculo: c.id_veiculo, placa: c.placa, marca: c.marca, modelo: c.modelo, setor: c.setor,
+  };
+  const motorista = { icone: "user", rotulo: "Motorista", valor: vazio(c.condutor), apoio: c.matricula ? `Matrícula: ${c.matricula}` : null };
+  const setor = { icone: "predio", rotulo: "Setor", valor: vazio(c.setor) };
+  const dadosFaixa = aba === "saida" ? [
+    setor, { icone: "calendar", rotulo: "Data do checklist", valor: saidaEm }, motorista,
+    { icone: "odometro", rotulo: "Hodômetro de saída", valor: `${numero(c.odometro_saida)} km` },
+  ] : aba === "entrada" ? [
+    setor, { icone: "calendar", rotulo: "Data do checklist", valor: chegadaEm || "Aguardando chegada" }, motorista,
+    { icone: "odometro", rotulo: "Hodômetro de chegada", valor: c.odometro_chegada == null ? "—" : `${numero(c.odometro_chegada)} km` },
+  ] : [
+    setor, { icone: "calendar", rotulo: "Data do checklist", valor: saidaEm }, motorista,
+    { icone: "oc-local", rotulo: "Rota / Percurso", valor: vazio(c.percurso) },
+    { icone: "concluidas", rotulo: "Status", valor: seloStatus },
+  ];
 
   const ABAS = [
     { chave: "geral", rotulo: "Visão Geral", icone: "checklist" },
@@ -173,77 +226,283 @@ export default function ChecklistDetalhe() {
     { chave: "historico", rotulo: "Histórico", icone: "historico" },
   ];
 
+  // ------------------------------------------------ Correcao dos itens
+  function comecarEdicao(momento) {
+    const gravados = equip(momento);
+    const itens = {};
+    EQUIPAMENTOS.forEach((e) => {
+      const g = gravados.find((x) => x.equipamento === e.chave);
+      itens[e.chave] = { estado: estadoDe(g), observacao: g?.observacao || "" };
+    });
+    setErroEdicao("");
+    setEdicao({ momento, itens });
+  }
+  const mudarItem = (chave, campo, valor) =>
+    setEdicao((x) => ({ ...x, itens: { ...x.itens, [chave]: { ...x.itens[chave], [campo]: valor } } }));
+
+  async function salvarEdicao() {
+    setErroEdicao("");
+    const faltando = EQUIPAMENTOS.filter((e) => edicao.itens[e.chave].estado === "N" && !edicao.itens[e.chave].observacao.trim());
+    if (faltando.length) {
+      setErroEdicao(`Escreva a observação de ${faltando.map((e) => e.nome).join(", ")} (item não conforme).`);
+      return;
+    }
+    const resposta = await pedirSenha({
+      titulo: "Salvar correção",
+      aviso: `A correção do checklist de ${edicao.momento === "SAIDA" ? "saída" : "chegada"} fica registrada na auditoria, com o que estava antes.`,
+      justificativa: true,
+    });
+    if (!resposta?.ok) return;
+    setSalvando(true);
+    try {
+      // "Nao verificado" e item sem conferencia: nao vai para o banco.
+      const itens = EQUIPAMENTOS.filter((e) => edicao.itens[e.chave].estado !== "V").map((e) => ({
+        equipamento: e.chave,
+        conforme: edicao.itens[e.chave].estado === "C",
+        observacao: edicao.itens[e.chave].observacao.trim() || null,
+      }));
+      await api(`/frotas/checklists/${id}/equipamentos`, {
+        method: "PUT", body: { momento: edicao.momento, itens, justificativa: resposta.justificativa },
+      });
+      setEdicao(null);
+      recarregar();
+    } catch (e) {
+      setErroEdicao(e.message);
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  // ------------------------------------------------ Visao Geral
   const cartaoSaida = (
     <CartaoMomento
-      titulo="Checklist de Saída"
-      realizadoEm={saidaEm}
-      itens={naSaida}
+      icone="arrow-up" titulo="Checklist de Saída" realizadoEm={saidaEm} itens={naSaida}
       rodape={[
         { icone: "odometro", rotulo: "Hodômetro de saída", valor: `${numero(c.odometro_saida)} km` },
-        { icone: "kpi-car", rotulo: "Local de saída", valor: vazio(c.local_saida) },
-        { icone: "visualizar", rotulo: "Fotos na saída", valor: `${fotosDe("SAIDA").length} foto${fotosDe("SAIDA").length === 1 ? "" : "s"}` },
+        { icone: "oc-local", rotulo: "Local de saída", valor: vazio(c.local_saida) },
+        { icone: "oc-camera", rotulo: "Fotos na saída", valor: fotosTexto(fotosDe("SAIDA").length) },
       ]}
     />
   );
   const cartaoEntrada = (
     <CartaoMomento
-      titulo="Checklist de Entrada"
-      realizadoEm={chegadaEm}
-      itens={naChegada}
+      icone="seta-baixo" titulo="Checklist de Entrada" realizadoEm={chegadaEm} itens={naChegada}
       aguardando={semChegada ? "O veículo ainda não voltou: a conferência de entrada é feita na chegada, pelo QR Code." : null}
       rodape={[
         { icone: "odometro", rotulo: "Hodômetro de entrada", valor: c.odometro_chegada == null ? "—" : `${numero(c.odometro_chegada)} km` },
         { icone: "kpi-steering", rotulo: "KM rodado", valor: c.km_rodado == null ? "—" : `${numero(c.km_rodado)} km` },
-        { icone: "visualizar", rotulo: "Fotos na entrada", valor: `${fotosDe("CHEGADA").length} foto${fotosDe("CHEGADA").length === 1 ? "" : "s"}` },
+        { icone: "oc-camera", rotulo: "Fotos na entrada", valor: fotosTexto(fotosDe("CHEGADA").length) },
       ]}
     />
   );
 
-  const listaChamados = chamados.length === 0 ? (
-    <p className="texto-corrido">Não há chamado de manutenção aberto para este checklist.</p>
-  ) : (
-    <div className="rolagem-x">
-      <table className="tabela vd-tabela tabela-ficha">
-        <thead><tr><th>Nº da OS</th><th>Aberta em</th><th>Parte do veículo</th><th>Descrição</th><th>Situação</th></tr></thead>
-        <tbody>
-          {chamados.map((o) => (
-            <tr key={o.id_os} className="vd-tabela__linha" onClick={() => navegar(`/frotas/manutencoes/${o.id_os}`)}>
-              <td>{numeroOs(o.numero)}</td>
-              <td>{dataHora(o.data_abertura)}</td>
-              <td>{o.parte_veiculo ? rotulo("parteVeiculo", o.parte_veiculo) : "—"}</td>
-              <td className="coluna-flexivel"><span className="celula-cortada" title={o.descricao}>{o.descricao}</span></td>
-              <td><Selo valor={o.status} /></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const galeria = (momento) => (
-    fotosDe(momento).length === 0 ? <p className="texto-corrido">Nenhuma foto anexada neste momento.</p> : (
-      <div className="checklist-fotos">
-        {fotosDe(momento).map((f) => (
-          <a key={f.id_foto} href={f.url} target="_blank" rel="noreferrer">
-            <img src={f.url} alt={`Foto do checklist ${f.id_foto}`} />
-          </a>
-        ))}
+  const cartaoStatus = (
+    <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Status do Checklist</>}>
+      <div className="vd-situacao" data-tom={semChegada ? "azul" : "verde"}>
+        <span className="vd-situacao__icone"><Icone nome={semChegada ? "kpi-car" : "check"} tamanho={22} /></span>
+        <div>
+          <strong>{semChegada ? "Em uso" : "Concluído"}</strong>
+          <span>{semChegada ? `Saída em ${data(c.data_abertura)} às ${hora(c.hora_saida)}` : `Realizado em ${data(c.data_devolucao)} às ${hora(c.hora_chegada)}`}</span>
+        </div>
       </div>
-    )
+      <Linhas linhas={[
+        ["calendar", "Data", data(c.data_abertura)],
+        ["historico", "Hora de saída", hora(c.hora_saida)],
+        ["historico", "Hora de chegada", c.hora_chegada ? hora(c.hora_chegada) : null],
+        ["odometro", "KM de saída", `${numero(c.odometro_saida)} km`],
+        ["odometro", "KM de chegada", c.odometro_chegada == null ? null : `${numero(c.odometro_chegada)} km`],
+        ["kpi-steering", "KM percorridos", c.km_rodado == null ? null : `${numero(c.km_rodado)} km`],
+      ]} />
+    </Cartao>
   );
 
-  const dadosMomento = (momento) => {
-    const saida = momento === "SAIDA";
-    const linhas = saida
-      ? [["Data e hora informadas", saidaEm], ["Registrado no sistema em", dataHora(c.saida_registrada_em || c.criado_em)], ["KM de saída", `${numero(c.odometro_saida)} km`],
-        ["Local de saída", c.local_saida], ["Percurso / atividade", c.percurso], ["Observações do condutor", c.observacoes]]
-      : [["Data e hora informadas", chegadaEm], ["Registrado no sistema em", (c.chegada_registrada_em || c.data_finalizacao) ? dataHora(c.chegada_registrada_em || c.data_finalizacao) : null],
-        ["KM de chegada", c.odometro_chegada == null ? null : `${numero(c.odometro_chegada)} km`],
-        ["KM rodado", c.km_rodado == null ? null : `${numero(c.km_rodado)} km`], ["Observações do condutor", c.observacoes_chegada]];
-    return (
-      <dl className="vd-dados__coluna">
-        {linhas.map(([r, v]) => <div className="vd-dados__linha" key={r}><dt>{r}</dt><dd>{vazio(v)}</dd></div>)}
+  const cartaoManutencao = (
+    <Cartao titulo={<><Icone nome="kpi-wrench" tamanho={18} /> Manutenção</>}
+            acao={<button className="botao botao--pequeno vd-cartao-acao" onClick={() => setAba("manutencao")}>Ver</button>}>
+      <dl className="ck2-manut">
+        <div>
+          <dt><Icone nome="inspecao" tamanho={15} /> Necessita de manutenção?</dt>
+          <dd>{chamados.length ? <Selo texto="Sim" tom="vermelho" /> : <Selo texto="Não" tom="verde" />}</dd>
+        </div>
+        <div className="ck2-manut__obs">
+          <dt><Icone nome="arquivo-texto" tamanho={15} /> Observações de manutenção</dt>
+          <dd>
+            {chamados.length === 0 ? "Sem observações." : (
+              <ul className="as-lista">
+                {chamados.map((o) => (
+                  <li key={o.id_os}>
+                    <button type="button" className="os-ligadas__link" onClick={() => navegar(`/frotas/manutencoes/${o.id_os}`)}>{numeroOs(o.numero)}</button>
+                    {" "}{String(o.descricao || "").split("\n")[0]}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </dd>
+        </div>
       </dl>
+    </Cartao>
+  );
+
+  const cartaoUltimos = (
+    <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Últimos Checklists deste Veículo</>}>
+      {!ultimos ? <p className="texto-corrido">Carregando...</p> : (
+        <>
+          <table className="tabela ck2-ultimos">
+            <thead><tr><th>Data</th><th>Motorista</th><th>KM rodado</th><th>Status</th></tr></thead>
+            <tbody>
+              {ultimos.map((u) => (
+                <tr key={u.id_checklist} data-ativo={u.id_checklist === c.id_checklist ? "sim" : undefined}
+                    onClick={() => u.id_checklist !== c.id_checklist && navegar(`/frotas/checklists/${u.id_checklist}`)}>
+                  <td>{data(u.data_abertura)}</td>
+                  <td><span className="ck2-cortado" title={u.condutor}>{vazio(u.condutor)}</span></td>
+                  <td>{u.km_rodado == null ? "—" : `${numero(u.km_rodado)} km`}</td>
+                  <td>{u.status === "ABERTO" ? <Selo texto="Em uso" tom="azul" /> : <Selo texto="Concluído" tom="verde" />}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <button type="button" className="lr-abrir" onClick={() => navegar(`/frotas/veiculos/${c.id_veiculo}?aba=checklists`)}>
+            Ver todos os checklists <Icone nome="seta-direita" tamanho={13} monocromatico />
+          </button>
+        </>
+      )}
+    </Cartao>
+  );
+
+  // ------------------------------------------------ Sub-abas Saida / Entrada
+  const subAba = (momento) => {
+    const saida = momento === "SAIDA";
+    const gravados = saida ? naSaida : naChegada;
+    const editando = edicao?.momento === momento;
+    const aguardando = !saida && semChegada;
+    const fotosMomento = fotosDe(momento);
+    return (
+      <div className="vd-corpo">
+        <div className="vd-corpo__principal">
+          <section className="cartao ck2-itens">
+            <header className="dd-titulo">
+              <Icone nome={saida ? "arrow-up" : "seta-baixo"} tamanho={22} />
+              <div><h2>Itens do Checklist de {saida ? "Saída" : "Chegada"}</h2></div>
+              {editando && <span className="ck2-editando"><Icone nome="editar" tamanho={13} /> Corrigindo</span>}
+            </header>
+            {aguardando ? (
+              <div className="insp-nota"><Icone nome="informacao" tamanho={16} /><span>O veículo ainda não voltou: a conferência de chegada é feita pelo condutor, no QR Code.</span></div>
+            ) : (
+              <>
+                <div className="ck2-aviso">
+                  <Icone nome="informacao" tamanho={15} />
+                  <span>{editando
+                    ? "Marque o status de cada item. Em caso de não conformidade, a observação é obrigatória."
+                    : `Conferência feita pelo condutor no QR Code${saida ? " na saída" : " na chegada"}: os equipamentos obrigatórios do veículo.`}</span>
+                </div>
+                {erroEdicao && editando && <div className="login__erro">{erroEdicao}</div>}
+                <div className="rolagem-x">
+                  <table className="tabela ck2-tabela">
+                    <thead><tr><th>#</th><th>Item</th><th>Status</th><th>Observação</th></tr></thead>
+                    <tbody>
+                      {EQUIPAMENTOS.map((e, n) => {
+                        const g = gravados.find((x) => x.equipamento === e.chave);
+                        const atual = editando ? edicao.itens[e.chave].estado : estadoDe(g);
+                        return (
+                          <tr key={e.chave}>
+                            <td><span className="ck-item__n">{n + 1}</span></td>
+                            <td className="ck2-nome">{e.nome}</td>
+                            <td>
+                              <span className="ck2-estados" role={editando ? "radiogroup" : undefined} aria-label={`Status de ${e.nome}`}>
+                                {ESTADOS.map((s) => (
+                                  <button key={s.valor} type="button" className="ck2-estado" data-tom={s.tom}
+                                          data-ativo={atual === s.valor ? "sim" : undefined} disabled={!editando}
+                                          aria-pressed={atual === s.valor} onClick={() => mudarItem(e.chave, "estado", s.valor)}>
+                                    <span className="ck2-estado__ponto">{s.marca}</span> {s.texto}
+                                  </button>
+                                ))}
+                              </span>
+                            </td>
+                            <td className="ck2-obs">
+                              {editando ? (
+                                <input type="text" className="ck2-obs__campo" maxLength={500} placeholder="Digite uma observação..."
+                                       value={edicao.itens[e.chave].observacao}
+                                       onChange={(ev) => mudarItem(e.chave, "observacao", ev.target.value)} />
+                              ) : <span className="ck2-obs__texto">{vazio(g?.observacao)}</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </section>
+        </div>
+
+        <div className="vd-corpo__lado">
+          <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Informações do Checklist</>}
+                  acao={<span className="vd-cartao-acao">{seloStatus}</span>}>
+            <Linhas linhas={saida ? [
+              ["calendar", "Data", data(c.data_abertura)],
+              ["historico", "Hora de saída", hora(c.hora_saida)],
+              ["user", "Motorista", c.condutor, c.matricula ? `Matrícula: ${c.matricula}` : null],
+              ["odometro", "Hodômetro de saída", `${numero(c.odometro_saida)} km`],
+              ["oc-local", "Local de saída", c.local_saida],
+            ] : [
+              ["calendar", "Data", c.data_devolucao ? data(c.data_devolucao) : null],
+              ["historico", "Hora de chegada", c.hora_chegada ? hora(c.hora_chegada) : null],
+              ["user", "Motorista", c.condutor, c.matricula ? `Matrícula: ${c.matricula}` : null],
+              ["odometro", "Hodômetro de chegada", c.odometro_chegada == null ? null : `${numero(c.odometro_chegada)} km`],
+              ["kpi-steering", "KM rodado", c.km_rodado == null ? null : `${numero(c.km_rodado)} km`],
+            ]} />
+          </Cartao>
+
+          <Cartao titulo={<><Icone nome="oc-local" tamanho={18} /> Rota / Percurso</>}>
+            <dl className="ck2-rota">
+              <div><dt>Percurso / atividade</dt><dd>{vazio(c.percurso)}</dd></div>
+              <div><dt>Setor do veículo</dt><dd>{vazio(c.setor)}</dd></div>
+              <div>
+                <dt>Observações do condutor {saida ? "na saída" : "na chegada"}</dt>
+                <dd className="ck2-rota__obs">{(saida ? c.observacoes : c.observacoes_chegada) || "Nenhuma observação registrada."}</dd>
+              </div>
+            </dl>
+          </Cartao>
+
+          <Cartao titulo={<><Icone nome="oc-camera" tamanho={18} /> Fotos do Veículo na {saida ? "Saída" : "Chegada"}</>}>
+            {fotosMomento.length === 0 ? <p className="pck-vazio">Nenhuma foto enviada {saida ? "na saída" : "na chegada"}.</p> : (
+              <div className="as-fotos">
+                {fotosMomento.map((f) => (
+                  <a key={f.id_foto} className="as-foto" href={f.url} target="_blank" rel="noreferrer">
+                    <img src={f.url} alt={`Foto do checklist ${f.id_foto}`} />
+                  </a>
+                ))}
+              </div>
+            )}
+            <p className="vd2-nota" style={{ marginTop: 8 }}>As fotos são enviadas pelo condutor no QR Code.</p>
+          </Cartao>
+
+          {podeEditar && !aguardando && (
+            <Cartao titulo={<><Icone nome="fisc-bolt" tamanho={18} /> Ações</>}>
+              {editando ? (
+                <div className="ck2-acoes">
+                  <button className="botao botao--primario" onClick={salvarEdicao} disabled={salvando}>
+                    <Icone nome="check" tamanho={15} monocromatico /> {salvando ? "Salvando..." : "Salvar correção"}
+                  </button>
+                  <button className="botao" onClick={() => { setEdicao(null); setErroEdicao(""); }} disabled={salvando}>
+                    <Icone nome="fechar" tamanho={14} /> Cancelar
+                  </button>
+                </div>
+              ) : (
+                <div className="ck2-acoes">
+                  <button className="botao botao--primario" onClick={() => comecarEdicao(momento)}>
+                    <Icone nome="editar" tamanho={15} monocromatico /> Corrigir itens
+                  </button>
+                  <button className="botao" onClick={() => setCorrigindo(true)}>
+                    <Icone nome="checklist" tamanho={15} /> Corrigir checklist completo
+                  </button>
+                </div>
+              )}
+            </Cartao>
+          )}
+        </div>
+      </div>
     );
   };
 
@@ -257,13 +516,7 @@ export default function ChecklistDetalhe() {
     <div className="ficha">
       <div className="cabecalho-pagina vd-cabecalho">
         <div>
-          <Trilha
-            itens={[
-              { rotulo: "Frotas" },
-              { rotulo: "Checklists", para: "/frotas/checklists" },
-              { rotulo: "Detalhes do Checklist" },
-            ]}
-          />
+          <Trilha itens={[{ rotulo: "Frotas" }, { rotulo: "Checklists", para: "/frotas/checklists" }, { rotulo: "Detalhes do Checklist" }]} />
           <div className="vd-titulo">
             <span className="vd-titulo__icone"><Icone nome="checklist" tamanho={26} /></span>
             <div>
@@ -284,21 +537,7 @@ export default function ChecklistDetalhe() {
         </div>
       </div>
 
-      <section className="vd-resumo">
-        <ResumoVeiculo v={c} />
-        <div className="vd-resumo__grade vd-resumo__grade--5">
-          <div className="vd-resumo__coluna"><Item rotulo="Setor">{vazio(c.setor)}</Item></div>
-          <div className="vd-resumo__coluna"><Item rotulo="Data do checklist">{saidaEm}</Item></div>
-          <div className="vd-resumo__coluna">
-            <Item rotulo="Motorista">{vazio(c.condutor)}</Item>
-            {c.matricula && <span className="vd-resumo__apoio">Matrícula: {c.matricula}</span>}
-          </div>
-          <div className="vd-resumo__coluna"><Item rotulo="Rota / Percurso">{vazio(c.percurso)}</Item></div>
-          <div className="vd-resumo__coluna">
-            <Item rotulo="Status">{semChegada ? <Selo texto="Em uso" tom="azul" /> : <Selo texto="Concluído" tom="verde" />}</Item>
-          </div>
-        </div>
-      </section>
+      <FaixaVeiculo v={v} dados={dadosFaixa} />
 
       <div className="abas vd-abas esconder-impressao" role="tablist">
         {ABAS.map((a) => (
@@ -313,93 +552,48 @@ export default function ChecklistDetalhe() {
       </div>
 
       {aba === "geral" && (
-        <>
-          <div className="ficha-2 ficha-bloco">
+        <div className="vd-corpo">
+          <div className="vd-corpo__principal ck2-grade">
             {cartaoSaida}
             {cartaoEntrada}
-          </div>
-
-          <div className="ficha-2 ficha-bloco">
-            <Cartao titulo={<><Icone nome="seta-direita" tamanho={18} /> Rota / Percurso</>}>
-              <p className="ficha-subtitulo">Percurso / atividade</p>
-              <p className="ck-destaque">{vazio(c.percurso)}</p>
-              <p className="ficha-subtitulo">Local de saída</p>
-              <p className="ck-destaque">{vazio(c.local_saida)}</p>
-              <p className="ficha-subtitulo">Setor do veículo</p>
-              <p className="ck-destaque">{vazio(c.setor)}</p>
-              {(c.observacoes || c.observacoes_chegada) && (
-                <div className="insp-nota insp-nota--pequena">
-                  <Icone nome="informacao" tamanho={14} />
-                  <span>{[c.observacoes && `Saída: ${c.observacoes}`, c.observacoes_chegada && `Chegada: ${c.observacoes_chegada}`].filter(Boolean).join(" · ")}</span>
-                </div>
-              )}
+            <Cartao titulo={<><Icone nome="oc-local" tamanho={18} /> Rota / Percurso</>}>
+              <dl className="ck2-rota">
+                <div><dt>Percurso / atividade</dt><dd>{vazio(c.percurso)}</dd></div>
+                <div><dt>Local de saída</dt><dd>{vazio(c.local_saida)}</dd></div>
+                <div><dt>Setor do veículo</dt><dd>{vazio(c.setor)}</dd></div>
+                {(c.observacoes || c.observacoes_chegada) && (
+                  <div>
+                    <dt>Observações do condutor</dt>
+                    <dd className="ck2-rota__obs">{[c.observacoes && `Saída: ${c.observacoes}`, c.observacoes_chegada && `Chegada: ${c.observacoes_chegada}`].filter(Boolean).join(" · ")}</dd>
+                  </div>
+                )}
+              </dl>
             </Cartao>
-
             <Cartao titulo={<><Icone nome="chart-line" tamanho={18} /> Resumo do Checklist</>}>
               <dl className="ck-resumo">
                 <div><dt>Total de itens</dt><dd>{totalItens}</dd></div>
                 <div><dt>Conforme</dt><dd><span className="ck-ponto" data-tom="verde" />{conformes} ({pct(conformes)}%)</dd></div>
                 <div><dt>Não conforme</dt><dd><span className="ck-ponto" data-tom="vermelho" />{naoConformes} ({pct(naoConformes)}%)</dd></div>
-                <div><dt>Não verificado</dt><dd><span className="ck-ponto" data-tom="cinza" />{naoVerificados} ({pct(naoVerificados)}%)</dd></div>
+                <div><dt>Não verificados</dt><dd><span className="ck-ponto" data-tom="cinza" />{naoVerificados} ({pct(naoVerificados)}%)</dd></div>
               </dl>
               <p className="vd2-nota">Quatro equipamentos conferidos na saída{semChegada ? "" : " e na chegada"}.</p>
             </Cartao>
           </div>
-
-          {/* Padrao do cartao de manutencao (08/10): titulo "Manutencao" e o
-              Abrir OS logo ao lado, igual na Inspecao. */}
-          <Cartao
-            className="cartao--acao-junto"
-            titulo={<><Icone nome="kpi-wrench" tamanho={18} /> Manutenção</>}
-            acao={podeOs && chamados.length === 0 && (
-              <button className="botao botao--primario botao--pequeno vd-cartao-acao" onClick={() => setAbrindoOs(true)}>
-                <Icone nome="kpi-wrench" tamanho={14} monocromatico /> Abrir OS
-              </button>
-            )}
-          >
-            {listaChamados}
-          </Cartao>
-        </>
-      )}
-
-      {aba === "saida" && (
-        <div className="ficha-2 ficha-bloco">
-          {cartaoSaida}
-          <Cartao titulo={<><Icone nome="informacao" tamanho={18} /> Dados da saída</>}>
-            {dadosMomento("SAIDA")}
-            <p className="ficha-subtitulo" style={{ marginTop: 12 }}>Fotos na saída</p>
-            {galeria("SAIDA")}
-          </Cartao>
+          <div className="vd-corpo__lado">
+            {cartaoStatus}
+            {cartaoManutencao}
+            {cartaoUltimos}
+          </div>
         </div>
       )}
 
-      {aba === "entrada" && (
-        <div className="ficha-2 ficha-bloco">
-          {cartaoEntrada}
-          <Cartao titulo={<><Icone nome="informacao" tamanho={18} /> Dados da entrada</>}>
-            {semChegada ? <p className="texto-corrido">Aguardando a chegada do veículo.</p> : (
-              <>
-                {dadosMomento("CHEGADA")}
-                <p className="ficha-subtitulo" style={{ marginTop: 12 }}>Fotos na entrada</p>
-                {galeria("CHEGADA")}
-              </>
-            )}
-          </Cartao>
-        </div>
-      )}
+      {aba === "saida" && subAba("SAIDA")}
+      {aba === "entrada" && subAba("CHEGADA")}
 
       {aba === "manutencao" && (
-        <Cartao
-          className="cartao--acao-junto"
-          titulo={<><Icone nome="kpi-wrench" tamanho={18} /> Manutenção</>}
-          acao={podeOs && chamados.length === 0 && (
-            <button className="botao botao--primario botao--pequeno vd-cartao-acao" onClick={() => setAbrindoOs(true)}>
-              <Icone nome="kpi-wrench" tamanho={14} monocromatico /> Abrir OS
-            </button>
-          )}
-        >
-          {listaChamados}
-        </Cartao>
+        <AbaManutencoesVeiculo veiculo={v} podeGerenciar={podeOs} aoMudar={recarregar} checklist={{ id: c.id_checklist }}
+          caminho={`/frotas/manutencoes?origem=CHECKLIST_FROTAS&registroOrigem=${c.id_checklist}`}
+          vazio="Nenhuma manutenção aberta a partir deste checklist." />
       )}
 
       {aba === "historico" && (
@@ -425,14 +619,10 @@ export default function ChecklistDetalhe() {
         </div>
       )}
 
-      {abrindoOs && (
-        <RegistrarOs idVeiculo={String(c.id_veiculo)} aoFechar={() => setAbrindoOs(false)}
-                     aoSalvar={() => setRecarga((n) => n + 1)} />
-      )}
       {corrigindo && (
-        <CorrigirChecklist checklist={c} aoFechar={() => setCorrigindo(false)}
-                           aoSalvar={() => setRecarga((n) => n + 1)} />
+        <CorrigirChecklist checklist={c} aoFechar={() => setCorrigindo(false)} aoSalvar={recarregar} />
       )}
+      {modalSenha}
     </div>
   );
 }

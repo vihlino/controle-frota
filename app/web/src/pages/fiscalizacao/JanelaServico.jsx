@@ -21,6 +21,7 @@ import { data, hora } from "../../lib/formato.js";
 import { reduzirImagem, pesoLegivel } from "../../lib/imagem.js";
 import { rotuloCategoria } from "../../lib/ocorrencias.js";
 import { TURNOS_EQUIPE } from "./Equipes.jsx";
+import TituloSecao from "../../components/TituloSecao.jsx";
 
 // Os valores que a tabela `servico_diario` aceita (chk_servico_turno).
 export const TURNOS_SERVICO = [
@@ -233,7 +234,7 @@ export default function JanelaServico({ idServicoEquipe, aoFechar, aoSalvar }) {
         {erro && <div className="login__erro">{erro}</div>}
         {carregando ? <div className="carregando">Carregando...</div> : (
           <form id="form-servico" className="formulario-grade" onSubmit={salvar}>
-            <h3 className="formulario__secao">Informações do Serviço</h3>
+            <TituloSecao>Informações do Serviço</TituloSecao>
             <Data rotulo="Data *" id="sd-data" required disabled={travado} {...campo("data")} />
             <Selecao rotulo="Turno *" id="sd-turno" required vazio="Selecione" disabled={travado}
                      opcoes={TURNOS_SERVICO} {...campo("turno")} />
@@ -248,9 +249,9 @@ export default function JanelaServico({ idServicoEquipe, aoFechar, aoSalvar }) {
                      opcoes={servidores.map((x) => ({ valor: String(x.id_servidor), rotulo: `${x.nome}${x.matricula ? ` (${x.matricula})` : ""}` }))}
                      {...campo("id_coordenador")} ajuda="O coordenador do serviço muda todo dia." />
 
-            <h3 className="formulario__secao">
+            <TituloSecao>
               Ocorrências <small className="sd-oc-conta">{form.ocorrencias.length} selecionada{form.ocorrencias.length === 1 ? "" : "s"}</small>
-            </h3>
+            </TituloSecao>
             <div className="campo" data-largo="sim">
               <input className="campo__input" placeholder="Buscar por protocolo, descrição, local ou equipe" value={busca}
                      onChange={(e) => setBusca(e.target.value)} aria-label="Buscar ocorrência" />
@@ -279,14 +280,14 @@ export default function JanelaServico({ idServicoEquipe, aoFechar, aoSalvar }) {
               <small className="campo__ajuda">Aparecem todas as ocorrências que não foram finalizadas. A que estiver com outra equipe passa para esta.</small>
             </div>
 
-            <h3 className="formulario__secao">Equipe de Apoio <small>(opcional)</small></h3>
+            <TituloSecao>Equipe de Apoio <small>(opcional)</small></TituloSecao>
             <Selecao rotulo="Equipe de apoio" id="sd-apoio" vazio="Sem apoio" largo opcoes={opcoesApoio} {...campo("id_equipe_apoio")} />
 
-            <h3 className="formulario__secao">Observações <small>(opcional)</small></h3>
+            <TituloSecao>Observações <small>(opcional)</small></TituloSecao>
             <Area rotulo="Observações" id="sd-obs" largo rows={3} maxLength={1000} placeholder="Ex.: operação no centro com reforço"
                   {...campo("observacoes")} />
 
-            <h3 className="formulario__secao">Fotos <small>(opcional)</small></h3>
+            <TituloSecao>Fotos <small>(opcional)</small></TituloSecao>
             <div className="campo" data-largo="sim">
               {(fotosSalvas.length > 0 || fotos.length > 0) && (
                 <div className="qr-fotos">

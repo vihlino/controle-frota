@@ -17,22 +17,28 @@
  * Se dois KPIs lado a lado tem o mesmo tom, provavelmente um deles esta
  * errado: a cor perde a funcao quando se repete sem motivo.
  */
+import { Link } from "react-router-dom";
 import Icone from "./Icone.jsx";
 import { numero } from "../lib/formato.js";
 
-const TONS = ["neutro", "verde", "vermelho", "ambar", "azul", "roxo", "marca"];
+const TONS = ["neutro", "verde", "vermelho", "ambar", "azul", "roxo", "marca", "laranja"];
 
-export default function Kpi({ icone, rotulo, valor, nota, tom = "neutro" }) {
+/*
+ * 29/10 (desenho do Cesar): `para` faz o cartao virar link (com a seta no
+ * canto) e `barra` (0 a 100) desenha a barrinha de proporcao embaixo.
+ */
+export default function Kpi({ icone, rotulo, valor, nota, tom = "neutro", para, barra }) {
   if (import.meta.env.DEV && !TONS.includes(tom)) {
     console.warn(
       `Kpi "${rotulo}": tom "${tom}" nao existe. Use um de: ${TONS.join(", ")}.`
     );
   }
 
+  const Casca = para ? Link : "div";
   return (
-    <div className="cartao kpi">
+    <Casca className={`cartao kpi${para ? " kpi--link" : ""}${barra != null ? " kpi--barra" : ""}`} {...(para ? { to: para } : {})}>
       <span className="kpi__icone" data-tom={tom}>
-        <Icone nome={icone} tamanho={24} />
+        <Icone nome={icone} tamanho={26} monocromatico />
       </span>
       <div>
         <div className="kpi__rotulo">{rotulo}</div>
@@ -41,6 +47,10 @@ export default function Kpi({ icone, rotulo, valor, nota, tom = "neutro" }) {
         </div>
         {nota && <div className="kpi__nota">{nota}</div>}
       </div>
-    </div>
+      {para && <span className="kpi__seta"><Icone nome="chevron-right" tamanho={14} /></span>}
+      {barra != null && (
+        <span className="kpi__barra" data-tom={tom}><span style={{ width: `${Math.max(0, Math.min(100, barra))}%` }} /></span>
+      )}
+    </Casca>
   );
 }

@@ -9,6 +9,11 @@
  * Do desenho saiu o que o checklist da Fiscalizacao nao tem: itens "conforme
  * / nao conforme", fotos, area de atuacao, pontos fiscalizados e percurso.
  * Editar abre a correcao do checklist (senha e justificativa), aqui mesmo.
+ *
+ * 29/10 (desenho do Cesar): faixa da viatura com a foto e as abas Visao
+ * Geral, Checklist de Saida, Ocorrencias, Checklist de Entrada, Manutencao
+ * (a mesma tela da aba Manutencoes do veiculo, so com as OS abertas neste
+ * checklist pelo QR Code), Pontuacao e Historico.
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
@@ -17,6 +22,10 @@ import Icone from "../../components/Icone.jsx";
 import Trilha from "../../components/Trilha.jsx";
 import Selo from "../../components/Selo.jsx";
 import JanelaCadastro from "../../components/JanelaCadastro.jsx";
+import FaixaVeiculo from "../../components/FaixaVeiculo.jsx";
+import AbaRegistros from "../../components/AbaRegistros.jsx";
+import { PainelOcorrencia } from "../../components/PaineisRegistro.jsx";
+import { AbaManutencoesVeiculo } from "../../components/AbasVeiculo.jsx";
 import { Tabela, Abas } from "../../components/FichaTabela.jsx";
 import { api, apiArquivo } from "../../lib/api.js";
 import { data, dataHora, hora, numero } from "../../lib/formato.js";
@@ -127,10 +136,65 @@ export default function ChecklistFiscDetalhe() {
 
   const ABAS = [
     { chave: "geral", rotulo: "Visão Geral", icone: "checklist" },
+    { chave: "saida", rotulo: "Checklist de Saída", icone: "arrow-up" },
     { chave: "ocorrencias", rotulo: "Ocorrências", icone: "fisc-ocorrencias", total: c.ocorrencias.length },
+    { chave: "entrada", rotulo: "Checklist de Entrada", icone: "seta-baixo" },
+    { chave: "manutencao", rotulo: "Manutenção", icone: "kpi-wrench", total: (c.os || []).length || undefined },
     vePontos && { chave: "pontuacao", rotulo: "Pontuação", icone: "fisc-bolt", total: c.pontuacao.length },
     { chave: "historico", rotulo: "Histórico", icone: "historico" },
   ].filter(Boolean);
+  const fotosDe = (m) => (c.fotos || []).filter((f) => f.momento === m);
+  const veiculoFaixa = { id_veiculo: c.id_veiculo, placa: c.placa, marca: c.marca, modelo: c.modelo, foto_em: c.foto_em };
+  const etapaSaida = (
+    <Etapa titulo="Checklist de Saída" feito chave="saida" equipamentos={c.equipamentos}
+           quando={`em ${data(c.data_abertura)} ${c.hora_saida ? hora(c.hora_saida) : ""}`}
+           rodape={[
+             { icone: "odometro", rotulo: "Hodômetro de saída", valor: `${numero(c.odometro_saida)} km` },
+             { icone: "calendar", rotulo: "Hora da saída (informada)", valor: c.hora_saida ? hora(c.hora_saida) : "—" },
+             { icone: "historico", rotulo: "Registrada no sistema", valor: c.saida_registrada_em ? dataHora(c.saida_registrada_em) : "—" },
+           ]} />
+  );
+  const etapaChegada = (
+    <Etapa titulo="Checklist de Chegada" feito={finalizado} chave="chegada" equipamentos={c.equipamentos}
+           quando={c.data_finalizacao ? `em ${dataHora(c.data_finalizacao)}` : ""}
+           rodape={[
+             { icone: "odometro", rotulo: "Hodômetro de chegada", valor: c.odometro_chegada != null ? `${numero(c.odometro_chegada)} km` : "—" },
+             { icone: "calendar", rotulo: "Hora da chegada (informada)", valor: c.hora_chegada ? hora(c.hora_chegada) : "—" },
+             { icone: "historico", rotulo: "Registrada no sistema", valor: c.chegada_registrada_em ? dataHora(c.chegada_registrada_em) : "—" },
+             { icone: "kpi-steering", rotulo: "KM rodado", valor: c.km_rodado != null ? `${numero(c.km_rodado)} km` : "—" },
+           ]} />
+  );
+  const subAba = (saida) => (
+    <div className="vd-corpo">
+      <div className="vd-corpo__principal">{saida ? etapaSaida : etapaChegada}</div>
+      <div className="vd-corpo__lado">
+        <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Informações do Checklist</>}
+                acao={<span className="vd-cartao-acao"><Selo valor={c.status} /></span>}>
+          <Linhas linhas={saida ? [
+            ["Data", data(c.data_abertura)],
+            ["Hora de saída", c.hora_saida ? hora(c.hora_saida) : null],
+            ...c.fiscais.map((f) => [PAPEL[f.tipo] || f.tipo, `${f.nome} (${f.matricula})`]),
+            ["Hodômetro de saída", `${numero(c.odometro_saida)} km`],
+            ["Equipe", c.equipe],
+          ] : [
+            ["Data", c.data_finalizacao ? data(c.data_finalizacao) : null],
+            ["Hora de chegada", c.hora_chegada ? hora(c.hora_chegada) : null],
+            ["Hodômetro de chegada", c.odometro_chegada != null ? `${numero(c.odometro_chegada)} km` : null],
+            ["KM rodado", c.km_rodado != null ? `${numero(c.km_rodado)} km` : null],
+            ["Equipe", c.equipe],
+          ]} />
+        </Cartao>
+        <Cartao titulo={<><Icone nome="arquivo-texto" tamanho={18} /> Observações</>}>
+          <Linhas linhas={saida ? [["Da saída", c.observacoes], ["Da equipe", c.observacoes_equipe]] : [["Da chegada", c.observacoes_chegada]]} />
+        </Cartao>
+        <Cartao titulo={<><Icone nome="oc-camera" tamanho={18} /> Fotos da Viatura na {saida ? "Saída" : "Chegada"}</>}>
+          {fotosDe(saida ? "SAIDA" : "CHEGADA").length
+            ? <FotosChecklist fotos={fotosDe(saida ? "SAIDA" : "CHEGADA")} />
+            : <p className="pck-vazio">Nenhuma foto enviada {saida ? "na saída" : "na chegada"}.</p>}
+        </Cartao>
+      </div>
+    </div>
+  );
 
   const COL_OCORRENCIA = [
     { rotulo: "Protocolo", render: (o) => o.protocolo || "—" },
@@ -173,66 +237,27 @@ export default function ChecklistFiscDetalhe() {
         </div>
       </div>
 
-      <section className="vd-resumo sd-resumo">
-        <div className="sd-pessoa">
-          <span className="sd-avatar eq-avatar" aria-hidden="true"><Icone nome="checklist" tamanho={40} /></span>
-          <div className="sd-pessoa__dados">
-            <span className="vd-resumo__rotulo">Checklist</span>
-            <span className="sd-pessoa__nome"><strong>{data(c.data_abertura)}</strong><Selo valor={c.status} /></span>
-            <span className="sd-pessoa__linha">
-              {c.equipe ? <>Equipe <strong>{c.equipe}</strong></> : "Sem equipe"}
-              {c.servico_data && <>
-                <span className="sd-sep">|</span>
-                Serviço: <strong>{c.servico_codigo ? `${c.servico_codigo} · ` : ""}{data(c.servico_data)} · {TURNO[c.servico_turno] || c.servico_turno}</strong>
-              </>}
-            </span>
-          </div>
-        </div>
-        <div className="vd-resumo__grade vd-resumo__grade--4">
-          <div className="vd-resumo__coluna">
-            <Item rotulo="Viatura">
-              <span className="celula-dupla sd-esquerda"><strong>{c.placa}</strong><span>{c.marca} {c.modelo}</span></span>
-            </Item>
-          </div>
-          <div className="vd-resumo__coluna">
-            <Item rotulo="Fiscais">
-              {c.fiscais.length
-                ? <span className="celula-lista sd-esquerda">{c.fiscais.map((f) => <span key={f.id_servidor}>{f.nome}</span>)}</span>
-                : "—"}
-            </Item>
-          </div>
-          <div className="vd-resumo__coluna">
-            <Item rotulo="Data do checklist">
-              <span className="celula-dupla sd-esquerda"><strong>{data(c.data_abertura)}</strong><span>{horario}</span></span>
-            </Item>
-          </div>
-          <div className="vd-resumo__coluna">
-            <Item rotulo="KM rodado">{c.km_rodado !== null && c.km_rodado !== undefined ? `${numero(c.km_rodado)} km` : "—"}</Item>
-          </div>
-        </div>
-      </section>
+      <FaixaVeiculo
+        v={{ id_veiculo: c.id_veiculo, placa: c.placa, marca: c.marca, modelo: c.modelo, tipo_veiculo: c.tipo_veiculo,
+             tipo_combustivel: c.tipo_combustivel, ano_fabricacao: c.ano_fabricacao, ano_modelo: c.ano_modelo,
+             veiculo_status: c.veiculo_status, foto_em: c.foto_em }}
+        dados={[
+          { icone: "equipe", rotulo: "Equipe", valor: c.equipe || "Sem equipe",
+            apoio: c.servico_data ? `${c.servico_codigo ? `${c.servico_codigo} · ` : ""}${TURNO[c.servico_turno] || c.servico_turno || ""}` : null },
+          { icone: "user", rotulo: "Fiscais", valor: c.fiscais.length ? c.fiscais[0].nome : "—",
+            apoio: c.fiscais[1] ? c.fiscais[1].nome : null },
+          { icone: "calendar", rotulo: "Data do checklist", valor: data(c.data_abertura), apoio: horario },
+          { icone: "odometro", rotulo: "KM rodado", valor: c.km_rodado != null ? `${numero(c.km_rodado)} km` : "—" },
+          { icone: "concluidas", rotulo: "Status", valor: <Selo valor={c.status} /> },
+        ]} />
 
       <Abas abas={ABAS} ativa={aba} aoMudar={setAba} />
 
       {aba === "geral" && (
         <>
           <div className="ficha-2 ficha-bloco">
-            <Etapa titulo="Checklist de Saída" feito chave="saida" equipamentos={c.equipamentos}
-                   quando={`em ${data(c.data_abertura)} ${c.hora_saida ? hora(c.hora_saida) : ""}`}
-                   rodape={[
-                     { icone: "odometro", rotulo: "Hodômetro de saída", valor: `${numero(c.odometro_saida)} km` },
-                     { icone: "calendar", rotulo: "Hora da saída (informada)", valor: c.hora_saida ? hora(c.hora_saida) : "—" },
-                     // Hora real do envio, gravada pelo sistema (migracao 048).
-                     { icone: "historico", rotulo: "Registrada no sistema", valor: c.saida_registrada_em ? dataHora(c.saida_registrada_em) : "—" },
-                   ]} />
-            <Etapa titulo="Checklist de Chegada" feito={finalizado} chave="chegada" equipamentos={c.equipamentos}
-                   quando={c.data_finalizacao ? `em ${dataHora(c.data_finalizacao)}` : ""}
-                   rodape={[
-                     { icone: "odometro", rotulo: "Hodômetro de chegada", valor: c.odometro_chegada != null ? `${numero(c.odometro_chegada)} km` : "—" },
-                     { icone: "calendar", rotulo: "Hora da chegada (informada)", valor: c.hora_chegada ? hora(c.hora_chegada) : "—" },
-                     { icone: "historico", rotulo: "Registrada no sistema", valor: c.chegada_registrada_em ? dataHora(c.chegada_registrada_em) : "—" },
-                     { icone: "kpi-steering", rotulo: "KM rodado", valor: c.km_rodado != null ? `${numero(c.km_rodado)} km` : "—" },
-                   ]} />
+            {etapaSaida}
+            {etapaChegada}
           </div>
 
           <div className="ficha-2 ficha-bloco">
@@ -299,15 +324,33 @@ export default function ChecklistFiscDetalhe() {
         </>
       )}
 
+      {aba === "saida" && subAba(true)}
+      {aba === "entrada" && subAba(false)}
+
       {aba === "ocorrencias" && (
-        <Cartao titulo={<><Icone nome="fisc-ocorrencias" tamanho={18} /> Ocorrências atendidas</>}>
-          <Tabela linhas={c.ocorrencias} colunas={COL_OCORRENCIA} aoAbrir={abrirOcorrencia}
-                  vazio="A equipe não atendeu ocorrência neste serviço." />
-        </Cartao>
+        <AbaRegistros
+          titulo="Lista de Ocorrências" icone="fisc-ocorrencias" placeholder="Buscar por protocolo, descrição..."
+          linhas={c.ocorrencias} textoBusca={(o) => [o.protocolo, o.descricao, o.endereco].join(" ")}
+          chave={(o) => o.id_ocorrencia} unidade="ocorrências" vazio="A equipe não atendeu ocorrência neste serviço."
+          colunas={COL_OCORRENCIA}
+          acoes={(o) => [{ rotulo: "Abrir em Ocorrências", icone: "visualizar", aoClicar: () => abrirOcorrencia(o) }]}
+          painel={(o, { fechar }) => <PainelOcorrencia linha={{ ...o, equipe: c.equipe }} veiculo={veiculoFaixa} aoFechar={fechar}
+                                                       destino={`/fiscalizacao/ocorrencias/${o.id_ocorrencia}`} />} />
+      )}
+
+      {aba === "manutencao" && (
+        <AbaManutencoesVeiculo veiculo={veiculoFaixa} fiscalizacao podeGerenciar={podeVer("FROTAS_GERENCIAR_OS")} podeNovo={false}
+          caminho={`/frotas/manutencoes?origem=CHECKLIST_FISCALIZACAO&registroOrigem=${c.id_checklist}`}
+          vazio="Nenhuma OS aberta pela equipe neste checklist." />
       )}
 
       {aba === "pontuacao" && vePontos && (
-        <Cartao titulo={<><Icone nome="fisc-bolt" tamanho={18} /> Pontuação</>}>
+        <Cartao titulo={<><Icone nome="fisc-bolt" tamanho={18} /> Pontuação</>}
+                acao={<span className="cf-pontos vd-cartao-acao">
+                  <span>Positivos <Pontos valor={positivos} /></span>
+                  <span>Penalidades <Pontos valor={negativos} /></span>
+                  <span>Final <Pontos valor={positivos + negativos} /></span>
+                </span>}>
           <Tabela linhas={c.pontuacao} colunas={COL_PONTOS} vazio="Nenhum ponto lançado." />
         </Cartao>
       )}

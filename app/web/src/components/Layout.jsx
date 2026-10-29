@@ -34,6 +34,7 @@ export default function Layout() {
         <Topo
           titulo={cabecalho.titulo}
           legenda={cabecalho.legenda}
+          icone={cabecalho.icone}
           aoAlternarMenu={() => setMenuAberto((v) => !v)}
         />
         <main className="pagina">

@@ -729,6 +729,8 @@ export const manutencoes = criarCrud({
     servidor: "COALESCE(ordem_servico.id_servidor_solicitante, u_sol.id_servidor)",
     tipo: "ordem_servico.tipo", gravidade: "ordem_servico.gravidade",
     origem: "ordem_servico.origem",
+    // Aba Manutencao dos Detalhes do Checklist (29/10): as OS daquele registro.
+    registroOrigem: "ordem_servico.id_registro_origem",
     // Tela de Manutencoes da Fiscalizacao: so as viaturas.
     viatura: "veiculo.viatura",
     dataDe: "ordem_servico.data_abertura", dataAte: "ordem_servico.data_abertura",
@@ -925,6 +927,25 @@ manutencoes.post(
         }
       }
 
+      /*
+       * OS aberta pela aba Manutencao dos Detalhes do Checklist (29/10): nasce
+       * ligada ao checklist (origem CHECKLIST_FROTAS), como o chamado que o
+       * condutor abre pelo QR Code.
+       */
+      const idChecklist = !insp && req.body?.id_checklist ? Number(req.body.id_checklist) : null;
+      if (idChecklist) {
+        const { rows: ck } = await cliente.query(
+          "SELECT id_veiculo FROM checklist_frotas WHERE id_checklist = $1", [idChecklist]);
+        if (!ck[0]) {
+          await cliente.query("ROLLBACK");
+          return res.status(404).json({ erro: "Checklist não encontrado." });
+        }
+        if (Number(ck[0].id_veiculo) !== dados.id_veiculo) {
+          await cliente.query("ROLLBACK");
+          return res.status(400).json({ erro: "A OS precisa ser do mesmo veículo do checklist." });
+        }
+      }
+
       const { rows } = await cliente.query(
         `INSERT INTO ordem_servico
            (id_veiculo, origem, id_registro_origem, gravidade, id_solicitante, tipo, status,
@@ -937,7 +958,8 @@ manutencoes.post(
          dados.oficina, dados.responsavel_oficina, dados.telefone_oficina, dados.descricao,
          dados.custo_estimado, dados.prazo_previsto, dados.pecas_necessarias, dados.observacoes,
          dados.quilometragem ?? v[0].quilometragem_atual,
-         insp ? "INSPECAO" : solicitacao ? "FISCALIZACAO" : "FROTAS", insp ? idInspecao : null,
+         insp ? "INSPECAO" : idChecklist ? "CHECKLIST_FROTAS" : solicitacao ? "FISCALIZACAO" : "FROTAS",
+         insp ? idInspecao : idChecklist,
          solicitacao ? "PENDENTE" : "EM_ANALISE", dados.data_ocorrido]
       );
       await gravarItensOs(cliente, rows[0].id_os, itens);

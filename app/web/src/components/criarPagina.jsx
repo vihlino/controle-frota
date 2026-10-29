@@ -25,6 +25,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import PaginaLista from "./PaginaLista.jsx";
+import TituloSecao from "./TituloSecao.jsx";
 import Icone from "./Icone.jsx";
 import Modal from "./Modal.jsx";
 import Acoes from "./Acoes.jsx";
@@ -590,7 +591,7 @@ export default function criarPagina(config) {
                 )
                 .map((c, i) =>
                   c.secao ? (
-                    <h3 className="formulario__secao" key={`secao-${i}`}>{c.secao}</h3>
+                    <TituloSecao key={`secao-${i}`}>{c.secao}</TituloSecao>
                   ) : (
                     renderCampo(c, formulario, (nome, valor) =>
                       setFormulario((f) => {

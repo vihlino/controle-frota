@@ -10,16 +10,23 @@
  * codigo e valor por peca, mao de obra separada, Exportar PDF. As pecas sao
  * as linhas do texto "pecas necessarias" (registro) e "pecas trocadas"
  * (fechamento). Editar abre o pop-up do Registro; Fechar OS, o do fechamento.
+ *
+ * 29/10 (desenho do Cesar): faixa do veiculo com a foto; abas Visao Geral,
+ * Servicos e Pecas, Custos, Historico e Documentos e Fotos (anexos da OS,
+ * migracao 053); "Informacoes Adicionais" com a ultima OS fechada do veiculo e
+ * a proxima manutencao. Fica de fora: custo separado de servicos e de pecas e
+ * o KM previsto para a proxima (o SITRA nao guarda).
  */
 import { useEffect, useState } from "react";
-import { useLocation, useOutletContext, useParams, useNavigate } from "react-router-dom";
+import { useLocation, useOutletContext, useParams, useNavigate, useSearchParams } from "react-router-dom";
 import Cartao from "../../components/Cartao.jsx";
 import Icone from "../../components/Icone.jsx";
 import Trilha from "../../components/Trilha.jsx";
 import Selo from "../../components/Selo.jsx";
 import RegistrarOs from "../../components/RegistrarOs.jsx";
 import FecharOs from "../../components/FecharOs.jsx";
-import ResumoVeiculo from "../../components/ResumoVeiculo.jsx";
+import FaixaVeiculo from "../../components/FaixaVeiculo.jsx";
+import AnexosRegistro from "../../components/AnexosRegistro.jsx";
 import HistoricoAuditoria from "../../components/HistoricoAuditoria.jsx";
 import { api } from "../../lib/api.js";
 import { data, dataHora, dinheiro, numero, numeroOs, rotulo } from "../../lib/formato.js";
@@ -89,6 +96,15 @@ export default function ManutencaoDetalhe() {
   const [recarga, setRecarga] = useState(0);
   const [editando, setEditando] = useState(false);
   const [fechando, setFechando] = useState(false);
+  const [veiculo, setVeiculo] = useState(null);
+  const [anteriores, setAnteriores] = useState(null);
+  const [parametros, definirParametros] = useSearchParams();
+  const aba = parametros.get("aba") || "geral";
+  const setAba = (chave) => {
+    const p = new URLSearchParams(parametros);
+    if (chave === "geral") p.delete("aba"); else p.set("aba", chave);
+    definirParametros(p, { replace: true });
+  };
 
   useEffect(() => {
     definirCabecalho({ titulo: "", legenda: "" });
@@ -97,6 +113,16 @@ export default function ManutencaoDetalhe() {
   useEffect(() => {
     api(`/frotas/manutencoes/${id}`).then(setOs).catch((e) => setErro(e.message));
   }, [id, recarga]);
+
+  // Veiculo (foto) e as OS fechadas antes desta, para "Informacoes adicionais".
+  const idVeiculo = os?.id_veiculo;
+  useEffect(() => {
+    if (!idVeiculo) return;
+    api(`/frotas/veiculos/${idVeiculo}`).then(setVeiculo).catch(() => {});
+    api(`/frotas/manutencoes?veiculo=${idVeiculo}&status=RESOLVIDA&porPagina=5`)
+      .then((r) => setAnteriores((r?.itens || []).filter((o) => String(o.id_os) !== String(id))))
+      .catch(() => setAnteriores([]));
+  }, [idVeiculo, id, recarga]);
 
   const recarregar = () => setRecarga((n) => n + 1);
 
@@ -139,6 +165,185 @@ export default function ManutencaoDetalhe() {
     os.observacoes_fechamento && { autor: os.fechada_por_nome, papel: "Fechamento da OS", quando: data(os.data_fechamento), texto: os.observacoes_fechamento },
   ].filter(Boolean);
 
+  const podeArquivos = podeVer("FROTAS_GERENCIAR_OS");
+  const ultima = (anteriores || [])[0] || null;
+  const ABAS = [
+    { chave: "geral", rotulo: "Visão Geral", icone: "informacao" },
+    { chave: "servicos", rotulo: "Serviços e Peças", icone: "kpi-wrench", total: (servicos.length + pecas.length) || undefined },
+    { chave: "custos", rotulo: "Custos", icone: "dinheiro" },
+    { chave: "historico", rotulo: "Histórico", icone: "historico" },
+    { chave: "arquivos", rotulo: "Documentos e Fotos", icone: "documentos" },
+  ];
+  const botaoEditar = (rotuloBotao = "Editar", aoClicar = () => setEditando(true)) => podeGerenciar && os.status !== "CANCELADA" && (
+    <button className="botao botao--pequeno vd-cartao-acao" onClick={aoClicar}>
+      <Icone nome={rotuloBotao === "Editar" ? "editar" : "mais"} tamanho={13} /> {rotuloBotao}
+    </button>
+  );
+  const editarItens = () => (fechada ? setFechando(true) : setEditando(true));
+
+  const cartaoInformacoes = (
+    <Cartao titulo={<><Icone nome="informacao" tamanho={18} /> Informações da OS</>} acao={botaoEditar()}>
+      <Linhas
+        linhas={[
+          ["Número da OS", numeroOs(os.numero)],
+          ["Tipo de manutenção", <Selo key="t" texto={rotulo("tipoOs", os.tipo)} tom="azul" />],
+          ["Data de abertura", dataHora(os.data_abertura)],
+          ["Data do ocorrido", os.data_ocorrido ? data(os.data_ocorrido) : null],
+          ["Origem", origem.link && os.id_registro_origem ? (
+            <button type="button" className="selo selo--link" data-tom="azul"
+                    onClick={() => navegar(origem.link(os.id_registro_origem))}>{origem.texto}</button>
+          ) : <Selo key="o" texto={origem.texto} tom="azul" />],
+          ["Setor", os.setor],
+          ["Responsável pela OS", os.solicitante],
+          ["Oficina responsável", [os.oficina, os.responsavel_oficina, os.telefone_oficina].filter(Boolean).join(" · ")],
+          ["Previsão de conclusão", os.prazo_previsto ? data(os.prazo_previsto) : os.data_agendada ? `Agendada para ${data(os.data_agendada)}` : null],
+          ["Prioridade", <Selo key="p" texto={rotulo("gravidade", os.gravidade)} tom={TOM_PRIORIDADE[os.gravidade]} />],
+          ["Status", <Selo key="s" valor={os.status} />],
+          ["KM atual (no registro)", os.quilometragem != null ? `${numero(os.quilometragem)} km` : null],
+          ...(fechada ? [
+            ["Fechada em", `${data(os.data_fechamento)}${os.fechada_por_nome ? ` por ${os.fechada_por_nome}` : ""}`],
+            ["KM no fechamento", os.km_fechamento != null ? `${numero(os.km_fechamento)} km` : null],
+          ] : []),
+        ]}
+      />
+    </Cartao>
+  );
+
+  const cartaoDescricao = (
+    <Cartao titulo={<><Icone nome="arquivo-texto" tamanho={18} /> Descrição do Problema</>} acao={botaoEditar()}>
+      <p className="ficha-subtitulo">Descrição informada no registro</p>
+      <p className="ficha-texto os-caixa">{os.descricao || "Sem descrição."}</p>
+      {fechada && (
+        <>
+          <p className="ficha-subtitulo">Serviço realizado (fechamento)</p>
+          <p className="ficha-texto os-caixa">{os.servico_realizado || "—"}</p>
+        </>
+      )}
+      {!fechada && aberta && podeGerenciar && !pendente && (
+        <div className="insp-nota insp-nota--pequena">
+          <Icone nome="informacao" tamanho={14} />
+          <span>Quando o serviço voltar da oficina, use <strong>Fechar OS</strong> para registrar o que foi feito.</span>
+        </div>
+      )}
+      {pendente && (
+        <div className="insp-nota insp-nota--pequena">
+          <Icone nome="informacao" tamanho={14} />
+          <span>{podeGerenciar
+            ? <>Solicitada pela Fiscalização. Use <strong>Completar OS</strong> para informar a oficina, o responsável e o custo.</>
+            : "Solicitação enviada ao Frotas. A OS segue para a oficina quando o Frotas completar o registro."}</span>
+        </div>
+      )}
+    </Cartao>
+  );
+
+  const cartaoStatus = (
+    <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Status da OS</>}>
+      <ol className="etapas">
+        {etapasDaOs(os).map((e) => (
+          <li key={e.titulo} data-estado={e.estado}>
+            <span className="etapas__ponto">{e.estado === "feito" ? "✓" : e.estado === "cancelado" ? "×" : ""}</span>
+            <div className="etapas__texto">
+              <strong>{e.titulo}</strong>
+              {e.quando && <span>{e.quando}</span>}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </Cartao>
+  );
+
+  const cartaoServicos = (
+    <Cartao titulo={<><Icone nome="kpi-wrench" tamanho={18} /> Serviços Realizados</>} acao={botaoEditar("Adicionar serviço", editarItens)}>
+      <div className="rolagem-x">
+        <table className="tabela vd-tabela tabela-ficha os-tabela">
+          <thead><tr><th>#</th><th>Serviço</th><th>Tipo</th><th>Status</th></tr></thead>
+          <tbody>
+            {servicos.length === 0 ? (
+              <tr><td colSpan={4}><div className="os-vazio"><Icone nome="kpi-wrench" tamanho={26} monocromatico /> Nenhum serviço listado.</div></td></tr>
+            ) : servicos.map((sv, n) => (
+              <tr key={n}>
+                <td>{n + 1}</td>
+                <td className="coluna-flexivel"><span className="celula-cortada" title={[sv.descricao, sv.observacao].filter(Boolean).join(" — ")}>{sv.descricao}</span></td>
+                <td>{sv.tipo}</td>
+                <td>{sv.feito ? <Selo texto="Concluído" tom="verde" /> : os.status === "EM_MANUTENCAO" ? <Selo texto="Em andamento" tom="azul" /> : <Selo texto="Pendente" tom="amarelo" />}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Cartao>
+  );
+
+  const cartaoPecas = (
+    <Cartao titulo={<><Icone nome="eq-chave-roda" tamanho={18} /> Peças Utilizadas</>} acao={botaoEditar("Adicionar peça", editarItens)}>
+      <div className="rolagem-x">
+        <table className="tabela vd-tabela tabela-ficha os-tabela">
+          <thead><tr><th>#</th><th>Peça</th><th>Momento</th><th>Status</th></tr></thead>
+          <tbody>
+            {pecas.length === 0 ? (
+              <tr><td colSpan={4}><div className="os-vazio"><Icone nome="camadas" tamanho={26} monocromatico /> Nenhuma peça informada.</div></td></tr>
+            ) : pecas.map((p, n) => (
+              <tr key={n}>
+                <td>{n + 1}</td>
+                <td className="coluna-flexivel"><span className="celula-cortada" title={p.peca}>{p.peca}</span></td>
+                <td>{p.momento}</td>
+                <td>{p.instalada ? <Selo texto="Instalado" tom="verde" /> : fechada ? <Selo texto="Não trocada" tom="cinza" /> : <Selo texto="Aguardando" tom="azul" />}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Cartao>
+  );
+
+  const cartaoCustos = (
+    <Cartao titulo={<><Icone nome="dinheiro" tamanho={18} /> Custos da OS</>} acao={botaoEditar("Editar", editarItens)}>
+      <dl className="custos">
+        <div className="custos__linha"><dt>Custo estimado (registro)</dt><dd>{os.custo_estimado != null ? dinheiro(os.custo_estimado) : "—"}</dd></div>
+        <div className="custos__linha"><dt>Custo final (fechamento)</dt><dd>{os.custo != null ? dinheiro(os.custo) : "—"}</dd></div>
+        <div className="custos__linha"><dt>Diferença</dt><dd>{diferenca != null ? `${diferenca > 0 ? "+" : ""}${dinheiro(diferenca)}` : "—"}</dd></div>
+      </dl>
+      <div className="custos__total">
+        <span>{os.custo != null ? "Total da OS" : "Total estimado"}</span>
+        <strong>{totalOs != null ? dinheiro(totalOs) : "—"}</strong>
+      </div>
+    </Cartao>
+  );
+
+  const cartaoObservacoes = (
+    <Cartao titulo={<><Icone nome="arquivo-texto" tamanho={18} /> Observações</>} acao={botaoEditar("Editar", editarItens)}>
+      {observacoes.length === 0 ? <p className="ficha-texto os-caixa">Nenhuma observação registrada.</p> : (
+        <div className="mensagens">
+          {observacoes.map((o, n) => (
+            <div className="mensagem" key={n}>
+              <span className="mensagem__avatar">{iniciais(o.autor)}</span>
+              <div>
+                <div className="mensagem__topo"><strong>{vazio(o.autor)}</strong><span>{o.quando}</span></div>
+                <span className="mensagem__papel">{o.papel}</span>
+                <p>{o.texto}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Cartao>
+  );
+
+  const cartaoAdicionais = (
+    <Cartao titulo={<><Icone nome="informacao" tamanho={18} /> Informações Adicionais</>}>
+      <Linhas linhas={[
+        ["Última manutenção", ultima ? (
+          <button type="button" className="os-ligadas__link" onClick={() => navegar(`${base}/${ultima.id_os}`)}>
+            {data(ultima.data_fechamento || ultima.data_abertura)} · {numeroOs(ultima.numero)}
+          </button>
+        ) : anteriores ? "Nenhuma antes desta" : null],
+        ["Próxima manutenção", os.proxima_manutencao ? data(os.proxima_manutencao) : null],
+        ["KM na última manutenção", ultima ? (ultima.km_fechamento != null ? `${numero(ultima.km_fechamento)} km` : ultima.quilometragem != null ? `${numero(ultima.quilometragem)} km` : null) : null],
+        ["KM atual do veículo", `${numero(os.quilometragem_atual)} km`],
+      ]} />
+    </Cartao>
+  );
+
   return (
     <div className="ficha">
       <div className="cabecalho-pagina vd-cabecalho">
@@ -175,181 +380,82 @@ export default function ManutencaoDetalhe() {
         </div>
       </div>
 
-      <section className="vd-resumo">
-        <ResumoVeiculo v={os} />
-        <div className="vd-resumo__grade vd-resumo__grade--4">
-          <div className="vd-resumo__coluna"><Item rotulo="Setor">{vazio(os.setor)}</Item></div>
-          <div className="vd-resumo__coluna">
-            <Item rotulo="Nº da OS">{numeroOs(os.numero) || "—"}</Item>
-            <span className="vd-resumo__apoio">{rotulo("tipoOs", os.tipo)}</span>
+      <FaixaVeiculo
+        v={veiculo ? { ...veiculo, veiculo_status: veiculo.status } : { ...os, veiculo_status: os.veiculo_status }}
+        dados={[
+          { icone: "predio", rotulo: "Setor", valor: vazio(os.setor) },
+          { icone: "arquivo-texto", rotulo: "Nº da OS", valor: numeroOs(os.numero) || "—", apoio: rotulo("tipoOs", os.tipo) },
+          { icone: "calendar", rotulo: "Data de abertura", valor: dataHora(os.data_abertura) },
+          { icone: "odometro", rotulo: "Odômetro atual", valor: `${numero(os.quilometragem_atual)} km` },
+          { icone: "user", rotulo: "Responsável", valor: vazio(os.solicitante), apoio: "Solicitante da OS" },
+        ]} />
+
+      <div className="abas vd-abas esconder-impressao" role="tablist">
+        {ABAS.map((a) => (
+          <button key={a.chave} type="button" role="tab" className="aba"
+                  data-ativa={aba === a.chave} aria-selected={aba === a.chave}
+                  onClick={() => setAba(a.chave)}>
+            <Icone nome={a.icone} tamanho={16} />
+            {a.rotulo}
+            {a.total ? <span className="vd-abas__total">{a.total}</span> : null}
+          </button>
+        ))}
+      </div>
+
+      {aba === "geral" && (
+        <>
+          <div className="ficha-3 ficha-bloco">
+            {cartaoInformacoes}
+            {cartaoDescricao}
+            {cartaoStatus}
           </div>
-          <div className="vd-resumo__coluna"><Item rotulo="Odômetro atual">{`${numero(os.quilometragem_atual)} km`}</Item></div>
-          <div className="vd-resumo__coluna">
-            <Item rotulo="Responsável">{vazio(os.solicitante)}</Item>
-            <span className="vd-resumo__apoio">Solicitante da OS</span>
+          <div className="ficha-3 ficha-bloco os-linha2">
+            {cartaoServicos}
+            {cartaoPecas}
+            {cartaoCustos}
           </div>
+          <div className="ficha-bloco os-linha-tres">
+            {cartaoObservacoes}
+            <Cartao titulo={<><Icone nome="documentos" tamanho={18} /> Documentos e Fotos</>}
+                    acao={<button className="botao botao--pequeno vd-cartao-acao" onClick={() => setAba("arquivos")}>Ver todos</button>}>
+              <AnexosRegistro tituloFotos="Fotos da OS" podeGerenciar={podeArquivos} compacto
+                              caminhoLista={`/frotas/manutencoes/${os.id_os}/arquivos`} caminhoArquivo="/frotas/manutencoes/arquivos" />
+            </Cartao>
+            {cartaoAdicionais}
+          </div>
+        </>
+      )}
+
+      {aba === "servicos" && (
+        <div className="ficha-2 ficha-bloco">
+          {cartaoServicos}
+          {cartaoPecas}
         </div>
-      </section>
+      )}
 
-      <div className="ficha-3 ficha-bloco">
-        <Cartao titulo={<><Icone nome="informacao" tamanho={18} /> Informações da OS</>}>
-          <Linhas
-            linhas={[
-              ["Número da OS", numeroOs(os.numero)],
-              ["Data de abertura", dataHora(os.data_abertura)],
-              ["Origem", origem.link && os.id_registro_origem ? (
-                <button type="button" className="selo selo--link" data-tom="azul"
-                        onClick={() => navegar(origem.link(os.id_registro_origem))}>{origem.texto}</button>
-              ) : <Selo key="o" texto={origem.texto} tom="azul" />],
-              ["Responsável pela OS", os.solicitante],
-              ["Data do ocorrido", os.data_ocorrido ? data(os.data_ocorrido) : null],
-              ["Setor", os.setor],
-              ["Prioridade", <Selo key="p" texto={rotulo("gravidade", os.gravidade)} tom={TOM_PRIORIDADE[os.gravidade]} />],
-              ["Status", <Selo key="s" valor={os.status} />],
-              ["Oficina responsável", [os.oficina, os.responsavel_oficina, os.telefone_oficina].filter(Boolean).join(" · ")],
-              ["Previsão de conclusão", os.prazo_previsto ? data(os.prazo_previsto) : os.data_agendada ? `Agendada para ${data(os.data_agendada)}` : null],
-              ["KM atual (no registro)", os.quilometragem != null ? `${numero(os.quilometragem)} km` : null],
-              ...(fechada ? [
-                ["Fechada em", `${data(os.data_fechamento)}${os.fechada_por_nome ? ` por ${os.fechada_por_nome}` : ""}`],
-                ["KM no fechamento", os.km_fechamento != null ? `${numero(os.km_fechamento)} km` : null],
-              ] : []),
-            ]}
-          />
-        </Cartao>
+      {aba === "custos" && (
+        <div className="ficha-2 ficha-bloco">
+          {cartaoCustos}
+          {cartaoAdicionais}
+        </div>
+      )}
 
-        <Cartao
-          titulo={<><Icone nome="documento" tamanho={18} /> Descrição do Problema</>}
-          acao={podeGerenciar && os.status !== "CANCELADA" && (
-            <button className="botao botao--pequeno vd-cartao-acao" onClick={() => setEditando(true)}>
-              <Icone nome="editar" tamanho={13} /> Editar
-            </button>
-          )}
-        >
-          <p className="ficha-subtitulo">Descrição informada no registro</p>
-          <p className="ficha-texto">{os.descricao || "Sem descrição."}</p>
-          {fechada && (
-            <>
-              <p className="ficha-subtitulo">Serviço realizado (fechamento)</p>
-              <p className="ficha-texto">{os.servico_realizado || "—"}</p>
-            </>
-          )}
-          {!fechada && aberta && podeGerenciar && !pendente && (
-            <div className="insp-nota insp-nota--pequena">
-              <Icone nome="informacao" tamanho={14} />
-              <span>Quando o serviço voltar da oficina, use <strong>Fechar OS</strong> para registrar o que foi feito.</span>
-            </div>
-          )}
-          {pendente && (
-            <div className="insp-nota insp-nota--pequena">
-              <Icone nome="informacao" tamanho={14} />
-              <span>{podeGerenciar
-                ? <>Solicitada pela Fiscalização. Use <strong>Completar OS</strong> para informar a oficina, o responsável e o custo.</>
-                : "Solicitação enviada ao Frotas. A OS segue para a oficina quando o Frotas completar o registro."}</span>
-            </div>
-          )}
-        </Cartao>
+      {aba === "historico" && (
+        <div className="ficha-2 ficha-bloco os-linha3">
+          <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Histórico da OS</>}>
+            <HistoricoAuditoria
+              tipo="os" id={os.id_os} recarga={recarga}
+              inicio={{ quando: os.data_abertura, usuario: os.solicitante, acao: "Abertura", descricao: `OS aberta (${origem.texto})` }}
+            />
+          </Cartao>
+          {cartaoStatus}
+        </div>
+      )}
 
-        <Cartao titulo={<><Icone nome="check" tamanho={18} /> Status da OS</>}>
-          <ol className="etapas">
-            {etapasDaOs(os).map((e) => (
-              <li key={e.titulo} data-estado={e.estado}>
-                <span className="etapas__ponto">{e.estado === "feito" ? "✓" : e.estado === "cancelado" ? "×" : ""}</span>
-                <div className="etapas__texto">
-                  <strong>{e.titulo}</strong>
-                  {e.quando && <span>{e.quando}</span>}
-                </div>
-              </li>
-            ))}
-          </ol>
-        </Cartao>
-      </div>
-
-      <div className="ficha-3 ficha-bloco os-linha2">
-        <Cartao titulo={<><Icone nome="kpi-wrench" tamanho={18} /> Serviços Realizados</>}>
-          {servicos.length === 0 ? <p className="texto-corrido">Nenhum serviço listado.</p> : (
-            <div className="rolagem-x">
-              <table className="tabela vd-tabela tabela-ficha">
-                <thead><tr><th>#</th><th>Serviço</th><th>Tipo</th><th>Status</th></tr></thead>
-                <tbody>
-                  {servicos.map((sv, n) => (
-                    <tr key={n}>
-                      <td>{n + 1}</td>
-                      <td className="coluna-flexivel"><span className="celula-cortada" title={[sv.descricao, sv.observacao].filter(Boolean).join(" — ")}>{sv.descricao}</span></td>
-                      <td>{sv.tipo}</td>
-                      <td>{sv.feito ? <Selo texto="Concluído" tom="verde" /> : os.status === "EM_MANUTENCAO" ? <Selo texto="Em andamento" tom="azul" /> : <Selo texto="Pendente" tom="cinza" />}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Cartao>
-
-        <Cartao titulo={<><Icone nome="eq-chave-roda" tamanho={18} /> Peças Utilizadas</>}>
-          {pecas.length === 0 ? <p className="texto-corrido">Nenhuma peça informada.</p> : (
-            <div className="rolagem-x">
-              <table className="tabela vd-tabela tabela-ficha">
-                <thead><tr><th>#</th><th>Peça</th><th>Momento</th><th>Status</th></tr></thead>
-                <tbody>
-                  {pecas.map((p, n) => (
-                    <tr key={n}>
-                      <td>{n + 1}</td>
-                      <td className="coluna-flexivel"><span className="celula-cortada" title={p.peca}>{p.peca}</span></td>
-                      <td>{p.momento}</td>
-                      <td>{p.instalada ? <Selo texto="Instalado" tom="verde" /> : fechada ? <Selo texto="Não trocada" tom="cinza" /> : <Selo texto="Aguardando" tom="azul" />}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Cartao>
-
-        <Cartao titulo={<><Icone nome="chart-line" tamanho={18} /> Custos da OS</>}>
-          <dl className="custos">
-            <div className="custos__linha"><dt>Custo estimado (registro)</dt><dd>{os.custo_estimado != null ? dinheiro(os.custo_estimado) : "—"}</dd></div>
-            <div className="custos__linha"><dt>Custo final (fechamento)</dt><dd>{os.custo != null ? dinheiro(os.custo) : "—"}</dd></div>
-            <div className="custos__linha"><dt>Diferença</dt><dd>{diferenca != null ? `${diferenca > 0 ? "+" : ""}${dinheiro(diferenca)}` : "—"}</dd></div>
-          </dl>
-          <div className="custos__total">
-            <span>{os.custo != null ? "Total da OS" : "Total estimado"}</span>
-            <strong>{totalOs != null ? dinheiro(totalOs) : "—"}</strong>
-          </div>
-        </Cartao>
-      </div>
-
-      <div className="ficha-2 ficha-bloco os-linha3">
-        <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Histórico da OS</>}>
-          <HistoricoAuditoria
-            tipo="os" id={os.id_os} recarga={recarga}
-            inicio={{ quando: os.data_abertura, usuario: os.solicitante, acao: "Abertura", descricao: `OS aberta (${origem.texto})` }}
-          />
-        </Cartao>
-
-        <Cartao
-          titulo={<><Icone nome="documento" tamanho={18} /> Observações</>}
-          acao={podeGerenciar && os.status !== "CANCELADA" && (
-            <button className="botao botao--pequeno vd-cartao-acao" onClick={() => (fechada ? setFechando(true) : setEditando(true))}>
-              Adicionar observação
-            </button>
-          )}
-        >
-          {observacoes.length === 0 ? <p className="texto-corrido">Nenhuma observação registrada.</p> : (
-            <div className="mensagens">
-              {observacoes.map((o, n) => (
-                <div className="mensagem" key={n}>
-                  <span className="mensagem__avatar">{iniciais(o.autor)}</span>
-                  <div>
-                    <div className="mensagem__topo"><strong>{vazio(o.autor)}</strong><span>{o.quando}</span></div>
-                    <span className="mensagem__papel">{o.papel}</span>
-                    <p>{o.texto}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Cartao>
-      </div>
+      {aba === "arquivos" && (
+        <AnexosRegistro tituloFotos="Fotos da OS" podeGerenciar={podeArquivos}
+                        caminhoLista={`/frotas/manutencoes/${os.id_os}/arquivos`} caminhoArquivo="/frotas/manutencoes/arquivos" />
+      )}
 
       {editando && (
         <RegistrarOs os={os} aoFechar={() => setEditando(false)} aoSalvar={recarregar} soViaturas={fiscalizacao} />

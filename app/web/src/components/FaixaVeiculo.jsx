@@ -7,6 +7,9 @@
  * `v` precisa trazer id_veiculo, placa, marca, modelo, veiculo_status,
  * tipo_veiculo, tipo_combustivel, ano_fabricacao, ano_modelo, setor,
  * condutor_atual, quilometragem_atual, chassi, renavam e foto_em.
+ *
+ * 29/10: `dados` troca os dados da direita (Detalhes do Checklist: setor,
+ * data, motorista, percurso, status): [{ icone, rotulo, valor, apoio }].
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -44,7 +47,7 @@ function Dado({ icone, rotulo: r, children }) {
   );
 }
 
-export default function FaixaVeiculo({ v }) {
+export default function FaixaVeiculo({ v, dados }) {
   const navegar = useNavigate();
   const foto = useFotoVeiculo(v.id_veiculo, v.foto_em);
   const chips = [
@@ -75,11 +78,19 @@ export default function FaixaVeiculo({ v }) {
         </div>
       </div>
       <div className="fv-dados">
-        <Dado icone="organograma" rotulo="Setor">{vazio(v.setor)}</Dado>
-        <Dado icone="user" rotulo="Motorista atual">{v.condutor_atual || <>—<small>Não vinculado</small></>}</Dado>
-        <Dado icone="odometro" rotulo="Odômetro atual">{`${numero(v.quilometragem_atual)} km`}</Dado>
-        <Dado icone="kpi-steering" rotulo="Chassi">{vazio(v.chassi)}</Dado>
-        <Dado icone="arquivo-texto" rotulo="Renavam">{vazio(v.renavam)}</Dado>
+        {dados ? dados.map((x) => (
+          <Dado key={x.rotulo} icone={x.icone} rotulo={x.rotulo}>
+            {x.valor}{x.apoio ? <small>{x.apoio}</small> : null}
+          </Dado>
+        )) : (
+          <>
+            <Dado icone="organograma" rotulo="Setor">{vazio(v.setor)}</Dado>
+            <Dado icone="user" rotulo="Motorista atual">{v.condutor_atual || <>—<small>Não vinculado</small></>}</Dado>
+            <Dado icone="odometro" rotulo="Odômetro atual">{`${numero(v.quilometragem_atual)} km`}</Dado>
+            <Dado icone="kpi-steering" rotulo="Chassi">{vazio(v.chassi)}</Dado>
+            <Dado icone="arquivo-texto" rotulo="Renavam">{vazio(v.renavam)}</Dado>
+          </>
+        )}
       </div>
     </section>
   );

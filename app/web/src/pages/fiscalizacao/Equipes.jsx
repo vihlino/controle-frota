@@ -85,6 +85,7 @@ export const CONFIG_EQUIPE = {
     },
   ],
   formulario: [
+    { secao: "Dados da equipe" },
     { nome: "numero", rotulo: "Número da equipe *", obrigatorio: true, dica: "Ex.: EQ-04" },
     { nome: "tipo", rotulo: "Tipo *", tipo: "selecao", opcoes: TIPOS, obrigatorio: true, padrao: "FIXA" },
     { nome: "turno", rotulo: "Turno *", tipo: "selecao", obrigatorio: true, padrao: "DIURNO",

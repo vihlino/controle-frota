@@ -3,6 +3,7 @@ import Cartao from "../../components/Cartao.jsx";
 import Icone from "../../components/Icone.jsx";
 import Kpi from "../../components/Kpi.jsx";
 import Selo from "../../components/Selo.jsx";
+import { TituloPainel } from "../../components/PainelUi.jsx";
 import { dataHora, numero } from "../../lib/formato.js";
 
 const STATUS_SISTEMA = [
@@ -39,19 +40,19 @@ export default function PainelTi({ dados }) {
       {/* Cartoes dividindo a linha inteira, como no painel de Frotas (26/10). */}
       <div className="kpis kpis--esticar">
         <Kpi icone="user" rotulo="Usuários ativos" valor={kpis.usuarios.ativos}
-             nota={`${numero(kpis.usuarios.total)} cadastrados`} tom="azul" />
+             nota={`${numero(kpis.usuarios.total)} cadastrados`} tom="azul" para="/admin/usuarios" />
         <Kpi icone="fisc-servidores" rotulo="Servidores cadastrados" valor={kpis.servidores}
-             nota="Base de pessoas" tom="neutro" />
+             nota="Base de pessoas" tom="verde" para="/admin/servidores" />
         <Kpi icone="nav-gestao" rotulo="Setores cadastrados" valor={kpis.setores}
-             nota="Estrutura ativa" tom="roxo" />
+             nota="Estrutura ativa" tom="ambar" para="/admin/setores" />
         <Kpi icone="user" rotulo="Sessões ativas" valor={kpis.usuarios.ativos}
-             nota="Usuários online" tom="verde" />
+             nota="Usuários online" tom="roxo" para="/auditoria/acessos" />
         <Kpi icone="checklist" rotulo="Acessos hoje" valor={kpis.acessos.hoje}
-             nota={`${numero(kpis.acessos.falhas_hoje)} falhas`} tom="ambar" />
+             nota={`${numero(kpis.acessos.falhas_hoje)} falhas`} tom="vermelho" para="/auditoria/acessos" />
       </div>
 
       <div className="grade-3">
-        <Cartao titulo="Status do sistema">
+        <Cartao titulo={<TituloPainel icone="camadas" tom="azul">Status do sistema</TituloPainel>}>
           <div className="lista-os">
             {STATUS_SISTEMA.map((s) => (
               <div className="lista-os__item" key={s.rotulo}>
@@ -68,7 +69,7 @@ export default function PainelTi({ dados }) {
           </div>
         </Cartao>
 
-        <Cartao titulo="Status dos módulos"
+        <Cartao titulo={<TituloPainel icone="checklist" tom="azul">Status dos módulos</TituloPainel>}
                 acao={<span className="cartao__acao" style={{ cursor: "default" }}>Ver todos os módulos →</span>}>
           <div className="lista-os">
             {modulos.map((m) => (
@@ -102,7 +103,7 @@ export default function PainelTi({ dados }) {
             CMTT estavam salvos, e so descobriria o contrario no dia em que
             precisasse deles. Numero inventado numa tela de TI e pior do que
             numero nenhum. */}
-        <Cartao titulo="Guarda dos dados">
+        <Cartao titulo={<TituloPainel icone="alert-triangle" tom="amarelo">Guarda dos dados</TituloPainel>}>
           <div className="aviso-forte" style={{ marginBottom: 0 }}>
             <Icone nome="alert-triangle" tamanho={20} />
             <div>
@@ -123,7 +124,7 @@ export default function PainelTi({ dados }) {
       </div>
 
       <div className="grade-2">
-        <Cartao titulo="Acessos recentes"
+        <Cartao titulo={<TituloPainel icone="historico" tom="azul">Acessos recentes</TituloPainel>}
                 acao={<Link className="cartao__acao" to="/auditoria/acessos">Ver todos</Link>}>
           <div className="rolagem-x">
             <table className="tabela">
@@ -155,7 +156,7 @@ export default function PainelTi({ dados }) {
           </div>
         </Cartao>
 
-        <Cartao titulo="Resumo dos módulos">
+        <Cartao titulo={<TituloPainel icone="chart-line" tom="azul">Resumo dos módulos</TituloPainel>}>
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "8px 0" }}>
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "12px" }}>
               <div style={{ width: 100, height: 100, borderRadius: "50%", border: "10px solid var(--amarelo)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>

@@ -17,6 +17,7 @@ import { Texto, Selecao, Area } from "./Campos.jsx";
 import { api, apiArquivo } from "../lib/api.js";
 import { opcoes } from "../lib/formato.js";
 import { VINCULOS } from "../lib/vinculos.js";
+import TituloSecao from "./TituloSecao.jsx";
 
 export const SITUACOES = [
   { valor: "DISPONIVEL", rotulo: "Regular" },
@@ -206,7 +207,7 @@ export default function FormularioVeiculo({ veiculo = null, aoFechar, aoSalvar, 
             O campo obrigatorio leva "*" no rotulo; o opcional nao leva
             nada. Escrever "(opcional)" era dizer duas vezes a mesma
             coisa. */}
-        <h3 className="formulario__secao">Foto do veículo</h3>
+        <TituloSecao>Foto do veículo</TituloSecao>
         <div className="foto-veiculo" data-largo="sim">
           <div className="foto-veiculo__quadro">
             {fotoVista
@@ -227,7 +228,7 @@ export default function FormularioVeiculo({ veiculo = null, aoFechar, aoSalvar, 
           </div>
         </div>
 
-        <h3 className="formulario__secao">Dados gerais</h3>
+        <TituloSecao>Dados gerais</TituloSecao>
         {/* A placa aparece em caixa alta enquanto a pessoa digita. Quem
             grava mesmo e a API (normalizacoes de frotas.js); isto e so
             para a tela nao mostrar uma coisa e salvar outra. */}
@@ -255,7 +256,7 @@ export default function FormularioVeiculo({ veiculo = null, aoFechar, aoSalvar, 
         <Texto rotulo="Odômetro atual *" id="quilometragem_atual" type="number" min="0"
                required {...campo("quilometragem_atual")} placeholder="Ex.: 45230" />
 
-        <h3 className="formulario__secao">Vinculações</h3>
+        <TituloSecao>Vinculações</TituloSecao>
         {/* O SETOR e o que decide se o veiculo e viatura. Nao existe mais
             campo separado para isso: veiculo vinculado a Fiscalizacao
             aparece na tela de Viaturas, e todos aparecem em Frotas. Quem
@@ -268,7 +269,7 @@ export default function FormularioVeiculo({ veiculo = null, aoFechar, aoSalvar, 
                  opcoes={VINCULOS} {...campo("vinculo")} />
         <Selecao rotulo="Situação" id="status" opcoes={SITUACOES} {...campo("status")} />
 
-        <h3 className="formulario__secao">Observações</h3>
+        <TituloSecao>Observações</TituloSecao>
         <Area id="observacoes" largo aria-label="Observações" {...campo("observacoes")}
               placeholder="Ex.: Veículo com adesivagem da CMTT" />
       </form>

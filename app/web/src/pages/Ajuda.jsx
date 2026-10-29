@@ -116,7 +116,9 @@ export default function Ajuda() {
     for (const [k, v] of Object.entries(novos)) (v ? p.set(k, v) : p.delete(k));
     setParametros(p, { replace: !("aba" in novos) });
   };
-  useEffect(() => setBusca(""), [vista]);
+  // A busca da pagina inicial (29/10) leva para as perguntas ja filtradas (?q=).
+  useEffect(() => setBusca(parametros.get("q") || ""), [vista]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [buscaInicio, setBuscaInicio] = useState("");
 
   const temAlguma = (lista) => !lista?.length || lista.some((c) => podeVer(c));
   // Quem nao tem Frotas (ex.: Gestor de Fiscalizacao) ve os guias comuns
@@ -143,6 +145,25 @@ export default function Ajuda() {
 
   return (
     <div className="ajuda">
+      {!vista && (
+        <section className="ah">
+          <div className="ah__textos">
+            <span className="ah__trilha">Ajuda</span>
+            <h1>Central de Ajuda</h1>
+            <p>Encontre respostas rápidas, tire suas dúvidas ou acesse o manual do sistema.</p>
+            <form className="ah__busca" onSubmit={(e) => { e.preventDefault(); mudar({ aba: "perguntas", q: buscaInicio.trim() }); }}>
+              <label className="ah__campo">
+                <Icone nome="search" tamanho={18} />
+                <input type="search" placeholder="O que você precisa encontrar?" aria-label="Buscar na ajuda"
+                       value={buscaInicio} onChange={(e) => setBuscaInicio(e.target.value)} />
+              </label>
+              <button className="botao botao--primario ah__buscar"><Icone nome="search" tamanho={16} monocromatico /> Buscar</button>
+            </form>
+          </div>
+          <IlustracaoAjuda />
+        </section>
+      )}
+      {vista && (
       <div className="cabecalho-pagina ajuda__cabecalho">
         <div>
           <Trilha itens={vista
@@ -177,11 +198,12 @@ export default function Ajuda() {
           </div>
         )}
       </div>
+      )}
 
       {!vista && (
         <>
-          <button type="button" className="cartao ajuda__manual" onClick={() => mudar({ aba: "manual" })}>
-            <span className="ajuda__manual-icone"><Icone nome="livro" tamanho={36} /></span>
+          <button type="button" className="cartao ajuda__manual ah__manual" onClick={() => mudar({ aba: "manual" })}>
+            <span className="ajuda__manual-icone ah__manual-icone"><Icone nome="livro" tamanho={32} monocromatico /></span>
             <span className="ajuda__manual-texto">
               <strong>Manual do Sistema</strong>
               <span>
@@ -189,13 +211,13 @@ export default function Ajuda() {
                 incluindo Frotas e Fiscalização.
               </span>
             </span>
-            <Icone nome="chevron-right" tamanho={18} />
+            <span className="ah__seta"><Icone nome="seta-direita" tamanho={18} monocromatico /></span>
           </button>
 
           <div className="ajuda__inicio">
             <section className="cartao ajuda__faq">
               <header className="ajuda__faq-topo">
-                <h2><Icone nome="documentos" tamanho={20} /> Perguntas Frequentes</h2>
+                <h2><span className="ah__faq-icone"><Icone nome="arquivo-texto" tamanho={20} /></span> Perguntas Frequentes</h2>
                 <button type="button" className="ajuda__ver-todas" onClick={() => mudar({ aba: "perguntas" })}>
                   Ver todas as perguntas <Icone nome="seta-direita" tamanho={14} />
                 </button>
@@ -203,7 +225,20 @@ export default function Ajuda() {
               <ListaPerguntas itens={destaques} contexto={contexto} />
             </section>
 
-            <Suporte />
+            <div className="ah__lado">
+              <Suporte />
+              <section className="cartao ah__dicas">
+                <div className="ah__dicas-topo">
+                  <span className="ah__dicas-icone"><Icone nome="lampada" tamanho={26} monocromatico /></span>
+                  <div><h2>Dicas rápidas</h2><p>Alguns atalhos para facilitar o seu dia a dia.</p></div>
+                </div>
+                <ul>
+                  <li><Icone nome="search" tamanho={18} /> Use o atalho Ctrl + K para buscar no sistema.</li>
+                  <li><Icone nome="arquivo-texto" tamanho={18} /> Consulte o manual para aprender cada funcionalidade.</li>
+                  <li><Icone nome="alert-triangle" tamanho={18} /> Em caso de erro, anote a mensagem exibida e informe ao suporte.</li>
+                </ul>
+              </section>
+            </div>
           </div>
         </>
       )}
@@ -216,6 +251,26 @@ export default function Ajuda() {
         <Manual guias={guiasVisiveis} busca={busca} parametros={parametros} vista={vista} contexto={contexto} />
       )}
     </div>
+  );
+}
+
+/** Desenho do topo da Central de Ajuda: livro aberto com a lampada. */
+function IlustracaoAjuda() {
+  return (
+    <svg className="ah__ilustracao" viewBox="0 0 320 190" aria-hidden="true">
+      <ellipse cx="170" cy="110" rx="150" ry="78" fill="#fff4d6" />
+      <circle cx="58" cy="60" r="3" fill="#f5b301" /><circle cx="72" cy="48" r="2.5" fill="#f5b301" /><circle cx="290" cy="128" r="3" fill="#f5b301" />
+      <path d="M70 128c32-18 66-20 94-6v54c-28-14-62-12-94 6z" fill="#f5b301" />
+      <path d="M258 128c-32-18-66-20-94-6v54c28-14 62-12 94 6z" fill="#e7a200" />
+      <path d="M78 120c30-16 60-18 86-6v48c-26-12-56-10-86 6z" fill="#fff" />
+      <path d="M250 120c-30-16-60-18-86-6v48c26-12 56-10 86 6z" fill="#fff" />
+      <g stroke="#d6dbe3" strokeWidth="3" strokeLinecap="round"><path d="M92 132c18-8 38-9 58-4M92 144c18-8 38-9 58-4M92 156c18-8 38-9 58-4" /><path d="M178 128c20-5 40-4 58 4M178 140c20-5 40-4 58 4M178 152c20-5 40-4 58 4" /></g>
+      <circle cx="164" cy="56" r="26" fill="#f5b301" />
+      <path d="M154 54c0-6 4-10 10-10s10 4 10 10c0 4-3 6-5 9v3h-10v-3c-2-3-5-5-5-9z" fill="none" stroke="#1f2937" strokeWidth="2.6" />
+      <path d="M159 70h10" stroke="#1f2937" strokeWidth="2.6" strokeLinecap="round" />
+      <rect x="212" y="30" width="62" height="34" rx="17" fill="#fff" stroke="#e5e7eb" />
+      <circle cx="230" cy="47" r="4" fill="#1f2937" /><circle cx="243" cy="47" r="4" fill="#1f2937" /><circle cx="256" cy="47" r="4" fill="#1f2937" />
+    </svg>
   );
 }
 
@@ -304,7 +359,7 @@ function Suporte() {
 
   return (
     <aside className="cartao ajuda__suporte">
-      <div className="ajuda__suporte-topo">
+      <div className="ajuda__suporte-topo ah__suporte-topo">
         <span className="ajuda__suporte-icone"><Icone nome="ajuda" tamanho={30} /></span>
         <div>
           <h2>Precisa de mais ajuda?</h2>
@@ -312,6 +367,11 @@ function Suporte() {
             ? "Nossa equipe está disponível para auxiliar e resolver qualquer problema."
             : "Fale com o administrador do sistema do seu setor."}</p>
         </div>
+        {temContato && (
+          <a className="botao botao--primario ah__contato" href={contato.email ? `mailto:${contato.email}` : `tel:${soNumeros}`}>
+            <Icone nome="email" tamanho={15} monocromatico /> Entrar em contato
+          </a>
+        )}
       </div>
 
       {contato === null && <div className="carregando">Carregando...</div>}

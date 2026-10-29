@@ -72,7 +72,7 @@ export default function EditarInspecao({ inspecao, aoFechar, aoSalvar }) {
       <Modal
         titulo="Editar inspeção"
         legenda={`${inspecao.placa} · ${data(inspecao.data_realizacao)} · corrigir o que foi marcado`}
-        largura={440}
+        largura={980}
         aoFechar={aoFechar}
         rodape={
           <>
@@ -84,16 +84,35 @@ export default function EditarInspecao({ inspecao, aoFechar, aoSalvar }) {
         }
       >
         {erro && <div className="login__erro">{erro}</div>}
+        <div className="checklist-faixa checklist-faixa--modal cc-faixa">
+          <div className="checklist-faixa__campo">
+            <span className="cc-faixa__icone"><Icone nome="kpi-car" tamanho={20} monocromatico /></span>
+            <span className="checklist-faixa__rotulo">Veículo</span>
+            <strong className="checklist-faixa__destaque">{inspecao.placa}</strong>
+            <span className="checklist-faixa__apoio">{inspecao.marca} {inspecao.modelo}</span>
+          </div>
+          <div className="checklist-faixa__campo">
+            <span className="cc-faixa__icone"><Icone nome="user" tamanho={20} monocromatico /></span>
+            <span className="checklist-faixa__rotulo">Responsável</span>
+            <span className="checklist-faixa__nome">{inspecao.responsavel || "—"}</span>
+            {inspecao.responsavel_matricula && <span className="checklist-faixa__apoio">Matrícula {inspecao.responsavel_matricula}</span>}
+          </div>
+          <div className="checklist-faixa__campo">
+            <span className="cc-faixa__icone"><Icone nome="calendar" tamanho={20} monocromatico /></span>
+            <span className="checklist-faixa__rotulo">Data da inspeção</span>
+            <strong>{data(inspecao.data_realizacao)}</strong>
+          </div>
+        </div>
         {!itens ? (
           <div className="carregando">Carregando os itens...</div>
         ) : itens.length === 0 ? (
           <div className="vazio">Esta inspeção não tem itens registrados.</div>
         ) : (
-          <ItensInspecao itens={itens} aoMudar={marcar} />
+          <ItensInspecao itens={itens} aoMudar={marcar} cartoes />
         )}
-        <div className="campo">
+        <div className="campo" style={{ marginTop: 14 }}>
           <label htmlFor="obs-edicao-inspecao">Observações</label>
-          <textarea
+          <textarea maxLength={500}
             id="obs-edicao-inspecao"
             rows={3}
             value={observacoes}

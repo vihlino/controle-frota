@@ -13,7 +13,8 @@
 import { useEffect, useState } from "react";
 import Modal from "./Modal.jsx";
 import Icone from "./Icone.jsx";
-import { Texto, Selecao, Data, Area, Campo } from "./Campos.jsx";
+import TituloSecao from "./TituloSecao.jsx";
+import { Texto, Selecao, Data, Area, ArquivoArraste } from "./Campos.jsx";
 import { useConfirmacaoSenha } from "./ConfirmarSenha.jsx";
 import { api } from "../lib/api.js";
 import { data } from "../lib/formato.js";
@@ -223,6 +224,9 @@ export default function FormularioDocumento({ modo = "novo", documento, idVeicul
     <>
       <Modal
         titulo={titulo}
+        legenda={atualizando ? "Atualize as informações do documento do veículo."
+          : editando ? "Atualize as informações do documento. Os campos marcados são obrigatórios."
+            : "Cadastre as informações do documento vinculado ao veículo."}
         aoFechar={aoFechar}
         rodape={
           <>
@@ -247,6 +251,7 @@ export default function FormularioDocumento({ modo = "novo", documento, idVeicul
             </div>
           )}
 
+          <TituloSecao descricao={atualizando ? "Preencha os dados do novo documento." : undefined}>Informações do documento</TituloSecao>
           {atualizando ? (
             <>
               <Texto rotulo="Veículo" id="doc-veiculo" value={veiculoTexto} disabled readOnly />
@@ -280,15 +285,14 @@ export default function FormularioDocumento({ modo = "novo", documento, idVeicul
           {!atualizando && (
             <Selecao rotulo="Situação" id="doc-status" opcoes={ARQUIVAMENTO} {...campo("status")} />
           )}
-          <Area rotulo="Observações" id="doc-obs" largo
+          <TituloSecao>Observações</TituloSecao>
+          <Area rotulo="Observações" id="doc-obs" largo maxLength={500}
                 placeholder={atualizando ? "Ex.: Licenciamento 2027 pago em 10/01" : "Ex.: Renovação anual do licenciamento"}
                 {...campo("observacoes")} />
-          <Campo rotulo={editando ? "Anexar outro arquivo (opcional)" : "Arquivo do documento (opcional)"}
-                 htmlFor="doc-arquivo" largo ajuda="PDF, JPG ou PNG, até 10 MB.">
-            <input id="doc-arquivo" type="file" className="campo__input campo-arquivo"
-                   accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-                   onChange={escolherArquivo} />
-          </Campo>
+          <TituloSecao descricao={atualizando ? "Anexe uma cópia do novo documento." : "Anexe uma cópia do documento (PDF, JPG ou PNG, até 10 MB)."}>
+            {editando ? "Anexar outro arquivo (opcional)" : "Arquivo do documento (opcional)"}
+          </TituloSecao>
+          <ArquivoArraste id="doc-arquivo" arquivo={arquivo} aoEscolher={escolherArquivo} />
         </form>
       </Modal>
       {modalSenha}

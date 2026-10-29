@@ -16,6 +16,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Cartao from "./Cartao.jsx";
+import { TituloPainel } from "./PainelUi.jsx";
 import Icone from "./Icone.jsx";
 import MenuSuspenso from "./MenuSuspenso.jsx";
 import { numero } from "../lib/formato.js";
@@ -91,7 +92,7 @@ export default function PainelAlertas({ modulo = "FROTAS" }) {
 
   return (
     <>
-      <Cartao titulo="Alertas">
+      <Cartao titulo={<TituloPainel icone="bell" tom="vermelho">Alertas</TituloPainel>}>
         <div className="lista-lateral">
           {grupos === null ? (
             <span className="painel-rodape__vazio">Carregando avisos...</span>
@@ -104,6 +105,7 @@ export default function PainelAlertas({ modulo = "FROTAS" }) {
                 <span className={`alerta-item__marca alerta-item__marca--${(g.prioridade || "BAIXA").toLowerCase()}`} />
                 <span className="lista-lateral__texto">{g.titulo}</span>
                 <span className="acao-rapida__conta">{numero(g.itens.length)}</span>
+                <span className="pa-seta" aria-hidden="true">›</span>
               </button>
             ))
           )}

@@ -22,6 +22,7 @@ import { dinheiro } from "../lib/formato.js";
 import { api } from "../lib/api.js";
 import { enviarArquivo } from "../lib/arquivos.js";
 import { useSessao } from "../lib/sessao.jsx";
+import TituloSecao from "./TituloSecao.jsx";
 
 export const TIPOS_SINISTRO = [
   { valor: "COLISAO", rotulo: "Colisão" },
@@ -222,6 +223,7 @@ export default function RegistrarSinistro({ sinistro, idVeiculo = "", idServidor
     <>
       <Modal
         titulo={editando ? `Editar Sinistro ${sinistro.numero || ""}`.trim() : "Registrar sinistro"}
+        legenda={editando ? "Atualize as informações do sinistro." : "Registre as informações do sinistro envolvendo o veículo."}
         aoFechar={aoFechar}
         rodape={
           <>
@@ -234,7 +236,8 @@ export default function RegistrarSinistro({ sinistro, idVeiculo = "", idServidor
       >
         {erro && <div className="login__erro">{erro}</div>}
         <form id="form-sinistro" className="formulario-grade" onSubmit={salvar}>
-          <Selecao rotulo="Veículo *" id="sin-veiculo" required vazio="Selecione"
+          <TituloSecao>Informações do sinistro</TituloSecao>
+          <Selecao rotulo="Veículo *" id="sin-veiculo" required vazio="Selecione o veículo"
                    opcoes={veiculos.map((v) => ({
                      valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
                    }))}
@@ -257,19 +260,19 @@ export default function RegistrarSinistro({ sinistro, idVeiculo = "", idServidor
             <Texto rotulo="Número do B.O. *" id="sin-bo" required placeholder="Ex.: 2026/123456"
                    {...campo("bo")} />
           )}
-          <Area rotulo="Descrição do sinistro *" id="sin-descricao" largo required
+          <Area rotulo="Descrição do sinistro *" id="sin-descricao" largo required maxLength={1000}
                 placeholder="Descreva como aconteceu..." {...campo("descricao")} />
 
-          <h3 className="modal-secao">Danos e avaliação inicial</h3>
+          <TituloSecao>Danos e avaliação inicial</TituloSecao>
           <Selecao rotulo="Parte do veículo danificada" id="sin-parte" vazio="Selecione"
                    opcoes={PARTES_VEICULO} {...campo("parte_danificada")} />
           <Selecao rotulo="Gravidade dos danos" id="sin-gravidade" vazio="Selecione"
                    opcoes={GRAVIDADES_DANOS} {...campo("gravidade_danos")} />
-          <Area rotulo="Descrição dos danos" id="sin-danos" largo
+          <Area rotulo="Descrição dos danos" id="sin-danos" largo maxLength={1000}
                 placeholder="Descreva os danos identificados no veículo..."
                 {...campo("descricao_danos")} />
 
-          <h3 className="modal-secao">Envolvidos</h3>
+          <TituloSecao>Envolvidos</TituloSecao>
           <Selecao rotulo="Situação do condutor" id="sin-sit-condutor" opcoes={SITUACOES_ENVOLVIDO}
                    {...campo("situacao_condutor")} />
           <div className="envolvidos-form">
@@ -304,7 +307,7 @@ export default function RegistrarSinistro({ sinistro, idVeiculo = "", idServidor
             </button>
           </div>
 
-          <h3 className="modal-secao">Orçamento (opcional)</h3>
+          <TituloSecao>Orçamento (opcional)</TituloSecao>
           <Texto rotulo="Oficina do orçamento" id="sin-orc-oficina" placeholder="Ex.: Auto Center Silva"
                  {...campo("orcamento_oficina")} />
           <CampoDinheiro rotulo="Peças" id="sin-orc-pecas" valor={formulario.orcamento_pecas}
@@ -318,19 +321,19 @@ export default function RegistrarSinistro({ sinistro, idVeiculo = "", idServidor
             <strong>{dinheiro(totalOrcamento)}</strong>
           </div>
 
-          <h3 className="modal-secao">
+          <TituloSecao>
             Fotos e documentos (opcional)
             {editando && sinistro.arquivos ? (
               <span className="modal-secao__nota"> · já tem {sinistro.arquivos} anexado{sinistro.arquivos > 1 ? "s" : ""}, veja em Visualizar</span>
             ) : null}
-          </h3>
+          </TituloSecao>
           <AnexarArquivos arquivos={anexos} aoMudar={setAnexos} aoErro={setErro} />
 
-          <h3 className="modal-secao">Encaminhamentos e observações (opcional)</h3>
-          <Area rotulo="Providências tomadas" id="sin-providencias" largo
+          <TituloSecao>Encaminhamentos e observações (opcional)</TituloSecao>
+          <Area rotulo="Providências tomadas" id="sin-providencias" maxLength={1000}
                 placeholder="Ex.: guincho acionado, B.O. registrado, seguradora avisada..."
                 {...campo("providencias")} />
-          <Area rotulo="Observações" id="sin-obs" largo placeholder="Observações adicionais..."
+          <Area rotulo="Observações" id="sin-obs" maxLength={1000} placeholder="Observações adicionais..."
                 {...campo("observacoes")} />
         </form>
       </Modal>

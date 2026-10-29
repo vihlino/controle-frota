@@ -16,7 +16,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useSessao } from "../lib/sessao.jsx";
 import { api } from "../lib/api.js";
 
-export default function Topo({ titulo, legenda, aoAlternarMenu }) {
+export default function Topo({ titulo, legenda, icone, aoAlternarMenu }) {
   const { usuario, sair } = useSessao();
   const navegar = useNavigate();
   const [menuAberto, setMenuAberto] = useState(false);
@@ -45,9 +45,35 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
       : pathname.startsWith("/dashboard") || pathname === "/"
         ? ({ frotas: "FROTAS", fiscalizacao: "FISCALIZACAO" }[painel] || null)
         : null;
-  const visiveis = moduloDaTela
+  const doModulo = moduloDaTela
     ? alertas.filter((a) => (a.modulos || ["FROTAS"]).includes(moduloDaTela))
     : alertas;
+  // "Marcar todas como lidas" (29/10): fica guardado neste navegador. O aviso
+  // lido sai da contagem do sino e aparece apagado no fim da lista; volta a
+  // contar se mudar (outro numero de dias, por exemplo).
+  const [lidos, setLidos] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("sitra.alertasLidos") || "[]")); } catch { return new Set(); }
+  });
+  const chaveAlerta = (a) => `${a.id_alerta}|${a.mensagem}`;
+  const visiveis = doModulo.filter((a) => !lidos.has(chaveAlerta(a)));
+  const [filtroAlerta, setFiltroAlerta] = useState("todas");
+  const critica = (a) => a.prioridade === "CRITICA";
+  const listaAlertas = [...visiveis, ...doModulo.filter((a) => lidos.has(chaveAlerta(a)))]
+    .filter((a) => filtroAlerta === "todas" || (filtroAlerta === "criticas" ? critica(a) : !critica(a)));
+  function marcarLidas() {
+    const novo = new Set([...lidos, ...doModulo.map(chaveAlerta)]);
+    setLidos(novo);
+    try { localStorage.setItem("sitra.alertasLidos", JSON.stringify([...novo].slice(-500))); } catch { /* sem armazenamento */ }
+  }
+  const ICONE_ALERTA = { CNH_VENCENDO: "cnh", DOCUMENTO_VENCENDO: "documento", MULTA_VENCENDO: "dinheiro",
+    OS_PENDENTE: "kpi-wrench", ATESTE_PENDENTE: "arquivo-texto", CHECKLIST_FISC_ABERTO: "checklist" };
+  const quandoAlerta = (a) => {
+    const m = /h[aá] (\d+) dia/i.exec(a.mensagem || "");
+    if (m) return `Há ${m[1]} dias`;
+    const e = /em (\d+) dia/i.exec(a.mensagem || "");
+    if (e) return `Em ${e[1]} dias`;
+    return /hoje/i.test(a.mensagem || "") ? "Hoje" : null;
+  };
 
   // Fechar ao clicar fora, no Esc e ao rolar e responsabilidade do
   // MenuSuspenso - nao repetir aqui, senao viram dois ouvintes disputando.
@@ -86,9 +112,13 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
           duas vezes, uma embaixo da outra. Quem nao tem cabecalho proprio - o
           painel, com a saudacao - publica o titulo e ele aparece aqui. */}
       {titulo ? (
-        <div>
-          <div className="topo__titulo">{titulo}<AjudaTela /></div>
-          {legenda && <div className="topo__legenda">{legenda}</div>}
+        <div className="topo__cabeca">
+          {/* O sol (ou a lua) ao lado da saudacao do Dashboard (29/10). */}
+          {icone && <span className="topo__icone-titulo"><Icone nome={icone} tamanho={26} monocromatico /></span>}
+          <div>
+            <div className="topo__titulo">{titulo}<AjudaTela /></div>
+            {legenda && <div className="topo__legenda">{legenda}</div>}
+          </div>
         </div>
       ) : (
         <div className="topo__vazio" />
@@ -107,35 +137,57 @@ export default function Topo({ titulo, legenda, aoAlternarMenu }) {
         </button>
 
         <MenuSuspenso aberto={alertasAberto} aoFechar={fecharAlertas}
-                      ancora={sino} largura={380} alinhamento="esquerda"
-                      classe="menu-suspenso--alertas">
-          <div className="menu-suspenso__cabecalho">
-            <div className="topo__usuario-nome">Alertas</div>
-            <div className="topo__usuario-perfil">
-              {visiveis.length === 0
-                ? "Nenhum aviso no momento"
-                : `${visiveis.length} aviso(s) pendente(s)`}
-            </div>
+                      ancora={sino} largura={460} alinhamento="esquerda"
+                      classe="menu-suspenso--alertas ca">
+          <div className="ca__topo">
+            <span className="ca__sino"><Icone nome="bell" tamanho={26} monocromatico /></span>
+            <span>
+              <strong>Central de alertas</strong>
+              <small>{visiveis.length === 0 ? "Nenhum aviso pendente" : `${visiveis.length} aviso${visiveis.length === 1 ? "" : "s"} pendente${visiveis.length === 1 ? "" : "s"}`}</small>
+            </span>
+          </div>
+          <div className="ca__filtros" role="tablist">
+            {[["todas", "Todas", visiveis.length], ["criticas", "Críticas", visiveis.filter(critica).length],
+              ["avisos", "Avisos", visiveis.filter((a) => !critica(a)).length]].map(([k, r, n]) => (
+              <button key={k} type="button" role="tab" className="ca__filtro" data-tipo={k}
+                      data-ativo={filtroAlerta === k ? "sim" : undefined} onClick={() => setFiltroAlerta(k)}>
+                {r} <span>{n}</span>
+              </button>
+            ))}
           </div>
 
-          <div className="alertas-lista">
-            {visiveis.length === 0 ? (
-              <p className="alertas-lista__vazio">
-                Nada vencendo nos próximos 30 dias.
-              </p>
+          <div className="alertas-lista ca__lista">
+            {listaAlertas.length === 0 ? (
+              <p className="alertas-lista__vazio">Nada por aqui. Os avisos aparecem 30 dias antes de vencer.</p>
             ) : (
-              visiveis.map((item) => (
-                <button key={item.id_alerta} role="menuitem"
-                        className="alerta-item"
-                        onClick={() => abrirAlerta(item)}>
-                  <span className={`alerta-item__marca alerta-item__marca--${(item.prioridade || "BAIXA").toLowerCase()}`} />
-                  <span className="alerta-item__texto">
-                    <span className="alerta-item__titulo">{item.titulo}</span>
-                    <span className="alerta-item__mensagem">{item.mensagem}</span>
-                  </span>
-                </button>
-              ))
+              listaAlertas.map((item) => {
+                const lido = lidos.has(chaveAlerta(item));
+                return (
+                  <button key={`${item.id_alerta}-${item.mensagem}`} role="menuitem"
+                          className="ca__item" data-critica={critica(item) ? "sim" : undefined} data-lido={lido ? "sim" : undefined}
+                          onClick={() => abrirAlerta(item)}>
+                    <span className="ca__icone"><Icone nome={ICONE_ALERTA[item.tipo] || "alert-triangle"} tamanho={22} monocromatico /></span>
+                    <span className="ca__texto">
+                      <strong>{item.titulo}</strong>
+                      <span>{item.mensagem}</span>
+                    </span>
+                    {quandoAlerta(item) && <span className="ca__quando">{quandoAlerta(item)}</span>}
+                    <Icone nome="chevron-right" tamanho={14} />
+                  </button>
+                );
+              })
             )}
+          </div>
+          <div className="ca__rodape">
+            <button type="button" onClick={marcarLidas} disabled={visiveis.length === 0}>
+              <Icone nome="visualizar" tamanho={16} /> Marcar todas como lidas
+            </button>
+            <button type="button" className="ca__todas" onClick={() => {
+              setAlertasAberto(false);
+              navegar(`/dashboard${moduloDaTela === "FISCALIZACAO" ? "?painel=fiscalizacao" : moduloDaTela === "FROTAS" ? "?painel=frotas" : ""}`);
+            }}>
+              Ver todos os alertas <Icone nome="seta-direita" tamanho={14} monocromatico />
+            </button>
           </div>
         </MenuSuspenso>
       </div>

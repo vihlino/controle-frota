@@ -4,6 +4,7 @@ import Icone from "../../components/Icone.jsx";
 import Kpi from "../../components/Kpi.jsx";
 import PainelAlertas from "../../components/PainelAlertas.jsx";
 import Selo from "../../components/Selo.jsx";
+import { TituloPainel, VazioPainel, ListaOsPainel, AcaoRapida } from "../../components/PainelUi.jsx";
 import { dataHora, hora, numero, porcentagem } from "../../lib/formato.js";
 
 const ROTULOS_OS = {
@@ -29,16 +30,19 @@ export default function PainelFrotas({ dados }) {
           sobrava um vazio enorme nas telas grandes. */}
       <div className="kpis kpis--esticar">
         <Kpi icone="kpi-car"       rotulo="Total de Veículos"  valor={kpis.total}
-             nota="100% da frota" tom="neutro" />
+             nota="100% da frota" tom="azul" para="/frotas/veiculos" barra={100} />
         <Kpi icone="kpi-car-front" rotulo="Disponível"         valor={kpis.disponiveis.valor}
-             nota={`${porcentagem(kpis.disponiveis.percentual)} da frota`} tom="verde" />
+             nota={`${porcentagem(kpis.disponiveis.percentual)} da frota`} tom="verde"
+             para="/frotas/veiculos?status=DISPONIVEL" barra={kpis.disponiveis.percentual} />
         <Kpi icone="kpi-steering"  rotulo="Em Operação"        valor={kpis.emOperacao.valor}
-             nota={`${porcentagem(kpis.emOperacao.percentual)} da frota`} tom="azul" />
+             nota={`${porcentagem(kpis.emOperacao.percentual)} da frota`} tom="laranja"
+             para="/frotas/veiculos?status=EM_USO" barra={kpis.emOperacao.percentual} />
         <Kpi icone="kpi-wrench"    rotulo="Em manutenção"      valor={kpis.emManutencao.valor}
-             nota={`${porcentagem(kpis.emManutencao.percentual)} da frota`} tom="ambar" />
+             nota={`${porcentagem(kpis.emManutencao.percentual)} da frota`} tom="ambar"
+             para="/frotas/veiculos?status=EM_MANUTENCAO" barra={kpis.emManutencao.percentual} />
         <Kpi icone="checklist"     rotulo="Checklists de hoje" valor={kpis.checklistsHoje.valor}
              nota={`${difChecklists >= 0 ? "↑" : "↓"} ${numero(Math.abs(difChecklists))} relação a ontem`}
-             tom="roxo" />
+             tom="roxo" para={`/frotas/checklists?dataDe=${hoje}&dataAte=${hoje}`} />
       </div>
 
       {/* Alertas e Acoes rapidas numa coluna vertical a direita (pedido de
@@ -49,8 +53,8 @@ export default function PainelFrotas({ dados }) {
           cartao mais importante e precisa mostrar todas as colunas. Em tela
           menor os dois ficam um embaixo do outro, cada um na largura toda. */}
       <div className="grade-2 painel-frotas__linha1">
-        <Cartao titulo="Últimos checklists"
-                acao={<Link className="cartao__acao" to="/frotas/checklists">Ver todos</Link>}>
+        <Cartao titulo={<TituloPainel icone="checklist" tom="azul">Últimos checklists</TituloPainel>}
+                acao={<Link className="cartao__acao" to="/frotas/checklists">Ver todos →</Link>}>
           <div className="rolagem-x">
             <table className="tabela">
               {/* As MESMAS colunas da tela de Checklists, na mesma ordem. O
@@ -88,17 +92,17 @@ export default function PainelFrotas({ dados }) {
                 ))}
               </tbody>
             </table>
-            {ultimosChecklists.length === 0 && <div className="vazio">Nenhum checklist registrado.</div>}
+            {ultimosChecklists.length === 0 && <VazioPainel icone="checklist" titulo="Nenhum checklist registrado." texto="Os checklists enviados pelo QR Code aparecem aqui." />}
           </div>
         </Cartao>
 
         {/* O "Ver todas" leva para a lista JA no dia de hoje: o cartao fala de
             hoje, e cair na lista inteira obrigava a refazer o filtro na mao. */}
-        <Cartao titulo="Movimentações de hoje"
+        <Cartao titulo={<TituloPainel icone="movements" tom="azul">Movimentações de hoje</TituloPainel>}
                 acao={
                   <Link className="cartao__acao"
                         to={`/frotas/checklists?dataDe=${hoje}&dataAte=${hoje}`}>
-                    Ver todas
+                    Ver todas →
                   </Link>
                 }>
           <div className="rolagem-x">
@@ -126,7 +130,7 @@ export default function PainelFrotas({ dados }) {
                 ))}
               </tbody>
             </table>
-            {veiculosEmUso.length === 0 && <div className="vazio">Nenhuma saída registrada hoje.</div>}
+            {veiculosEmUso.length === 0 && <VazioPainel titulo="Nenhuma saída registrada hoje." texto="Quando houver movimentações de veículos, elas serão exibidas aqui." />}
           </div>
         </Cartao>
       </div>
@@ -135,7 +139,7 @@ export default function PainelFrotas({ dados }) {
         {/* O link ja leva a lista FILTRADA por Vencendo. Mandar para a lista
             inteira obrigaria a refazer na mao o filtro que o cartao acabou de
             aplicar - e quem clica aqui quer justamente esses documentos. */}
-        <Cartao titulo="Próximos vencimentos"
+        <Cartao titulo={<TituloPainel icone="calendar" tom="azul">Próximos vencimentos</TituloPainel>}
                 acao={
                   <Link className="cartao__acao" to="/frotas/documentos?status=VENCENDO">
                     Ver documentos <span aria-hidden="true">→</span>
@@ -165,28 +169,13 @@ export default function PainelFrotas({ dados }) {
           </div>
         </Cartao>
 
-        <Cartao titulo="Manutenções em aberto"
+        <Cartao titulo={<TituloPainel icone="kpi-wrench" tom="azul">Manutenções em aberto</TituloPainel>}
                 acao={
                   <Link className="cartao__acao" to="/frotas/manutencoes">
                     Ver todas as OS <span aria-hidden="true">→</span>
                   </Link>
                 }>
-          <div className="lista-os">
-            {ordensServico.map((os) => {
-              const rotulo = ROTULOS_OS[os.status] || { titulo: os.status, descricao: "" };
-              return (
-                <div className="lista-os__item" key={os.status}>
-                  <span className="lista-os__icone"><Icone nome="kpi-wrench" tamanho={20} /></span>
-                  <div>
-                    <div className="lista-os__titulo">{rotulo.titulo}</div>
-                    <div className="lista-os__desc">{rotulo.descricao}</div>
-                  </div>
-                  <span className="lista-os__valor">{numero(os.quantidade)}</span>
-                </div>
-              );
-            })}
-            {ordensServico.length === 0 && <div className="vazio">Nenhuma OS em aberto.</div>}
-          </div>
+          <ListaOsPainel ordens={ordensServico} rotulos={ROTULOS_OS} />
         </Cartao>
       </div>
 
@@ -195,25 +184,14 @@ export default function PainelFrotas({ dados }) {
         <aside className="painel-frotas__lateral">
         <PainelAlertas modulo="FROTAS" />
 
-        <Cartao titulo="Ações rápidas">
-          {/* Cada atalho abre o FORMULARIO, nao a lista. As telas que cadastram
-              por janela recebem ?novo=1, lido pelo gerador de paginas. */}
-          <div className="lista-lateral">
-            <Link className="acao-rapida" to="/frotas/veiculos?novo=1">
-              + Cadastrar veículo
-            </Link>
-            <Link className="acao-rapida" to="/frotas/inspecoes?agendar=1">
-              + Nova inspeção
-            </Link>
-            <Link className="acao-rapida" to="/frotas/manutencoes?registrar=1">
-              + Registrar OS
-            </Link>
-            <Link className="acao-rapida" to="/frotas/documentos?novo=1">
-              + Adicionar documento
-            </Link>
-            <Link className="acao-rapida acao-rapida--icone" to="/frotas/relatorios">
-              <Icone nome="chart-line" tamanho={12} /> Relatórios
-            </Link>
+        <Cartao titulo={<TituloPainel icone="fisc-bolt" tom="verde">Ações rápidas</TituloPainel>}>
+          {/* Cada atalho abre o FORMULARIO, nao a lista (?novo=1, ?agendar=1). */}
+          <div className="lista-ar">
+            <AcaoRapida para="/frotas/veiculos?novo=1" icone="kpi-car">Cadastrar veículo</AcaoRapida>
+            <AcaoRapida para="/frotas/inspecoes?agendar=1" icone="search">Nova inspeção</AcaoRapida>
+            <AcaoRapida para="/frotas/manutencoes?registrar=1" icone="kpi-wrench">Registrar OS</AcaoRapida>
+            <AcaoRapida para="/frotas/documentos?novo=1" icone="documento">Adicionar documento</AcaoRapida>
+            <AcaoRapida para="/frotas/relatorios" icone="chart-line">Relatórios</AcaoRapida>
           </div>
         </Cartao>
         </aside>

@@ -21,6 +21,7 @@ import { GRAVIDADES, SITUACOES_MULTA } from "./RegistrarMulta.jsx";
 import { api } from "../lib/api.js";
 import { data, dataHora, diasAte, dinheiro, hora } from "../lib/formato.js";
 import { useSessao } from "../lib/sessao.jsx";
+import TituloSecao from "./TituloSecao.jsx";
 
 const vazio = (v) => (v === null || v === undefined || v === "" ? "—" : v);
 const data10 = (v) => (v ? String(v).slice(0, 10) : "");
@@ -140,7 +141,7 @@ export default function DetalheMulta({ multa, servidor, aoFechar, aoEditar, aoMu
 
         {atualizando && (
           <form id="form-situacao-multa" className="formulario-grade multa-det__atualizar" onSubmit={salvarSituacao}>
-            <h3 className="formulario__secao">Atualizar situação</h3>
+            <TituloSecao>Atualizar situação</TituloSecao>
             <Selecao rotulo="Nova situação *" id="multa-nova-situacao" required
                      opcoes={SITUACOES_MULTA.map((s) => ({ valor: s.valor, rotulo: s.rotulo }))}
                      value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} />
@@ -154,7 +155,7 @@ export default function DetalheMulta({ multa, servidor, aoFechar, aoEditar, aoMu
           </form>
         )}
 
-        <h3 className="formulario__secao">Infração</h3>
+        <TituloSecao>Infração</TituloSecao>
         <dl className="multa-det__lista">
           <Linha rotulo="Nº do auto de infração">{vazio(m.numero_auto)}</Linha>
           <Linha rotulo="Órgão autuador">{vazio(m.orgao_autuador)}</Linha>
@@ -166,7 +167,7 @@ export default function DetalheMulta({ multa, servidor, aoFechar, aoEditar, aoMu
           <Linha rotulo="Descrição">{vazio(m.descricao)}</Linha>
         </dl>
 
-        <h3 className="formulario__secao">Pagamento</h3>
+        <TituloSecao>Pagamento</TituloSecao>
         <dl className="multa-det__lista">
           <Linha rotulo="Vencimento">{m.vencimento ? data(m.vencimento) : "—"}</Linha>
           <Linha rotulo="Situação">{situacao ? situacao.rotulo : "—"}</Linha>
@@ -175,7 +176,7 @@ export default function DetalheMulta({ multa, servidor, aoFechar, aoEditar, aoMu
           <Linha rotulo="Registrada em">{m.criado_em ? dataHora(m.criado_em) : "—"}</Linha>
         </dl>
 
-        <h3 className="formulario__secao">Anexos</h3>
+        <TituloSecao>Anexos</TituloSecao>
         <ArquivosAnexados
           caminhoLista={`/frotas/multas/${m.id_multa}/arquivos`}
           caminhoArquivo="/frotas/multas/arquivos"

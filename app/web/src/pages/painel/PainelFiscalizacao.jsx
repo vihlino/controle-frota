@@ -5,6 +5,7 @@ import Kpi from "../../components/Kpi.jsx";
 import PainelAlertas from "../../components/PainelAlertas.jsx";
 import Selo from "../../components/Selo.jsx";
 import VeiculoCel from "../../components/VeiculoCel.jsx";
+import { TituloPainel, VazioPainel, ListaOsPainel, AcaoRapida } from "../../components/PainelUi.jsx";
 import { data, hora, numero } from "../../lib/formato.js";
 
 const ROTULOS_OS = {
@@ -27,16 +28,16 @@ export default function PainelFiscalizacao({ dados }) {
       <div className="kpis kpis--esticar">
         <Kpi icone="fisc-servidores" rotulo="Equipes em serviço"
              valor={kpis.equipesEmServico}
-             nota={`${pctEquipes}% do total`} tom="verde" />
+             nota={`${pctEquipes}% do total`} tom="azul" para="/fiscalizacao/servico-diario" />
         <Kpi icone="fisc-viatura" rotulo="Viaturas em uso"
              valor={kpis.viaturasEmUso}
-             nota="Em campo agora" tom="azul" />
+             nota="Em campo agora" tom="verde" para="/fiscalizacao/viaturas" />
         <Kpi icone="fisc-ocorrencias" rotulo="Ocorrências hoje"
              valor={kpis.ocorrenciasHoje.hoje}
-             nota={`${numero(kpis.ocorrenciasHoje.em_andamento)} em andamento`} tom="ambar" />
+             nota={`${numero(kpis.ocorrenciasHoje.em_andamento)} em andamento`} tom="laranja" para="/fiscalizacao/ocorrencias" />
         <Kpi icone="checklist" rotulo="Checklists de hoje"
              valor={kpis.checklistsHoje}
-             nota="Enviados" tom="roxo" />
+             nota="Enviados" tom="roxo" para="/fiscalizacao/checklists" />
       </div>
 
       {/* Alertas e Acoes rapidas na coluna vertical a direita, como no painel
@@ -44,8 +45,8 @@ export default function PainelFiscalizacao({ dados }) {
       <div className="painel-frotas">
         <div className="painel-frotas__principal">
       <div className="grade-2">
-        <Cartao titulo="Serviço diário — em andamento"
-                acao={<Link className="cartao__acao" to="/fiscalizacao/servico-diario">Ver todos</Link>}>
+        <Cartao titulo={<TituloPainel icone="calendar" tom="laranja">Serviço diário — em andamento</TituloPainel>}
+                acao={<Link className="cartao__acao" to="/fiscalizacao/servico-diario">Ver todos →</Link>}>
           <div className="rolagem-x">
             <table className="tabela">
               <thead>
@@ -70,13 +71,13 @@ export default function PainelFiscalizacao({ dados }) {
               </tbody>
             </table>
             {(!servicosHoje || servicosHoje.length === 0) && (
-              <div className="vazio">Nenhum serviço em andamento hoje.</div>
+              <VazioPainel icone="checklist" titulo="Nenhum serviço em andamento hoje." texto="Quando houver serviços em andamento, eles serão exibidos aqui." />
             )}
           </div>
         </Cartao>
 
-        <Cartao titulo="Ocorrências de hoje"
-                acao={<Link className="cartao__acao" to="/fiscalizacao/ocorrencias">Ver todas</Link>}>
+        <Cartao titulo={<TituloPainel icone="oc-local" tom="azul">Ocorrências de hoje</TituloPainel>}
+                acao={<Link className="cartao__acao" to="/fiscalizacao/ocorrencias">Ver todas →</Link>}>
           <div className="rolagem-x">
             <table className="tabela">
               <thead>
@@ -101,15 +102,15 @@ export default function PainelFiscalizacao({ dados }) {
               </tbody>
             </table>
             {ultimasOcorrencias.length === 0 && (
-              <div className="vazio">Nenhuma ocorrência registrada hoje.</div>
+              <VazioPainel icone="checklist" titulo="Nenhuma ocorrência registrada hoje." texto="Quando houver ocorrências, elas serão exibidas aqui." />
             )}
           </div>
         </Cartao>
       </div>
 
       <div className="grade-2">
-        <Cartao titulo="Últimos checklists"
-                acao={<Link className="cartao__acao" to="/fiscalizacao/checklists">Ver todos</Link>}>
+        <Cartao titulo={<TituloPainel icone="checklist" tom="azul">Últimos checklists</TituloPainel>}
+                acao={<Link className="cartao__acao" to="/fiscalizacao/checklists">Ver todos →</Link>}>
           <div className="rolagem-x">
             <table className="tabela">
               <thead>
@@ -134,35 +135,18 @@ export default function PainelFiscalizacao({ dados }) {
               </tbody>
             </table>
             {(!ultimosChecklists || ultimosChecklists.length === 0) && (
-              <div className="vazio">Nenhum checklist registrado.</div>
+              <VazioPainel icone="checklist" titulo="Nenhum checklist registrado." />
             )}
           </div>
         </Cartao>
 
-        <Cartao titulo="Manutenções em aberto"
+        <Cartao titulo={<TituloPainel icone="kpi-wrench" tom="azul">Manutenções em aberto</TituloPainel>}
                 acao={
-                  <Link className="cartao__acao" to="/frotas/manutencoes">
+                  <Link className="cartao__acao" to="/fiscalizacao/manutencoes">
                     Ver todas as OS <span aria-hidden="true">→</span>
                   </Link>
                 }>
-          <div className="lista-os">
-            {(ordensServico || []).map((os) => {
-              const rotulo = ROTULOS_OS[os.status] || { titulo: os.status, descricao: "" };
-              return (
-                <div className="lista-os__item" key={os.status}>
-                  <span className="lista-os__icone"><Icone nome="kpi-wrench" tamanho={20} /></span>
-                  <div>
-                    <div className="lista-os__titulo">{rotulo.titulo}</div>
-                    <div className="lista-os__desc">{rotulo.descricao}</div>
-                  </div>
-                  <span className="lista-os__valor">{numero(os.quantidade)}</span>
-                </div>
-              );
-            })}
-            {(!ordensServico || ordensServico.length === 0) && (
-              <div className="vazio">Nenhuma OS em aberto.</div>
-            )}
-          </div>
+          <ListaOsPainel ordens={ordensServico} rotulos={ROTULOS_OS} base="/fiscalizacao/manutencoes" />
         </Cartao>
       </div>
 
@@ -171,29 +155,14 @@ export default function PainelFiscalizacao({ dados }) {
         <aside className="painel-frotas__lateral">
         <PainelAlertas modulo="FISCALIZACAO" />
 
-        <Cartao titulo="Ações rápidas">
-          <div className="lista-lateral">
-            <Link className="acao-rapida" to="/fiscalizacao/servico-diario?novo=1">
-              + Serviço Diário
-            </Link>
-            <Link className="acao-rapida" to="/fiscalizacao/ocorrencias?novo=1">
-              + Ocorrência
-            </Link>
-            {/* Sem "+": esta tela so LISTA os checklists, que nascem no celular
-                pelo QR Code do veiculo. Um "+" prometeria um cadastro que nao
-                existe aqui. Icones do tamanho do "+", como no Frotas. */}
-            <Link className="acao-rapida acao-rapida--icone" to="/fiscalizacao/checklists">
-              <Icone nome="checklist" tamanho={12} /> Ver Checklists
-            </Link>
-            <Link className="acao-rapida acao-rapida--icone" to="/fiscalizacao/equipes">
-              <Icone nome="fisc-servidores" tamanho={12} /> Ver Equipes
-            </Link>
-            <Link className="acao-rapida acao-rapida--icone" to="/fiscalizacao/viaturas">
-              <Icone nome="fisc-viatura" tamanho={12} /> Ver Viaturas
-            </Link>
-            <Link className="acao-rapida acao-rapida--icone" to="/fiscalizacao/relatorios">
-              <Icone nome="chart-line" tamanho={12} /> Relatórios
-            </Link>
+        <Cartao titulo={<TituloPainel icone="fisc-bolt" tom="verde">Ações rápidas</TituloPainel>}>
+          <div className="lista-ar">
+            <AcaoRapida para="/fiscalizacao/servico-diario?novo=1" icone="calendar">+ Serviço Diário</AcaoRapida>
+            <AcaoRapida para="/fiscalizacao/ocorrencias?novo=1" icone="oc-local">+ Ocorrência</AcaoRapida>
+            <AcaoRapida para="/fiscalizacao/checklists" icone="checklist">Ver Checklists</AcaoRapida>
+            <AcaoRapida para="/fiscalizacao/equipes" icone="equipe">Ver Equipes</AcaoRapida>
+            <AcaoRapida para="/fiscalizacao/viaturas" icone="kpi-car">Ver Viaturas</AcaoRapida>
+            <AcaoRapida para="/fiscalizacao/relatorios" icone="chart-line">Relatórios</AcaoRapida>
           </div>
         </Cartao>
         </aside>

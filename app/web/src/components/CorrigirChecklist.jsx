@@ -9,11 +9,13 @@ import { useEffect, useState } from "react";
 import Modal from "./Modal.jsx";
 import Icone from "./Icone.jsx";
 import { useConfirmacaoSenha } from "./ConfirmarSenha.jsx";
-import { Texto, Selecao, Area } from "./Campos.jsx";
+import { Texto, Selecao, Area, Data } from "./Campos.jsx";
 import { api, apiArquivo } from "../lib/api.js";
 import { dataHora, numero, rotulo } from "../lib/formato.js";
+import TituloSecao from "./TituloSecao.jsx";
 
 export const ORDEM_EQUIPAMENTOS = ["MACACO", "ESTEPE", "TRIANGULO", "CHAVE_RODA"];
+const ICONE_EQUIPAMENTO = { MACACO: "eq-macaco", ESTEPE: "eq-estepe", TRIANGULO: "eq-triangulo", CHAVE_RODA: "eq-chave-roda" };
 
 /*
  * O <input type="time"> e exigente: ele aceita "14:30" ou "14:30:00" e RECUSA
@@ -206,8 +208,9 @@ export default function CorrigirChecklist({ checklist, aoFechar, aoSalvar }) {
       {/* Veiculo e condutor: so leitura. Sao de outros cadastros, e trocar
           o condutor de um checklist nao seria corrigir digitacao - seria
           dizer que outra pessoa dirigiu. */}
-      <div className="checklist-faixa checklist-faixa--modal">
+      <div className="checklist-faixa checklist-faixa--modal cc-faixa">
         <div className="checklist-faixa__campo">
+          <span className="cc-faixa__icone"><Icone nome="kpi-car" tamanho={20} monocromatico /></span>
           <span className="checklist-faixa__rotulo">Veículo</span>
           <strong className="checklist-faixa__destaque">{formulario.placa}</strong>
           <span className="checklist-faixa__apoio">
@@ -215,11 +218,13 @@ export default function CorrigirChecklist({ checklist, aoFechar, aoSalvar }) {
           </span>
         </div>
         <div className="checklist-faixa__campo">
+          <span className="cc-faixa__icone"><Icone nome="user" tamanho={20} monocromatico /></span>
           <span className="checklist-faixa__rotulo">Condutor</span>
           <span className="checklist-faixa__nome">{formulario.condutor}</span>
           <span className="checklist-faixa__apoio">Matrícula {formulario.matricula}</span>
         </div>
         <div className="checklist-faixa__campo">
+          <span className="cc-faixa__icone"><Icone nome="calendar" tamanho={20} monocromatico /></span>
           <span className="checklist-faixa__rotulo">Enviado em</span>
           <strong>{dataHora(formulario.criado_em)}</strong>
         </div>
@@ -227,7 +232,7 @@ export default function CorrigirChecklist({ checklist, aoFechar, aoSalvar }) {
 
       {/* As mesmas duas abas da tela do condutor: saida e chegada sao o
           MESMO registro em dois momentos. */}
-      <div className="abas" role="tablist">
+      <div className="abas cc-abas" role="tablist">
         <button type="button" role="tab" className="aba"
                 data-ativa={naSaidaForm} aria-selected={naSaidaForm}
                 onClick={() => setAbaForm("SAIDA")}>
@@ -244,22 +249,19 @@ export default function CorrigirChecklist({ checklist, aoFechar, aoSalvar }) {
             onSubmit={salvar}>
         {naSaidaForm ? (
           <>
-            <h3 className="formulario__secao">Saída do veículo</h3>
-            <Texto rotulo="Data da saída *" id="data_abertura" type="date" required
-                   {...campo("data_abertura")} />
+            <TituloSecao>Saída do veículo</TituloSecao>
+            <Data rotulo="Data da saída *" id="data_abertura" required {...campo("data_abertura")} />
             <Texto rotulo="Hora da saída" id="hora_saida" type="time"
                    {...campo("hora_saida")} />
             <Texto rotulo="KM de saída *" id="odometro_saida" type="number" min="0"
                    required {...campo("odometro_saida")} placeholder="Ex.: 45230" />
-            <Texto rotulo="Percurso / atividade" id="percurso" largo
-                   {...campo("percurso")}
-                   placeholder="Ex.: Sede - Setor Central - Sede" />
+            <Area rotulo="Percurso / atividade" id="percurso" largo maxLength={200} rows={2}
+                  {...campo("percurso")} placeholder="Ex.: Sede - Setor Central - Sede" />
           </>
         ) : (
           <>
-            <h3 className="formulario__secao">Chegada do veículo</h3>
-            <Texto rotulo="Data da chegada" id="data_devolucao" type="date"
-                   {...campo("data_devolucao")} />
+            <TituloSecao>Chegada do veículo</TituloSecao>
+            <Data rotulo="Data da chegada" id="data_devolucao" {...campo("data_devolucao")} />
             <Texto rotulo="Hora da chegada" id="hora_chegada" type="time"
                    {...campo("hora_chegada")} />
             <Texto rotulo="KM de chegada" id="odometro_chegada" type="number" min="0"
@@ -287,27 +289,30 @@ export default function CorrigirChecklist({ checklist, aoFechar, aoSalvar }) {
         {/* EQUIPAMENTOS: Presente ou Ausente, como na tela do condutor. O
             campo de observacao abre so no item ausente - em item presente
             nao ha o que explicar. */}
-        <h3 className="formulario__secao">Verificação dos equipamentos</h3>
+        <TituloSecao>Verificação dos equipamentos</TituloSecao>
         <div className="campo" data-largo="sim">
           <div className="eq-correcao">
             {(formulario[chaveEq] || []).map((item, i) => (
-              <div className="eq-correcao__item" key={item.equipamento}>
+              <div className="eq-correcao__item cc-eq" key={item.equipamento} data-ok={item.conforme ? "sim" : "nao"}>
+                <span className="cc-eq__icone"><Icone nome={ICONE_EQUIPAMENTO[item.equipamento] || "checklist"} tamanho={34} /></span>
+                <span className="cc-eq__corpo">
                 <span className="eq-correcao__nome">
                   {rotulo("equipamento", item.equipamento)}
                 </span>
                 <div className="eq-correcao__botoes">
-                  <button type="button" className="botao botao--mini"
+                  <button type="button" className="botao botao--mini cc-eq__botao"
                           data-ativo={item.conforme ? "sim" : undefined}
                           onClick={() => alterarEquipamento(i, { conforme: true })}>
-                    Presente
+                    {item.conforme ? "✓" : "○"} Presente
                   </button>
-                  <button type="button" className="botao botao--mini"
+                  <button type="button" className="botao botao--mini cc-eq__botao"
                           data-ativo={!item.conforme ? "sim" : undefined}
                           data-perigo="sim"
                           onClick={() => alterarEquipamento(i, { conforme: false })}>
-                    Ausente
+                    {!item.conforme ? "✕" : "○"} Ausente
                   </button>
                 </div>
+                </span>
                 {!item.conforme && (
                   <input
                     className="eq-correcao__obs"
@@ -324,12 +329,12 @@ export default function CorrigirChecklist({ checklist, aoFechar, aoSalvar }) {
         {/* FOTOS: conferencia, nao edicao. A foto e a prova do estado do
             veiculo no momento em que o condutor registrou - trocar isso
             daqui seria apagar a prova, nao corrigir um erro de digitacao. */}
-        <h3 className="formulario__secao">Fotos do condutor</h3>
+        <TituloSecao descricao="Fotos enviadas pelo condutor no QR Code (só para conferir).">Fotos do condutor</TituloSecao>
         <div className="campo" data-largo="sim">
           {(() => {
             const daAba = fotosForm.filter((f) => (f.momento || "SAIDA") === abaForm);
             return daAba.length === 0 ? (
-              <div className="vazio">Nenhuma foto anexada neste momento.</div>
+              <div className="cc-sem-fotos"><Icone nome="oc-camera" tamanho={26} monocromatico /><span>Nenhuma foto enviada pelo condutor {naSaidaForm ? "na saída" : "na chegada"}.</span></div>
             ) : (
               <div className="checklist-fotos">
                 {daAba.map((f) => (
@@ -342,8 +347,8 @@ export default function CorrigirChecklist({ checklist, aoFechar, aoSalvar }) {
           })()}
         </div>
 
-        <h3 className="formulario__secao">Observações</h3>
-        <Area id={naSaidaForm ? "observacoes" : "observacoes_chegada"} largo
+        <TituloSecao>Observações</TituloSecao>
+        <Area id={naSaidaForm ? "observacoes" : "observacoes_chegada"} largo maxLength={500}
               aria-label="Observações"
               {...campo(naSaidaForm ? "observacoes" : "observacoes_chegada")}
               placeholder="Ex.: veículo devolvido com o tanque cheio" />

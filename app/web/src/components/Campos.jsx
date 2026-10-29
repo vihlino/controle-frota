@@ -55,34 +55,104 @@ function Rotulo(rotulo) {
   );
 }
 
-export function Texto({ rotulo, id, largo, ajuda, tamanho, ...resto }) {
+/*
+ * ICONE DENTRO DO CAMPO (desenho do Cesar, 29/10)
+ *
+ * Nas janelas de cadastro cada campo tem um icone a esquerda (pessoa no
+ * nome, calendario na data, telefone no telefone...). Ele sai do ROTULO, para
+ * valer no sistema inteiro sem tocar em cada formulario; `icone` troca o
+ * escolhido e `icone={false}` tira. Fora das janelas (barras de filtro) o
+ * icone fica escondido pelo CSS - la o espaco e curto.
+ */
+const ICONES_CAMPO = [
+  [/^\s*ano\b/i, "calendar"],
+  [/placa/i, "placa"],
+  [/e-?mail/i, "email"],
+  [/telefone|celular|contato/i, "telefone"],
+  [/cpf|matr[ií]cula|renach|cnh|registro/i, "cnh"],
+  [/senha/i, "alterar-senha"],
+  [/hora|hor[aá]rio/i, "historico"],
+  [/data|vencimento|validade|prazo|emiss[aã]o|nascimento/i, "calendar"],
+  [/km|od[oô]metro|quilometragem/i, "odometro"],
+  [/pontos|pontua/i, "chart-line"],
+  [/n[uú]mero da equipe|c[oó]digo/i, "arquivo-texto"],
+  [/nome do item|^\s*nome\s*\*?\s*$/i, "adicionar"],
+  [/custo|valor|r\$|pre[cç]o|pe[cç]as\b.*r\$|m[aã]o de obra|outros custos/i, "dinheiro"],
+  [/respons[aá]vel|condutor|motorista|nome|coordenador|fiscal|usu[aá]rio|servidor/i, "user"],
+  [/oficina|fornecedor|[oó]rg[aã]o|setor/i, "predio"],
+  [/cargo|fun[cç][aã]o/i, "maleta"],
+  [/equipe/i, "equipe"],
+  [/viatura|ve[ií]culo|marca|modelo/i, "kpi-car"],
+  [/chassi/i, "kpi-steering"],
+  [/renavam|(?:^|\s)n[ºo°](?![a-z])|n[uú]mero|refer[eê]ncia|c[oó]digo|protocolo|auto de infra/i, "arquivo-texto"],
+  [/\bcor\b/i, "paleta"],
+  [/combust[ií]vel/i, "combustivel"],
+  [/capacidade|lota[cç][aã]o/i, "usuarios"],
+  [/v[ií]nculo/i, "link"],
+  [/local|endere[cç]o|percurso|rota/i, "oc-local"],
+  [/prioridade|gravidade/i, "alert-triangle"],
+  [/descri|observa|justifica|motivo|pe[cç]as|provid[eê]ncias|documenta/i, "arquivo-texto"],
+  [/servi[cç]o di[aá]rio|turno/i, "calendar"],
+  [/tipo de manuten|servi[cç]o/i, "kpi-wrench"],
+  [/frequ[eê]ncia|turno/i, "historico"],
+  [/categoria|tipo|parte/i, "camadas"],
+  [/pontos|pontua/i, "chart-line"],
+  [/situa[cç][aã]o|status/i, "concluidas"],
+];
+export function iconeDoCampo(rotulo) {
+  const t = typeof rotulo === "string" ? rotulo.replace(/\*/g, "") : "";
+  if (!t) return null;
+  return (ICONES_CAMPO.find(([re]) => re.test(t)) || [null, null])[1];
+}
+
+/** A caixa do campo com o icone a esquerda (quando houver). */
+function Caixa({ icone, rotulo, children, area }) {
+  const ic = icone === false ? null : (icone || iconeDoCampo(rotulo));
+  if (!ic) return children;
+  return (
+    <span className={`campo-caixa${area ? " campo-caixa--area" : ""}`} data-ic="sim">
+      <span className="campo-caixa__icone" aria-hidden="true"><Icone nome={ic} tamanho={16} monocromatico /></span>
+      {children}
+    </span>
+  );
+}
+
+export function Texto({ rotulo, id, largo, ajuda, tamanho, icone, ...resto }) {
   return (
     <Campo rotulo={rotulo} htmlFor={id} largo={largo} ajuda={ajuda} tamanho={tamanho}>
-      <input id={id} {...resto} />
+      <Caixa icone={icone} rotulo={rotulo}><input id={id} {...resto} /></Caixa>
     </Campo>
   );
 }
 
-export function Area({ rotulo, id, largo, ajuda, tamanho, ...resto }) {
+/** Varias linhas. Com `maxLength`, mostra o contador "0/500" no canto. */
+export function Area({ rotulo, id, largo, ajuda, tamanho, icone, ...resto }) {
+  const max = Number(resto.maxLength) || 0;
+  const conta = max ? String(resto.value ?? "").length : 0;
   return (
     <Campo rotulo={rotulo} htmlFor={id} largo={largo} ajuda={ajuda} tamanho={tamanho}>
-      <textarea id={id} rows={3} {...resto} />
+      <span className="campo-area">
+        <Caixa icone={icone} rotulo={rotulo} area><textarea id={id} rows={3} {...resto} /></Caixa>
+        {max ? <span className="campo-area__contador">{conta}/{max}</span> : null}
+      </span>
     </Campo>
   );
 }
 
 // opcoes: [{valor, rotulo}]. "vazio" e o texto da opcao neutra ("Todos").
-export function Selecao({ rotulo, id, opcoes = [], vazio, largo, ajuda, tamanho, ...resto }) {
+export function Selecao({ rotulo, id, opcoes = [], vazio, largo, ajuda, tamanho, icone, ...resto }) {
   return (
     <Campo rotulo={rotulo} htmlFor={id} largo={largo} ajuda={ajuda} tamanho={tamanho}>
-      <select id={id} {...resto}>
-        {vazio !== undefined && <option value="">{vazio}</option>}
-        {opcoes.map((o) => (
-          <option key={o.valor} value={o.valor}>
-            {o.rotulo}
-          </option>
-        ))}
-      </select>
+      <Caixa icone={icone} rotulo={rotulo}>
+        <select id={id} {...resto}>
+          {vazio !== undefined && <option value="">{vazio}</option>}
+          {opcoes.map((o) => (
+            <option key={o.valor} value={o.valor}>
+              {o.rotulo}
+            </option>
+          ))}
+        </select>
+      </Caixa>
     </Campo>
   );
 }
@@ -98,7 +168,7 @@ export function Selecao({ rotulo, id, opcoes = [], vazio, largo, ajuda, tamanho,
  * showPicker() nao existe em todo navegador (Safari antigo, Firefox antigo);
  * quando falta, o campo continua funcionando como sempre - digitando.
  */
-export function Data({ rotulo, id, largo, ajuda, tamanho, ...resto }) {
+export function Data({ rotulo, id, largo, ajuda, tamanho, icone: _icone, ...resto }) {
   // SO no clique. Tinha tambem um onFocus, e os dois juntos quebravam: o
   // focus abria o calendario e o click, no mesmo gesto, chamava showPicker de
   // novo - a segunda chamada lanca NotAllowedError ("requires a user
@@ -118,7 +188,8 @@ export function Data({ rotulo, id, largo, ajuda, tamanho, ...resto }) {
 
   return (
     <Campo rotulo={rotulo} htmlFor={id} largo={largo} ajuda={ajuda} tamanho={tamanho}>
-      <span className="campo-data">
+      <span className="campo-data campo-caixa" data-ic="sim">
+        <span className="campo-caixa__icone" aria-hidden="true"><Icone nome="calendar" tamanho={16} monocromatico /></span>
         {/* type="date" DEPOIS do espalhamento, de proposito. Quem chama
             manda `type={c.html}`, que vale undefined para um campo de data;
             espalhado por ultimo, esse undefined apagava o type="date" e o
@@ -206,6 +277,36 @@ export function Periodo({ rotulo = "Período", id, de, ate, aoMudarDe, aoMudarAt
           <Icone nome="calendar" tamanho={15} />
         </button>
       </span>
+    </Campo>
+  );
+}
+
+/**
+ * ArquivoArraste - um arquivo so, escolhido pelo botao ou arrastando para a
+ * caixa (desenho de 29/10: "Arraste e solte um arquivo aqui ou Escolher
+ * arquivo"). `aoEscolher` recebe o mesmo evento de um <input type="file">.
+ */
+export function ArquivoArraste({ id, rotulo, ajuda = "PDF, JPG ou PNG, até 10 MB.", arquivo, aoEscolher,
+  accept = ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png", titulo = "Arraste e solte um arquivo aqui" }) {
+  function soltar(e) {
+    e.preventDefault();
+    e.currentTarget.removeAttribute("data-arrastando");
+    const f = e.dataTransfer?.files;
+    if (f?.length) aoEscolher({ target: { files: f, value: "" } });
+  }
+  return (
+    <Campo rotulo={rotulo} htmlFor={id} largo>
+      <div className="arq-unico"
+           onDragOver={(e) => { e.preventDefault(); e.currentTarget.setAttribute("data-arrastando", "sim"); }}
+           onDragLeave={(e) => e.currentTarget.removeAttribute("data-arrastando")}
+           onDrop={soltar}>
+        <span className="arq-unico__nuvem"><Icone nome="exportar" tamanho={30} monocromatico /></span>
+        <span className="arq-unico__textos"><strong>{titulo}</strong><small>{ajuda}</small></span>
+        <span className="arq-unico__ou">ou</span>
+        <label className="botao arq-unico__botao" htmlFor={id}><Icone nome="documentos" tamanho={16} /> Escolher arquivo</label>
+        <span className="arq-unico__nome" title={arquivo?.name || ""}>{arquivo?.name || "Nenhum arquivo escolhido"}</span>
+        <input id={id} type="file" hidden accept={accept} onChange={aoEscolher} />
+      </div>
     </Campo>
   );
 }

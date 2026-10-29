@@ -23,6 +23,7 @@ import { Texto, Selecao, Data, Area } from "./Campos.jsx";
 import { api } from "../lib/api.js";
 import { data as dataBr, hora as horaBr, numero, numeroOs } from "../lib/formato.js";
 import { useSessao } from "../lib/sessao.jsx";
+import TituloSecao from "./TituloSecao.jsx";
 
 export const TIPOS_OS = [
   { valor: "PREVENTIVA", rotulo: "Preventiva" },
@@ -40,10 +41,13 @@ const texto = (v) => (v === null || v === undefined ? "" : String(v));
 /*
  * Pela INSPECAO (botao "Abrir OS" da ficha): a mesma janela, com `inspecao`
  * = { id, numero, id_veiculo } e `inicial` = { descricao, gravidade, itens }
- * vindos dos itens com ressalva. O veiculo fica travado no da inspecao, e a OS
+ * vindos dos itens com ressalva.
+ * Pelo CHECKLIST (aba Manutencao dos Detalhes do Checklist, 29/10): `checklist`
+ * = { id }; a OS nasce ligada a ele (origem CHECKLIST_FROTAS) e o veiculo trava.
+ * O veiculo fica travado no da inspecao, e a OS
  * nasce ligada a ela.
  */
-export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoFechar, aoSalvar, soViaturas = false, solicitacao = false }) {
+export default function RegistrarOs({ os, idVeiculo = "", inspecao, checklist, inicial, aoFechar, aoSalvar, soViaturas = false, solicitacao = false }) {
   const editando = Boolean(os);
   const { usuario } = useSessao();
   // Frotas completando a OS que a Fiscalizacao solicitou.
@@ -123,7 +127,7 @@ export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoF
       } else {
         await api("/frotas/manutencoes/registro", {
           method: "POST",
-          body: inspecao ? { ...corpo, id_inspecao: inspecao.id } : corpo,
+          body: inspecao ? { ...corpo, id_inspecao: inspecao.id } : checklist ? { ...corpo, id_checklist: checklist.id } : corpo,
         });
       }
       aoSalvar?.();
@@ -142,8 +146,10 @@ export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoF
           : editando ? (os.numero ? `Editar Registro ${numeroOs(os.numero)}` : "Editar Registro da OS")
             : "Registrar OS"}
         legenda={inspecao && !editando ? `Vinculada à inspeção ${inspecao.numero || ""}`.trim()
+          : checklist && !editando ? `Vinculada ao checklist #CK-${checklist.id}`
           : solicitacao ? "A OS vai para o Frotas completar com a oficina, o responsável e o custo."
-            : completando ? "Solicitada pela Fiscalização. Preencha a oficina e o que mais souber; a OS passa para Em análise." : undefined}
+            : completando ? "Solicitada pela Fiscalização. Preencha a oficina e o que mais souber; a OS passa para Em análise."
+              : editando ? "Atualize as informações da ordem de serviço." : "Registre uma nova ordem de serviço (OS) para o veículo."}
         aoFechar={aoFechar}
         rodape={
           <>
@@ -156,6 +162,7 @@ export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoF
       >
         {erro && <div className="login__erro">{erro}</div>}
         <form id="form-registrar-os" className="formulario-grade" onSubmit={salvar}>
+          <TituloSecao>Informações da ordem de serviço</TituloSecao>
           {/* Preenchidos sozinhos (18/10): quem registra, e quando. */}
           <Texto rotulo="Responsável pela OS" id="os-responsavel" disabled readOnly
                  value={editando ? (os.solicitante || "—") : (usuario?.nome || "")} />
@@ -164,8 +171,9 @@ export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoF
           <Texto rotulo="Horário da OS" id="os-hora-abertura" disabled readOnly
                  value={editando && os.data_abertura ? horaBr(String(os.data_abertura).slice(11, 16))
                    : agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} />
-          <Selecao rotulo="Veículo *" id="os-veiculo" required vazio="Selecione"
-                   disabled={Boolean(inspecao)}
+          <TituloSecao>Dados do veículo e agendamento</TituloSecao>
+          <Selecao rotulo="Veículo *" id="os-veiculo" required vazio="Selecione o veículo"
+                   disabled={Boolean(inspecao || checklist)}
                    opcoes={veiculos.map((v) => ({
                      valor: v.id_veiculo, rotulo: `${v.placa} - ${v.marca} ${v.modelo}`,
                    }))}
@@ -197,28 +205,30 @@ export default function RegistrarOs({ os, idVeiculo = "", inspecao, inicial, aoF
                      placeholder="(00) 00000-0000" {...campo("telefone_oficina")} />
             </>
           )}
-          <Area rotulo="Descrição / Serviço a ser realizado *" id="os-descricao" largo required
+          <TituloSecao>Descrição do serviço</TituloSecao>
+          <Area rotulo="Descrição / Serviço a ser realizado *" id="os-descricao" largo required maxLength={1000}
                 minLength={5} placeholder="Descreva o serviço ou manutenção a ser realizado..."
                 {...campo("descricao")} />
 
           {!solicitacao && (
             <>
-              <h3 className="modal-secao">Informações complementares (opcional)</h3>
+              <TituloSecao>Informações complementares (opcional)</TituloSecao>
               <CampoDinheiro rotulo="Custo estimado" id="os-custo" valor={formulario.custo_estimado}
                              aoMudar={(v) => setFormulario((f) => ({ ...f, custo_estimado: v }))} />
               <Data rotulo="Prazo previsto" id="os-prazo" {...campo("prazo_previsto")} />
-              <Area rotulo="Peças necessárias" id="os-pecas" largo
+              <Area rotulo="Peças necessárias" id="os-pecas" largo maxLength={500}
                     placeholder="Liste as peças necessárias (se houver)..."
                     {...campo("pecas_necessarias")} />
             </>
           )}
-          <Area rotulo="Observações" id="os-obs" largo placeholder="Observações adicionais..."
-                {...campo("observacoes")} />
-
-          <h3 className="modal-secao">Itens a serem verificados / serviços</h3>
+          <TituloSecao>Itens a serem verificados / serviços</TituloSecao>
           <div className="campo" data-largo="sim">
             <ItensOs itens={itens} aoMudar={setItens} />
           </div>
+
+          <TituloSecao>Observações (opcional)</TituloSecao>
+          <Area rotulo="Observações" id="os-obs" largo maxLength={500} placeholder="Observações adicionais..."
+                {...campo("observacoes")} />
         </form>
       </Modal>
       {modalSenha}

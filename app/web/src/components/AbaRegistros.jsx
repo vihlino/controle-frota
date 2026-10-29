@@ -14,7 +14,7 @@
  * situacoes: [{ valor, rotulo, campo? }] - `campo` e o parametro da API (ou
  * da linha) que o filtro usa; o padrao e "status".
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Cartao from "./Cartao.jsx";
 import Icone from "./Icone.jsx";
 import Acoes from "./Acoes.jsx";
@@ -35,6 +35,15 @@ export default function AbaRegistros({
   const [info, setInfo] = useState({ total: 0, paginas: 1 });
   const [aberto, setAberto] = useState(null);
   const [versao, setVersao] = useState(0);
+  // O olho (29/10): abre o detalhe ao lado e o destaca; se o painel estiver
+  // fora da tela (telas menores, painel embaixo), rola ate ele.
+  const [pisca, setPisca] = useState(0);
+  const painelRef = useRef(null);
+  function verDetalhes(l) {
+    setAberto(l);
+    setPisca((n) => n + 1);
+    setTimeout(() => painelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 60);
+  }
   const recarregar = () => setVersao((n) => n + 1);
 
   useEffect(() => {
@@ -125,7 +134,7 @@ export default function AbaRegistros({
                             {colunas.map((c) => <td key={c.rotulo} className={c.classe}>{c.render(l)}</td>)}
                             <td onClick={(e) => e.stopPropagation()}>
                               <span className="as-acoes">
-                                <button type="button" className="botao botao--pequeno" aria-label="Ver detalhes ao lado" onClick={() => setAberto(l)}>
+                                <button type="button" className="botao botao--pequeno as-olho" title="Ver detalhes" aria-label="Ver detalhes ao lado" onClick={() => verDetalhes(l)}>
                                   <Icone nome="visualizar" tamanho={14} />
                                 </button>
                                 {menu.length > 0 && <Acoes acoes={menu} />}
@@ -147,7 +156,7 @@ export default function AbaRegistros({
       </div>
 
       {aberto && (
-        <aside className="cartao sd-sinistro-resumo">
+        <aside ref={painelRef} key={`painel-${pisca}`} className={`cartao sd-sinistro-resumo${pisca ? " as-destaque" : ""}`}>
           {painel(aberto, { fechar: () => setAberto(null), recarregar })}
         </aside>
       )}

@@ -24,6 +24,8 @@ export default criarPagina({
   iconeAcao: "fisc-bolt",
   permissaoGerenciar: "FISCALIZACAO_GERENCIAR_PONTUACAO",
   permiteExcluir: true,
+  // 29/10: "Visualizar" abre os Detalhes do item.
+  detalhe: true,
   descreverExclusao: (i) => `o item de pontuação ${i.codigo}`,
   mapaOpcoes: {},
   colunas: [

@@ -43,9 +43,9 @@ export function Item({ nome, pequeno }) {
 }
 
 /** Numero do estoque; negativo ou faltando aparece em vermelho. */
-export function Qtd({ valor, alerta }) {
+export function Qtd({ valor, alerta, tom }) {
   const n = Number(valor) || 0;
-  return <span className="eqp-n" data-zero={n === 0} data-alerta={alerta && n > 0 ? "sim" : n < 0 ? "sim" : undefined}>{numero(n)}</span>;
+  return <span className="eqp-n" data-tom={tom} data-zero={n === 0} data-alerta={alerta && n > 0 ? "sim" : n < 0 ? "sim" : undefined}>{numero(n)}</span>;
 }
 
 /** Entrada (cadastro de itens recebidos) ou baixa (descarte, perda reconhecida). */
@@ -129,6 +129,8 @@ export default function Equipamentos() {
   const [itens, setItens] = useState(null);
   const [erro, setErro] = useState("");
   const [janela, setJanela] = useState(null);   // { tipo: "item" | "ENTRADA" | "BAIXA", item }
+  const [busca, setBusca] = useState("");
+  const [situacao, setSituacao] = useState("");
 
   useEffect(() => { definirCabecalho({ titulo: "", legenda: "" }); }, [definirCabecalho]);
   const carregar = useCallback(() => {
@@ -146,7 +148,9 @@ export default function Equipamentos() {
   const abrir = (i) => navegar(`/fiscalizacao/equipamentos/${i.id_equipamento}`);
 
   const estoque = (itens || []).filter((i) => i.status && i.conferencia === "QUANTIDADE");
-  const outros = (itens || []).filter((i) => !i.status || i.conferencia !== "QUANTIDADE");
+  const outros = (itens || []).filter((i) => !i.status || i.conferencia !== "QUANTIDADE")
+    .filter((i) => (!situacao || String(i.status) === situacao)
+      && (!busca.trim() || `${i.nome} ${i.descricao || ""}`.toLowerCase().includes(busca.trim().toLowerCase())));
 
   const colunas = [
     {
@@ -157,14 +161,14 @@ export default function Equipamentos() {
         </button>
       ),
     },
-    { chave: "cadastrado", rotulo: "Cadastrado", classe: "eqp-num", render: (i) => <Qtd valor={i.cadastrado} /> },
-    { chave: "em_uso", rotulo: "Em uso agora", classe: "eqp-num", render: (i) => <Qtd valor={i.em_uso} /> },
+    { chave: "cadastrado", rotulo: "Cadastrado", classe: "eqp-num", render: (i) => <Qtd valor={i.cadastrado} tom="azul" /> },
+    { chave: "em_uso", rotulo: "Em uso agora", classe: "eqp-num", render: (i) => <Qtd valor={i.em_uso} tom="amarelo" /> },
     { chave: "faltando", rotulo: "Faltando", classe: "eqp-num",
       render: (i) => (i.faltando > 0
         ? <span className="celula-dupla"><Qtd valor={i.faltando} alerta /><span>{i.checklists_com_falta} checklist{i.checklists_com_falta > 1 ? "s" : ""}</span></span>
-        : <Qtd valor={0} />) },
-    { chave: "disponivel", rotulo: "Disponível", classe: "eqp-num", render: (i) => <Qtd valor={i.disponivel} /> },
-    { chave: "nas_viaturas", rotulo: "Nas viaturas", classe: "eqp-num", render: (i) => <Qtd valor={i.nas_viaturas} /> },
+        : <Qtd valor={0} tom="vermelho" />) },
+    { chave: "disponivel", rotulo: "Disponível", classe: "eqp-num", render: (i) => <Qtd valor={i.disponivel} tom="verde" /> },
+    { chave: "nas_viaturas", rotulo: "Nas viaturas", classe: "eqp-num", render: (i) => <Qtd valor={i.nas_viaturas} tom="cinza" /> },
     { chave: "ultima_entrada", rotulo: "Última entrada", render: (i) => (i.ultima_entrada ? data(i.ultima_entrada) : "—") },
     {
       chave: "acoes", rotulo: "Ações",
@@ -215,9 +219,10 @@ export default function Equipamentos() {
 
       {erro && <div className="login__erro">{erro}</div>}
 
-      <section className="cartao">
-        <header className="cartao__topo cartao__topo--tabela">
-          <span className="cartao__contagem">Estoque</span>
+      <section className="cartao eqp-secao">
+        <header className="dd-titulo">
+          <span className="eqp-secao__icone"><Icone nome="eq-cone" tamanho={26} /></span>
+          <div><h2>Estoque de equipamentos</h2><p>Visão geral dos equipamentos principais utilizados na fiscalização.</p></div>
         </header>
         <Tabela colunas={colunas} linhas={itens ? estoque : null} chaveDe={(i) => i.id_equipamento}
                 vazio="Nenhum item com controle de quantidade." carregando={!itens} />
@@ -226,10 +231,25 @@ export default function Equipamentos() {
         </p>
       </section>
 
-      <Cartao titulo={<><Icone nome="checklist" tamanho={18} /> Outros itens do checklist</>}>
+      <section className="cartao eqp-secao">
+        <header className="dd-titulo">
+          <span className="eqp-secao__icone eqp-secao__icone--cinza"><Icone nome="checklist" tamanho={24} /></span>
+          <div><h2>Outros itens do checklist</h2><p>Equipamentos adicionais que fazem parte da conferência no checklist da viatura.</p></div>
+          <span className="as-ferramentas">
+            <span className="as-busca">
+              <Icone nome="search" tamanho={14} />
+              <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar equipamento..." aria-label="Buscar equipamento" />
+            </span>
+            <select value={situacao} onChange={(e) => setSituacao(e.target.value)} aria-label="Situação">
+              <option value="">Todos</option>
+              <option value="true">Ativos</option>
+              <option value="false">Inativos</option>
+            </select>
+          </span>
+        </header>
         <Tabela colunas={colunasOutros} linhas={itens ? outros : null} chaveDe={(i) => i.id_equipamento}
                 vazio="Nenhum outro item." carregando={!itens} />
-      </Cartao>
+      </section>
 
       {janela?.tipo === "item" && (
         <JanelaItem item={janela.item} aoFechar={() => setJanela(null)} aoSalvar={() => { setJanela(null); carregar(); }} />
