@@ -17,8 +17,14 @@
  *   resumo(l)           - { rotulo, titulo, selo, linhas: [[rotulo, valor]], texto: { rotulo, valor } }
  *   abrir               - { rotulo: "Abrir em Sinistros", destino: (l) => "/frotas/..." } ou null
  *   unidade, vazio      - "sinistros"; texto da lista vazia
+ *   painel(l, fechar)   - (29/10) painel proprio no lugar do resumo padrao
+ *                         (ex.: Detalhes do Checklist, que busca mais dados)
+ *   classe              - classe extra do cartao da lista
+ *
+ * 29/10: o "Abrir em <tela>" deixou de ser botao e virou uma frase clicavel
+ * (link), a pedido do Cesar: nas aberturas parciais nao precisa de botao.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Cartao from "./Cartao.jsx";
 import Icone from "./Icone.jsx";
@@ -27,7 +33,7 @@ import { api } from "../lib/api.js";
 
 export default function ListaResumo({
   titulo, acao, caminho, linhas: linhasProntas, colunas, chave, resumo, abrir,
-  unidade = "registros", vazio = "Nenhum registro.",
+  unidade = "registros", vazio = "Nenhum registro.", painel, classe = "",
 }) {
   const navegar = useNavigate();
   const [linhas, setLinhas] = useState(null);
@@ -37,10 +43,17 @@ export default function ListaResumo({
   const [info, setInfo] = useState({ total: 0, paginas: 1 });
   const [aberto, setAberto] = useState(null);
 
-  useEffect(() => { setPagina(1); }, [caminho, linhasProntas]);
+  // A lista pronta pode chegar como um array novo a cada desenho da tela
+  // (ex.: filtrada pelo periodo): o que importa e QUAIS linhas sao.
+  const prontasRef = useRef(linhasProntas);
+  prontasRef.current = linhasProntas;
+  const chaveProntas = linhasProntas ? linhasProntas.map(chave).join(",") : null;
+
+  useEffect(() => { setPagina(1); }, [caminho, chaveProntas]);
 
   // Da API: pagina no servidor. Lista pronta: pagina aqui.
   useEffect(() => {
+    const linhasProntas = prontasRef.current;
     if (linhasProntas) {
       const total = linhasProntas.length;
       setInfo({ total, paginas: Math.max(1, Math.ceil(total / porPagina)) });
@@ -55,13 +68,14 @@ export default function ListaResumo({
         if (!Array.isArray(r)) setInfo({ total: r.total || 0, paginas: r.paginas || 1 });
       })
       .catch((e) => setErro(e.message));
-  }, [caminho, linhasProntas, pagina, porPagina]);
+  }, [caminho, chaveProntas, pagina, porPagina]);
 
-  const r = aberto ? resumo(aberto) : null;
+  const r = aberto && !painel ? resumo(aberto) : null;
+  const aberta = Boolean(aberto);
 
   return (
-    <div className={`sd-sinistros${r ? " sd-sinistros--aberto" : ""}`}>
-      <Cartao titulo={titulo} acao={acao}>
+    <div className={`sd-sinistros${aberta ? " sd-sinistros--aberto" : ""}`}>
+      <Cartao titulo={titulo} acao={acao} className={classe}>
         {erro ? <div className="vazio">{erro}</div>
           : !linhas ? <div className="carregando">Carregando...</div>
             : !linhas.length ? <p className="texto-corrido">{vazio}</p> : (
@@ -84,10 +98,14 @@ export default function ListaResumo({
                 </div>
                 <Paginacao pagina={pagina} setPagina={setPagina} porPagina={porPagina} setPorPagina={setPorPagina}
                            total={info.total} paginas={info.paginas} unidade={unidade} />
-                {!r && <p className="vd2-nota" style={{ marginTop: 10 }}>Clique numa linha para ver o resumo ao lado.</p>}
+                {!aberta && <p className="vd2-nota" style={{ marginTop: 10 }}>Clique numa linha para ver o resumo ao lado.</p>}
               </>
             )}
       </Cartao>
+
+      {aberto && painel && (
+        <aside className="cartao sd-sinistro-resumo">{painel(aberto, () => setAberto(null))}</aside>
+      )}
 
       {r && (
         <aside className="cartao sd-sinistro-resumo" aria-label={`Resumo: ${r.titulo}`}>
@@ -112,9 +130,8 @@ export default function ListaResumo({
             </div>
           )}
           {abrir && (
-            <button type="button" className="botao botao--primario sd-sinistro-resumo__mais"
-                    onClick={() => navegar(abrir.destino(aberto))}>
-              {abrir.rotulo} <Icone nome="seta-direita" tamanho={14} monocromatico />
+            <button type="button" className="lr-abrir" onClick={() => navegar(abrir.destino(aberto))}>
+              {abrir.rotulo} <Icone nome="seta-direita" tamanho={13} monocromatico />
             </button>
           )}
         </aside>

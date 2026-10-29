@@ -23,13 +23,15 @@ import Trilha from "../components/Trilha.jsx";
 import Selo from "../components/Selo.jsx";
 import { Paginacao } from "../components/Tabela.jsx";
 import ListaResumo from "../components/ListaResumo.jsx";
-import { resumoSinistro } from "../components/ResumosLista.jsx";
+import AbaSinistros from "../components/AbaSinistros.jsx";
+import PainelChecklist from "../components/PainelChecklist.jsx";
 import { api } from "../lib/api.js";
 import { data, dataHora, dinheiro, hora, numero, rotulo } from "../lib/formato.js";
 import { cpf as mascaraCpf, telefone as mascaraTelefone } from "../lib/mascaras.js";
 import { useSessao } from "../lib/sessao.jsx";
 import JanelaCadastro from "../components/JanelaCadastro.jsx";
 import AtualizarCnh from "../components/AtualizarCnh.jsx";
+import AbaCnh from "../components/AbaCnh.jsx";
 import MultasPessoa, { SeloMulta, SeloGravidade } from "../components/MultasPessoa.jsx";
 import { Equipamentos } from "./frotas/Checklists.jsx";
 import { CONFIG_SERVIDOR } from "./admin/Servidores.jsx";
@@ -194,40 +196,6 @@ export function Lista({ caminho, colunas, aoAbrir, vazio: textoVazio, unidade, a
                  total={info.total} paginas={info.paginas} unidade={unidade} />
     )}
     </>
-  );
-}
-
-/*
- * Aba Sinistros (26/10): a lista de sinistros do condutor e, ao clicar num
- * deles, um resumo no lado direito da tela com "Ver mais", que abre os
- * Detalhes do Sinistro com tudo o que aconteceu. A lista ja traz os campos do
- * sinistro, entao o resumo nao precisa de outra chamada.
- */
-function SinistrosPessoa({ idServidor }) {
-  // A lista e o resumo ao lado vem do ListaResumo (o mesmo padrao das abas do
-  // veiculo); o botao do resumo diz para onde leva: "Abrir em Sinistros".
-  const colunas = [
-    { rotulo: "Nº do Sinistro", render: (x) => <strong>{vazio(x.numero)}</strong> },
-    { rotulo: "Data", render: (x) => data(x.data) },
-    { rotulo: "Veículo", render: (x) => (
-      <span className="celula-dupla"><strong>{x.placa}</strong><span>{x.marca} {x.modelo}</span></span>
-    ) },
-    { rotulo: "Tipo", render: (x) => rotulo("tipoSinistro", x.tipo) },
-    // Sem "coluna-flexivel": ela reserva mais da metade da tabela e, com a
-    // lista na largura toda, sobrava um vao enorme no Local.
-    { rotulo: "Local", render: (x) => (
-      <span className="sd-local" title={x.local || ""}>{vazio(x.local)}</span>
-    ) },
-    { rotulo: "Situação", render: (x) => <Selo valor={x.status} /> },
-  ];
-  return (
-    <ListaResumo
-      titulo={<><Icone nome="sinistro" tamanho={18} /> Lista de Sinistros do Condutor</>}
-      caminho={`/frotas/sinistros?servidor=${idServidor}`}
-      colunas={colunas} chave={(x) => x.id_sinistro} unidade="sinistros"
-      vazio="Nenhum sinistro registrado."
-      resumo={(x) => resumoSinistro(x, { condutor: false })}
-      abrir={{ rotulo: "Abrir em Sinistros", destino: (x) => `/frotas/sinistros/${x.id_sinistro}` }} />
   );
 }
 
@@ -573,59 +541,37 @@ export default function ServidorDetalhe() {
 
       {/* Aba CNH (26/10): Informacoes da CNH, Historico de renovacao e Uso da
           frota. */}
+      {/* Aba CNH no desenho de 29/10 (componente AbaCnh, igual no Fiscal). */}
       {aba === "cnh" && (
-        <div className="sd-cnh ficha-bloco">
-          <Cartao titulo={<><Icone nome="cnh" tamanho={18} /> Informações da CNH</>}
-                  acao={podeCnh && (
-                    <button className="botao botao--pequeno vd-cartao-acao" onClick={() => setAtualizandoCnh(true)}>
-                      <Icone nome="editar" tamanho={14} /> Atualizar CNH
-                    </button>
-                  )}>
-            {!s.condutor ? (
-              <p className="texto-corrido">
-                Este servidor não está cadastrado como condutor, por isso não tem CNH registrada.
-              </p>
-            ) : (
-              <Linhas linhas={[
-                ["Nº da CNH / registro", s.cnh],
-                ["Categoria", s.categoria_cnh],
-                ["Data de emissão", s.cnh_data_emissao ? data(s.cnh_data_emissao) : null],
-                ["Data de validade", s.cnh_data_validade ? data(s.cnh_data_validade) : null],
-                ["Situação", <Selo texto={cnh.texto} tom={cnh.tom} />],
-              ]} />
-            )}
-          </Cartao>
-          <HistoricoCnh pessoa={s} />
-          <Cartao titulo={<><Icone nome="informacao" tamanho={18} /> Uso da frota</>}>
-            <Linhas linhas={[
+        <AbaCnh pessoa={s} podeEditar={podeCnh} aoAtualizar={() => setAtualizandoCnh(true)} recarga={recarga}
+                uso={{ titulo: "Uso da frota", linhas: [
               ["Condutor", s.condutor ? "Sim" : "Não"],
               ["Veículo em uso agora", r.veiculo_em_uso || "Nenhum"],
               ["Último checklist", r.ultimo_checklist ? dataHora(r.ultimo_checklist) : null],
               ["Checklists (total)", numero(r.checklists || 0)],
               ["Sinistros como condutor", numero(r.sinistros || 0)],
               ["Pontos de multas (12 meses)", numero(r.pontos_12m || 0)],
-            ]} />
-            {s.condutor && (
-              <p className="vd2-nota" style={{ marginTop: 10 }}>
-                O aviso de CNH vencendo aparece no sino 30 dias antes da validade.
-              </p>
-            )}
-          </Cartao>
-        </div>
+            ] }} />
       )}
 
+      {/* 29/10: clicar num checklist abre os "Detalhes do Checklist" ao lado,
+          com a frase "Abrir conteúdo completo" para a tela inteira. */}
       {aba === "checklists" && (
-        <Cartao className="sd-checklists" titulo={<><Icone nome="checklist" tamanho={18} /> Checklists
-          <FiltroPeriodo id="periodo-checklists" de={periodo.de} ate={periodo.ate} aoMudar={setPeriodo} /></>}>
-          <Lista caminho={caminhoChecklists} colunas={COL_CHECKLIST} unidade="checklists"
-                 vazio="Nenhum checklist registrado."
-                 aoAbrir={(c) => navegar(`/frotas/checklists/${c.id_checklist}`)} />
-        </Cartao>
+        <ListaResumo classe="sd-checklists"
+          titulo={<><Icone nome="checklist" tamanho={18} /> Checklists
+            <FiltroPeriodo id="periodo-checklists" de={periodo.de} ate={periodo.ate} aoMudar={setPeriodo} /></>}
+          caminho={caminhoChecklists} colunas={COL_CHECKLIST} chave={(c) => c.id_checklist} unidade="checklists"
+          vazio="Nenhum checklist registrado."
+          painel={(c, fechar) => <PainelChecklist linha={c} tipo="frotas" aoFechar={fechar} />} />
       )}
 
       {aba === "multas" && <MultasPessoa servidor={s} aoMudar={() => setRecarga((n) => n + 1)} />}
 
-      {aba === "sinistros" && <SinistrosPessoa idServidor={id} />}
+      {/* Desenho de 29/10: lista com busca e filtro, Detalhes do Sinistro ao
+          lado e Fotos/Documentos embaixo (sem os cartoes de contagem). */}
+      {aba === "sinistros" && (
+        <AbaSinistros idServidor={id} podeFrotas podeGerenciar={podeVer("FROTAS_GERENCIAR_SINISTROS")} />
+      )}
 
       {aba === "historico" && (
         <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Histórico de Atividades</>}>

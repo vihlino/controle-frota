@@ -20,7 +20,7 @@ import { autenticar, exigePermissao } from "../auth.js";
 import { registrarAuditoria } from "../auditoria.js";
 import equipamentosFisc from "./equipamentosFisc.js";
 import servicoEquipe from "./servicoEquipe.js";
-import { historicoCnh } from "./detalhes.js";
+import { historicoCnh, arquivosCnh } from "./detalhes.js";
 
 const VER = "FISCALIZACAO_VISUALIZAR";
 
@@ -522,7 +522,8 @@ router.get("/viaturas/:id/ficha", autenticar, exigePermissao(VER), async (req, r
     const id = Number(req.params.id);
     const v = await query(
       `SELECT v.*, st.nome AS setor,
-              (SELECT codigo FROM qr_code q WHERE q.id_veiculo = v.id_veiculo) AS qr_codigo
+              (SELECT codigo FROM qr_code q WHERE q.id_veiculo = v.id_veiculo) AS qr_codigo,
+              (SELECT f.atualizado_em FROM veiculo_foto f WHERE f.id_veiculo = v.id_veiculo) AS foto_em
          FROM veiculo v JOIN setor st ON st.id_setor = v.id_setor
         WHERE v.id_veiculo = $1`, [id]);
     const viatura = v.rows[0];
@@ -568,8 +569,12 @@ router.get("/viaturas/:id/ficha", autenticar, exigePermissao(VER), async (req, r
 
     const documentos = await query(
       `SELECT d.id_documento, d.tipo_documento, d.categoria, d.numero_documento, d.data_validade,
+              d.data_emissao, d.orgao_emissor, d.observacoes,
               d.status, (d.data_validade - CURRENT_DATE) AS dias_para_vencer,
-              (SELECT COUNT(*)::int FROM documento_arquivo a WHERE a.id_documento = d.id_documento) AS arquivos
+              (SELECT COUNT(*)::int FROM documento_arquivo a WHERE a.id_documento = d.id_documento) AS arquivos,
+              (SELECT json_build_object('id_arquivo', a.id_arquivo, 'nome', a.nome, 'tipo', a.tipo, 'bytes', a.bytes)
+                 FROM documento_arquivo a WHERE a.id_documento = d.id_documento
+                ORDER BY a.id_arquivo DESC LIMIT 1) AS ultimo_arquivo
          FROM documento_veiculo d
         WHERE d.id_veiculo = $1 AND d.substituido_em IS NULL
         ORDER BY d.data_validade NULLS LAST`, [id]);
@@ -581,6 +586,25 @@ router.get("/viaturas/:id/ficha", autenticar, exigePermissao(VER), async (req, r
          LEFT JOIN servidor sa ON sa.id_servidor = ua.id_servidor
         WHERE a.entidade = 'veiculo' AND a.id_registro = $1
         ORDER BY a.data_hora DESC LIMIT 50`, [id]);
+
+    // 29/10: equipamentos da viatura (o que esta cadastrado nela) e a
+    // proxima inspecao, para a Visao Geral no desenho dos Detalhes do Veiculo.
+    const equipamentos = await query(
+      `SELECT e.id_equipamento, e.nome, e.conferencia, COALESCE(ve.quantidade, 0)::int AS quantidade
+         FROM equipamento e
+         LEFT JOIN veiculo_equipamento ve ON ve.id_equipamento = e.id_equipamento AND ve.id_veiculo = $1
+        WHERE e.status
+        ORDER BY e.ordem NULLS LAST, e.nome`, [id]);
+    const extra = (await query(
+      `SELECT COALESCE(
+                (SELECT MIN(data_programada) FROM inspecao
+                  WHERE id_veiculo = $1 AND status = 'ABERTA' AND data_programada IS NOT NULL),
+                (SELECT proxima_inspecao FROM inspecao
+                  WHERE id_veiculo = $1 AND status = 'FINALIZADA' AND proxima_inspecao IS NOT NULL
+                  ORDER BY data_realizacao DESC LIMIT 1)) AS proxima_inspecao,
+              (SELECT COALESCE(SUM(custo), 0) FROM ordem_servico
+                WHERE id_veiculo = $1 AND COALESCE(data_fechamento, data_abertura::date) >= CURRENT_DATE - INTERVAL '12 months') AS custo_manutencao_12m`,
+      [id])).rows[0];
 
     const ultimo = checklists.rows[0] || null;
     const hoje = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
@@ -596,7 +620,10 @@ router.get("/viaturas/:id/ficha", autenticar, exigePermissao(VER), async (req, r
       sinistros: sinistros.rows,
       documentos: documentos.rows,
       cadastro: cadastro.rows,
+      equipamentos: equipamentos.rows,
       resumo: {
+        proxima_inspecao: extra.proxima_inspecao,
+        custo_manutencao_12m: extra.custo_manutencao_12m,
         equipe_atual: ultimo ? { id_equipe: ultimo.id_equipe, numero: ultimo.equipe } : null,
         ultimo_checklist: ultimo,
         proxima_manutencao: proxima,
@@ -705,6 +732,19 @@ router.get("/ocorrencias/:id/ficha", autenticar, exigePermissao(VER), async (req
       pontuacao: pontuacao ? pontuacao.rows : null,
       historico: await historicoDe(["ocorrencia"], id),
     });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Lista das fotos/documentos da ocorrencia (aba Ocorrencias da viatura, 29/10).
+router.get("/ocorrencias/:id/arquivos", autenticar, exigePermissao(VER), async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT id_arquivo, categoria, nome, tipo, bytes, criado_em
+         FROM ocorrencia_arquivo WHERE id_ocorrencia = $1 ORDER BY categoria DESC, id_arquivo`,
+      [Number(req.params.id)]);
+    res.json(rows);
   } catch (e) {
     next(e);
   }
@@ -1242,6 +1282,7 @@ router.get("/fiscais/:id/ficha", autenticar,
         sinistros: sinistros.rows,
         cadastro: cadastro.rows,
         cnh_historico: await historicoCnh(id),
+        cnh_arquivos: await arquivosCnh(id),
         resumo: {
           ocorrencias: ocorrencias.rows.length,
           ocorrencias_6m: ocorrencias.rows.filter((o) => recente(o.data)).length,

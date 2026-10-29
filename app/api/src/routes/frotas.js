@@ -1214,6 +1214,11 @@ export const documentos = criarCrud({
                               documento_veiculo.data_validade) AS status,
            (SELECT COUNT(*)::int FROM documento_arquivo a
              WHERE a.id_documento = documento_veiculo.id_documento) AS arquivos,
+           -- 29/10: o arquivo mais recente, para a lista mostrar o nome dele.
+           (SELECT json_build_object('id_arquivo', a.id_arquivo, 'nome', a.nome, 'tipo', a.tipo,
+                                     'bytes', a.bytes, 'criado_em', a.criado_em)
+              FROM documento_arquivo a WHERE a.id_documento = documento_veiculo.id_documento
+             ORDER BY a.id_arquivo DESC LIMIT 1) AS ultimo_arquivo,
            veiculo.placa, veiculo.marca, veiculo.modelo,
            servidor.nome AS responsavel,
            (documento_veiculo.data_validade - CURRENT_DATE) AS dias_para_vencer`,
@@ -1340,7 +1345,20 @@ documentos.get("/:id/ficha", autenticar, exigePermissao(VER), async (req, res, n
        SELECT d.id_documento, d.numero_documento, d.data_emissao, d.data_validade,
               d.substituido_em, d.criado_em,
               situacao_documento(d.status, d.data_validade) AS situacao,
-              (SELECT COUNT(*)::int FROM documento_arquivo a WHERE a.id_documento = d.id_documento) AS arquivos
+              (SELECT COUNT(*)::int FROM documento_arquivo a WHERE a.id_documento = d.id_documento) AS arquivos,
+              -- 29/10 (Historico de Versoes): o arquivo mais recente da versao
+              -- e quem cadastrou a versao (pela auditoria).
+              (SELECT json_build_object('id_arquivo', a.id_arquivo, 'nome', a.nome, 'tipo', a.tipo,
+                                        'bytes', a.bytes, 'criado_em', a.criado_em)
+                 FROM documento_arquivo a WHERE a.id_documento = d.id_documento
+                ORDER BY a.id_arquivo DESC LIMIT 1) AS arquivo,
+              (SELECT COALESCE(sa.nome, ua.login)
+                 FROM auditoria au
+                 JOIN usuario ua ON ua.id_usuario = au.id_usuario
+                 LEFT JOIN servidor sa ON sa.id_servidor = ua.id_servidor
+                WHERE au.entidade = 'documento' AND au.id_registro = d.id_documento
+                  AND au.acao IN ('CRIAR', 'ATUALIZAR_DOCUMENTO')
+                ORDER BY au.data_hora LIMIT 1) AS criado_por_nome
          FROM documento_veiculo d
         WHERE d.id_documento IN (SELECT id_documento FROM familia)
         ORDER BY d.criado_em DESC, d.id_documento DESC`,
@@ -1913,6 +1931,85 @@ multas.delete(
 );
 
 const router = Router();
+/*
+ * Fotos e documentos da INSPECAO e da OS (migracao 053, desenho de 29/10):
+ * os cartoes "Fotos da ..." e "Documentos" embaixo da lista, nas abas dos
+ * Detalhes do Veiculo. Mesmas regras do anexo do sinistro.
+ */
+function rotasDeAnexos(rotas, { tabela, coluna, tabelaPai, nome, ver, gerenciar, conferir }) {
+  rotas.get("/:id/arquivos", autenticar, exigePermissao(...ver), async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      const barrado = conferir ? await conferir(req, id) : null;
+      if (barrado) return res.status(403).json({ erro: barrado });
+      const { rows } = await query(
+        `SELECT a.id_arquivo, a.nome, a.tipo, a.bytes, a.criado_em,
+                (SELECT s.nome FROM usuario u JOIN servidor s ON s.id_servidor = u.id_servidor
+                  WHERE u.id_usuario = a.enviado_por) AS enviado_por_nome
+           FROM ${tabela} a WHERE a.${coluna} = $1 ORDER BY a.id_arquivo`, [id]);
+      res.json(rows);
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  rotas.post("/:id/arquivos", corpoDeArquivo, autenticar, exigePermissao(gerenciar), async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      const nomeArq = String(req.body?.nome || "").trim().slice(0, 255) || "arquivo";
+      const m = /^data:([a-z/+.-]+);base64,([A-Za-z0-9+/=]+)$/i.exec(String(req.body?.dataUrl || "").trim());
+      if (!m) return res.status(400).json({ erro: "Arquivo inválido." });
+      const tipo = m[1].toLowerCase();
+      if (!TIPOS_ARQUIVO_DOC.includes(tipo)) {
+        return res.status(400).json({ erro: "Envie fotos em JPG ou PNG, ou documentos em PDF." });
+      }
+      const buffer = Buffer.from(m[2], "base64");
+      if (!buffer.length || buffer.length > MAX_ARQUIVO_DOC) {
+        return res.status(400).json({ erro: "Cada arquivo precisa ter até 10 MB." });
+      }
+      const { rows: existe } = await query(`SELECT 1 FROM ${tabelaPai} WHERE ${coluna} = $1`, [id]);
+      if (!existe[0]) return res.status(404).json({ erro: `${nome} não encontrada.` });
+      const { rows } = await query(
+        `INSERT INTO ${tabela} (${coluna}, nome, tipo, bytes, conteudo, enviado_por)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id_arquivo, nome, tipo, bytes, criado_em`,
+        [id, nomeArq, tipo, buffer.length, buffer, req.usuario.id_usuario]);
+      await registrarAuditoria({
+        idUsuario: req.usuario.id_usuario, acao: "CRIAR", entidade: tabela,
+        idRegistro: rows[0].id_arquivo, dadosNovos: { [coluna]: id, nome: nomeArq, tipo, bytes: buffer.length },
+      });
+      res.status(201).json(rows[0]);
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  rotas.get("/arquivos/:idArquivo", autenticar, exigePermissao(...ver), async (req, res, next) => {
+    try {
+      const { rows } = await query(
+        `SELECT ${coluna} AS id_pai, nome, tipo, conteudo FROM ${tabela} WHERE id_arquivo = $1`,
+        [Number(req.params.idArquivo)]);
+      if (!rows[0]) return res.status(404).json({ erro: "Arquivo não encontrado." });
+      const barrado = conferir ? await conferir(req, rows[0].id_pai) : null;
+      if (barrado) return res.status(403).json({ erro: barrado });
+      res.setHeader("Content-Type", rows[0].tipo);
+      res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(rows[0].nome)}`);
+      res.setHeader("Cache-Control", "private, max-age=3600");
+      res.send(rows[0].conteudo);
+    } catch (e) {
+      next(e);
+    }
+  });
+}
+rotasDeAnexos(inspecoes, {
+  tabela: "inspecao_arquivo", coluna: "id_inspecao", tabelaPai: "inspecao", nome: "Inspeção",
+  ver: [VER], gerenciar: "FROTAS_REALIZAR_INSPECAO",
+});
+rotasDeAnexos(manutencoes, {
+  tabela: "ordem_servico_arquivo", coluna: "id_os", tabelaPai: "ordem_servico", nome: "OS",
+  ver: [VER, "FISCALIZACAO_VISUALIZAR"], gerenciar: "FROTAS_GERENCIAR_OS", conferir: conferirViaturaDaOs,
+});
+
 router.use("/veiculos", veiculos);
 router.use("/checklists", checklists);
 router.use("/inspecoes", inspecoes);

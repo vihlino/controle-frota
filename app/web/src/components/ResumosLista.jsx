@@ -1,7 +1,8 @@
 /**
  * ResumosLista.jsx - O que aparece no resumo ao lado da lista (ListaResumo)
  * para cada tipo de registro. Um lugar so, para o sinistro mostrar a mesma
- * coisa na ficha do Motorista, do Fiscal e do Veiculo (26/10).
+ * coisa na ficha do Motorista, do Fiscal e do Veiculo (26/10). A ocorrencia
+ * entrou em 29/10, para a aba Ocorrencias dos Detalhes da Viatura.
  */
 import Selo from "./Selo.jsx";
 import { data, dataHora, dinheiro, hora, numero, numeroOs, rotulo, ROTULOS } from "../lib/formato.js";
@@ -101,5 +102,21 @@ export function resumoDocumento(d) {
       ["Responsável", vazio(d.responsavel)],
     ],
     texto: { rotulo: "Observações", valor: d.observacoes },
+  };
+}
+
+/** Ocorrencia atendida pela viatura (Detalhes da Viatura, 29/10). */
+export function resumoOcorrencia(o) {
+  return {
+    rotulo: "Ocorrência",
+    titulo: o.protocolo || "Ocorrência",
+    selo: <Selo valor={o.status} />,
+    linhas: [
+      ["Data e hora", dataEHora(o.data, o.hora)],
+      ["Tipo", o.tipo === "QRU" ? "QRU" : o.tipo === "PROGRAMADA" ? "Programada" : vazio(o.tipo)],
+      ["Local", vazio(o.endereco)],
+      ["Equipe", vazio(o.equipe)],
+    ],
+    texto: { rotulo: "Descrição", valor: o.descricao },
   };
 }

@@ -14,6 +14,11 @@
  * cadastro (FaixaVeiculo); na Visao Geral o cartao do arquivo vem primeiro,
  * com a previa ao lado (zoom, girar, tela cheia); o aviso de vencimento fica
  * dentro do Historico de Versoes.
+ *
+ * 29/10 (desenho do Cesar): abas Dados do Documento, Arquivo, Historico e
+ * Alertas e Vencimentos refeitas (components/DocumentoAbas.jsx), todas com o
+ * Status do Documento e as Acoes Rapidas a direita; "Imprimir documento"
+ * imprime o arquivo, e entram "Visualizar arquivo" e "Baixar arquivo".
  */
 import { useEffect, useRef, useState } from "react";
 import { useOutletContext, useParams, useNavigate, useSearchParams } from "react-router-dom";
@@ -22,7 +27,7 @@ import Icone from "../../components/Icone.jsx";
 import Trilha from "../../components/Trilha.jsx";
 import Selo from "../../components/Selo.jsx";
 import FormularioDocumento from "../../components/FormularioDocumento.jsx";
-import ArquivosAnexados from "../../components/ArquivosAnexados.jsx";
+import { AbaDados, AbaArquivo, AbaHistorico, AbaAlertas, abrirArquivo, baixarArquivo, imprimirArquivo } from "../../components/DocumentoAbas.jsx";
 import FaixaVeiculo from "../../components/FaixaVeiculo.jsx";
 import HistoricoAuditoria from "../../components/HistoricoAuditoria.jsx";
 import { useArquivos } from "../../components/useArquivos.js";
@@ -253,6 +258,52 @@ export default function DocumentoDetalhe() {
     </Cartao>
   );
 
+  const cartaoAcoes = (
+    <Cartao titulo={<><Icone nome="fisc-bolt" tamanho={18} /> Ações Rápidas</>}>
+      <div className="vd-acoes">
+        {pode && (
+          <>
+            <button type="button" className="vd-acoes__item" onClick={() => setFormulario("atualizar")}>
+              <Icone nome="historico" tamanho={18} />
+              <span className="vd-acoes__rotulo">Substituir documento (renovação)</span>
+              <Icone nome="chevron-right" tamanho={14} />
+            </button>
+            <button type="button" className="vd-acoes__item" onClick={() => setFormulario("editar")}>
+              <Icone nome="editar" tamanho={18} />
+              <span className="vd-acoes__rotulo">Editar informações</span>
+              <Icone nome="chevron-right" tamanho={14} />
+            </button>
+            <button type="button" className="vd-acoes__item" onClick={() => entrada.current?.click()} disabled={anexos.enviando}>
+              <Icone nome="mais" tamanho={18} />
+              <span className="vd-acoes__rotulo">{anexos.enviando ? "Enviando..." : "Adicionar arquivo"}</span>
+              <Icone nome="chevron-right" tamanho={14} />
+            </button>
+          </>
+        )}
+        {ultimo && (
+          <button type="button" className="vd-acoes__item" onClick={() => abrirArquivo(ultimo)}>
+            <Icone nome="visualizar" tamanho={18} />
+            <span className="vd-acoes__rotulo">Visualizar arquivo</span>
+            <Icone nome="chevron-right" tamanho={14} />
+          </button>
+        )}
+        <button type="button" className="vd-acoes__item" onClick={() => (ultimo ? imprimirArquivo(ultimo) : window.print())}>
+          <Icone nome="imprimir" tamanho={18} />
+          <span className="vd-acoes__rotulo">Imprimir documento</span>
+          <Icone nome="chevron-right" tamanho={14} />
+        </button>
+        {ultimo && (
+          <button type="button" className="vd-acoes__item" onClick={() => baixarArquivo(ultimo)}>
+            <Icone nome="baixar" tamanho={18} />
+            <span className="vd-acoes__rotulo">Baixar arquivo</span>
+            <Icone nome="chevron-right" tamanho={14} />
+          </button>
+        )}
+      </div>
+    </Cartao>
+  );
+  const lado = <div className="vd-corpo__lado">{cartaoStatus}{cartaoAcoes}</div>;
+
   const avisoVencimento = !antigo && d.data_validade && (
     <div className="aviso-vencimento" data-tom={quadro.tom === "vermelho" ? "vermelho" : undefined}>
       <Icone nome="alert-triangle" tamanho={22} />
@@ -397,34 +448,7 @@ export default function DocumentoDetalhe() {
           <div className="vd-corpo__lado">
             {cartaoStatus}
 
-            <Cartao titulo={<><Icone nome="fisc-bolt" tamanho={18} /> Ações Rápidas</>}>
-              <div className="vd-acoes">
-                {pode && (
-                  <>
-                    <button type="button" className="vd-acoes__item" onClick={() => setFormulario("atualizar")}>
-                      <Icone nome="historico" tamanho={18} />
-                      <span className="vd-acoes__rotulo">Substituir documento (renovação)</span>
-                      <Icone nome="chevron-right" tamanho={14} />
-                    </button>
-                    <button type="button" className="vd-acoes__item" onClick={() => setFormulario("editar")}>
-                      <Icone nome="editar" tamanho={18} />
-                      <span className="vd-acoes__rotulo">Editar informações</span>
-                      <Icone nome="chevron-right" tamanho={14} />
-                    </button>
-                    <button type="button" className="vd-acoes__item" onClick={() => entrada.current?.click()} disabled={anexos.enviando}>
-                      <Icone nome="mais" tamanho={18} />
-                      <span className="vd-acoes__rotulo">{anexos.enviando ? "Enviando..." : "Adicionar arquivo"}</span>
-                      <Icone nome="chevron-right" tamanho={14} />
-                    </button>
-                  </>
-                )}
-                <button type="button" className="vd-acoes__item" onClick={() => window.print()}>
-                  <Icone nome="documento" tamanho={18} />
-                  <span className="vd-acoes__rotulo">Imprimir documento</span>
-                  <Icone nome="chevron-right" tamanho={14} />
-                </button>
-              </div>
-            </Cartao>
+            {cartaoAcoes}
 
             <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Histórico de Versões</>}>
               {versoes}
@@ -434,60 +458,43 @@ export default function DocumentoDetalhe() {
         </div>
       )}
 
+      {/* Abas no desenho do Cesar de 29/10 (DocumentoAbas.jsx), sempre com
+          o Status do Documento e as Acoes Rapidas a direita. */}
       {aba === "dados" && (
         <div className="vd-corpo">
-          <div className="vd-corpo__principal">{cartaoInformacoes}</div>
-          <div className="vd-corpo__lado">{cartaoStatus}</div>
+          <div className="vd-corpo__principal">
+            <AbaDados d={d} antigo={antigo} pode={pode} aoEditar={() => setFormulario("editar")} />
+          </div>
+          {lado}
         </div>
       )}
 
       {aba === "arquivo" && (
-        <Cartao titulo={<><Icone nome="documentos" tamanho={18} /> Arquivos anexados</>}>
-          <ArquivosAnexados key={`a-${recarga}-${arquivos.length}`}
-            caminhoLista={`/frotas/documentos/${d.id_documento}/arquivos`} caminhoArquivo="/frotas/documentos/arquivos"
-            podeGerenciar={pode} vazio="Nenhum arquivo anexado." aoMudar={anexos.recarregar} />
-        </Cartao>
+        <div className="vd-corpo">
+          <div className="vd-corpo__principal">
+            <AbaArquivo arquivos={anexos.arquivos} pode={pode} enviando={anexos.enviando}
+                        aoAdicionar={() => entrada.current?.click()}
+                        aoMudar={() => { anexos.recarregar(); recarregar(); }} />
+          </div>
+          {lado}
+        </div>
       )}
 
       {aba === "historico" && (
-        <div className="ficha-2 ficha-bloco doc-historico">
-          <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Histórico de versões</>}>{versoes}</Cartao>
-          <Cartao titulo={<><Icone nome="historico" tamanho={18} /> Histórico do documento</>}>
-            <HistoricoAuditoria tipo="documento" id={d.id_documento} recarga={recarga + arquivos.length}
-              inicio={d.criado_em ? { quando: d.criado_em, usuario: null, acao: "Cadastro", descricao: "Documento cadastrado no sistema" } : null} />
-          </Cartao>
+        <div className="vd-corpo">
+          <div className="vd-corpo__principal">
+            <AbaHistorico d={d} recarga={recarga + arquivos.length} />
+          </div>
+          {lado}
         </div>
       )}
 
       {aba === "alertas" && (
         <div className="vd-corpo">
           <div className="vd-corpo__principal">
-            <Cartao titulo={<><Icone nome="calendar" tamanho={18} /> Vencimentos dos documentos do veículo</>}>
-              {!docsVeiculo ? <p className="texto-corrido">Carregando...</p> : (
-                <div className="rolagem-x">
-                  <table className="tabela vd-tabela tabela-ficha">
-                    <thead><tr><th>Documento</th><th>Nº / Referência</th><th>Validade</th><th>Prazo</th><th>Situação</th></tr></thead>
-                    <tbody>
-                      {docsVeiculo.map((x) => (
-                        <tr key={x.id_documento} className="vd-tabela__linha" data-atual={x.id_documento === d.id_documento ? "sim" : undefined}
-                            onClick={() => navegar(`/frotas/documentos/${x.id_documento}`)}>
-                          <td>{x.tipo_documento}</td>
-                          <td>{vazio(x.numero_documento)}</td>
-                          <td>{x.data_validade ? data(x.data_validade) : "Não vence"}</td>
-                          <td>{x.dias_para_vencer == null ? "—" : x.dias_para_vencer < 0 ? `Vencido há ${Math.abs(x.dias_para_vencer)} dias` : `Em ${x.dias_para_vencer} dias`}</td>
-                          <td><Selo valor={x.status} /></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </Cartao>
+            <AbaAlertas d={d} docs={docsVeiculo} />
           </div>
-          <div className="vd-corpo__lado">
-            {cartaoStatus}
-            {avisoVencimento}
-          </div>
+          {lado}
         </div>
       )}
 

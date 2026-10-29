@@ -10,7 +10,7 @@
  *                                        reunidos num UNION
  *   /api/frotas/veiculos/:id/resumo      contagens para os cartoes do topo
  */
-import { Router } from "express";
+import { Router, json } from "express";
 import { pool, query } from "../db.js";
 import { registrarAuditoria } from "../auditoria.js";
 import { autenticar, exigePermissao } from "../auth.js";
@@ -142,6 +142,11 @@ router.get("/veiculos/:id/resumo", autenticar, verVeiculo, async (req, res, next
              AND data_validade IS NOT NULL
              AND data_validade < CURRENT_DATE) AS documentos_vencidos,
          (SELECT COALESCE(SUM(custo), 0) FROM ordem_servico WHERE id_veiculo = $1) AS custo_manutencao,
+         -- 29/10: "Custo manutencao (12 meses)" e "Proxima manutencao" do desenho.
+         (SELECT COALESCE(SUM(custo), 0) FROM ordem_servico
+           WHERE id_veiculo = $1 AND COALESCE(data_fechamento, data_abertura::date) >= CURRENT_DATE - INTERVAL '12 months') AS custo_manutencao_12m,
+         (SELECT MIN(proxima_manutencao) FROM ordem_servico
+           WHERE id_veiculo = $1 AND proxima_manutencao >= CURRENT_DATE) AS proxima_manutencao,
          -- Cartao "Status e controle" da ficha do veiculo.
          (SELECT MAX(data_abertura + COALESCE(hora_saida, '00:00'::time))
             FROM checklist_frotas WHERE id_veiculo = $1) AS ultimo_checklist,
@@ -217,7 +222,11 @@ router.get("/historico/:tipo/:id", autenticar,
       `SELECT a.id_auditoria, a.data_hora, a.acao, a.entidade, a.id_registro, a.justificativa,
               COALESCE(s.nome, u.login) AS usuario,
               COALESCE(a.dados_novos->>'nome', a.dados_anteriores->>'nome') AS arquivo,
-              a.dados_novos->>'id_documento_anterior' AS id_documento_anterior
+              a.dados_novos->>'id_documento_anterior' AS id_documento_anterior,
+              -- 29/10: o antes e o depois, para o Historico do Documento dizer
+              -- o que mudou ("data de validade de X para Y"). So no documento:
+              -- nos outros a tela nao usa e o JSON pode ser grande.
+              ${req.params.tipo === "documento" ? "a.dados_anteriores, a.dados_novos" : "NULL AS dados_anteriores, NULL AS dados_novos"}
          FROM auditoria a
          LEFT JOIN usuario u ON u.id_usuario = a.id_usuario
          LEFT JOIN servidor s ON s.id_servidor = u.id_servidor
@@ -287,6 +296,13 @@ router.put("/servidores/:id/cnh", autenticar,
     const emissao = String(b.cnh_data_emissao || "").slice(0, 10);
     const validade = String(b.cnh_data_validade || "").slice(0, 10);
     const motivo = MOTIVOS_CNH.includes(b.motivo) ? b.motivo : null;
+    // Desenho de 29/10: orgao emissor, UF, RENACH e observacoes (opcionais).
+    const texto = (v, max) => (String(v ?? "").trim().slice(0, max) || null);
+    const orgao = texto(b.cnh_orgao_emissor, 60);
+    const uf = texto(b.cnh_uf, 2)?.toUpperCase() || null;
+    const renach = texto(b.cnh_renach, 20);
+    const observacoes = texto(b.cnh_observacoes, 2000);
+    if (uf && !/^[A-Z]{2}$/.test(uf)) return res.status(400).json({ erro: "UF inválida." });
     const dataOk = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(new Date(d));
     if (cnh.length < 9 || cnh.length > 15) return res.status(400).json({ erro: "Informe o número da CNH (só números)." });
     if (!CATEGORIAS_CNH.includes(categoria)) return res.status(400).json({ erro: "Escolha a categoria da CNH." });
@@ -298,7 +314,8 @@ router.put("/servidores/:id/cnh", autenticar,
     try {
       await cliente.query("BEGIN");
       const antes = await cliente.query(
-        `SELECT cnh, categoria_cnh, cnh_data_emissao, cnh_data_validade, condutor
+        `SELECT cnh, categoria_cnh, cnh_data_emissao, cnh_data_validade, condutor,
+                cnh_orgao_emissor, cnh_uf, cnh_renach, cnh_observacoes
            FROM servidor WHERE id_servidor = $1 FOR UPDATE`, [id]);
       if (!antes.rows[0]) {
         await cliente.query("ROLLBACK");
@@ -308,9 +325,10 @@ router.put("/servidores/:id/cnh", autenticar,
       anterior = antes.rows[0];
       await cliente.query(
         `UPDATE servidor SET cnh = $2, categoria_cnh = $3, cnh_data_emissao = $4,
-                cnh_data_validade = $5, condutor = TRUE
+                cnh_data_validade = $5, condutor = TRUE,
+                cnh_orgao_emissor = $6, cnh_uf = $7, cnh_renach = $8, cnh_observacoes = $9
           WHERE id_servidor = $1`,
-        [id, cnh, categoria, emissao, validade]);
+        [id, cnh, categoria, emissao, validade, orgao, uf, renach, observacoes]);
       // A linha que o gatilho acabou de criar (se a CNH mudou de verdade).
       await cliente.query(
         `UPDATE servidor_cnh_historico SET motivo = $2
@@ -330,13 +348,89 @@ router.put("/servidores/:id/cnh", autenticar,
         idUsuario: req.usuario.id_usuario, acao: "ALTERAR", entidade: "servidor", idRegistro: id,
         justificativa: `Atualizar CNH - ${motivo}`,
         dadosAnteriores: anterior,
-        dadosNovos: { cnh, categoria_cnh: categoria, cnh_data_emissao: emissao, cnh_data_validade: validade },
+        dadosNovos: {
+          cnh, categoria_cnh: categoria, cnh_data_emissao: emissao, cnh_data_validade: validade,
+          cnh_orgao_emissor: orgao, cnh_uf: uf, cnh_renach: renach, cnh_observacoes: observacoes,
+        },
       });
       res.json({ ok: true });
     } catch (e) {
       next(e);
     }
   });
+
+/*
+ * Arquivo da CNH (migracao 052, desenho de 29/10): a foto ou o PDF da
+ * carteira. Enviar de novo guarda mais um; a tela mostra o ultimo.
+ */
+const TIPOS_ARQUIVO_CNH = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+const MAX_ARQUIVO_CNH = 10 * 1024 * 1024;
+const corpoArquivoCnh = json({ limit: "15mb" });
+const verCnh = exigePermissao("FROTAS_VISUALIZAR", "ADMIN_VISUALIZAR", "FISCALIZACAO_VISUALIZAR");
+const gerenciarCnh = exigePermissao("FROTAS_GERENCIAR_SERVIDORES", "ADMIN_GERENCIAR_SERVIDORES", "FISCALIZACAO_GERENCIAR_FISCAIS");
+
+/** Arquivos da CNH da pessoa (sem o conteudo), do mais novo para o mais antigo. */
+export async function arquivosCnh(idServidor) {
+  const { rows } = await query(
+    `SELECT a.id_arquivo, a.nome, a.tipo, a.bytes, a.criado_em,
+            (SELECT s.nome FROM usuario u JOIN servidor s ON s.id_servidor = u.id_servidor
+              WHERE u.id_usuario = a.enviado_por) AS enviado_por_nome
+       FROM servidor_cnh_arquivo a WHERE a.id_servidor = $1 ORDER BY a.id_arquivo DESC`,
+    [idServidor]
+  ).catch(() => ({ rows: [] })); // banco sem a 052 ainda
+  return rows;
+}
+
+router.get("/servidores/:id/cnh/arquivos", autenticar, verCnh, async (req, res, next) => {
+  try {
+    res.json(await arquivosCnh(Number(req.params.id)));
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.get("/servidores/:id/cnh/arquivos/:idArquivo", autenticar, verCnh, async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      "SELECT nome, tipo, conteudo FROM servidor_cnh_arquivo WHERE id_arquivo = $1 AND id_servidor = $2",
+      [Number(req.params.idArquivo), Number(req.params.id)]
+    );
+    if (!rows[0]) return res.status(404).json({ erro: "Arquivo não encontrado." });
+    res.setHeader("Content-Type", rows[0].tipo);
+    res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(rows[0].nome)}`);
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    res.send(rows[0].conteudo);
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post("/servidores/:id/cnh/arquivos", corpoArquivoCnh, autenticar, gerenciarCnh, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const nome = String(req.body?.nome || "").trim().slice(0, 255) || "cnh";
+    const m = /^data:([a-z/+.-]+);base64,([A-Za-z0-9+/=]+)$/i.exec(String(req.body?.dataUrl || "").trim());
+    if (!m) return res.status(400).json({ erro: "Arquivo inválido." });
+    const tipo = m[1].toLowerCase();
+    if (!TIPOS_ARQUIVO_CNH.includes(tipo)) return res.status(400).json({ erro: "Envie a CNH em PDF, JPG ou PNG." });
+    const buffer = Buffer.from(m[2], "base64");
+    if (!buffer.length || buffer.length > MAX_ARQUIVO_CNH) return res.status(400).json({ erro: "O arquivo precisa ter até 10 MB." });
+    const { rows: existe } = await query("SELECT 1 FROM servidor WHERE id_servidor = $1", [id]);
+    if (!existe[0]) return res.status(404).json({ erro: "Servidor não encontrado." });
+    const { rows } = await query(
+      `INSERT INTO servidor_cnh_arquivo (id_servidor, nome, tipo, bytes, conteudo, enviado_por)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_arquivo, nome, tipo, bytes, criado_em`,
+      [id, nome, tipo, buffer.length, buffer, req.usuario.id_usuario]
+    );
+    await registrarAuditoria({
+      idUsuario: req.usuario.id_usuario, acao: "ALTERAR", entidade: "servidor", idRegistro: id,
+      justificativa: "Arquivo da CNH anexado", dadosNovos: { arquivo_cnh: nome, tipo, bytes: buffer.length },
+    });
+    res.status(201).json(rows[0]);
+  } catch (e) {
+    next(e);
+  }
+});
 
 router.get("/servidores/:id/ficha", autenticar, verPessoas, async (req, res, next) => {
   try {
@@ -451,6 +545,7 @@ router.get("/servidores/:id/ficha", autenticar, verPessoas, async (req, res, nex
       resumo: resumo.rows[0],
       atividades: atividades.rows,
       cnh_historico: await historicoCnh(id),
+      cnh_arquivos: await arquivosCnh(id),
     });
   } catch (e) {
     next(e);

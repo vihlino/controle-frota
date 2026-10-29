@@ -202,7 +202,7 @@ async function iniciarServidor() {
   // essas rotas usam o
   // proprio leitor de corpo, com limite maior (routes/frotas.js).
   const jsonPadrao = express.json({ limit: "1mb" });
-  const ROTA_ANEXO_DOCUMENTO = /^\/api\/frotas\/(documentos|sinistros|multas)\/\d+\/arquivos\/?$/;
+  const ROTA_ANEXO_DOCUMENTO = /^\/api\/frotas\/(documentos|sinistros|multas|inspecoes|manutencoes)\/\d+\/arquivos\/?$/;
   // Fotos do checklist pelo QR Code (frota e Fiscalizacao): o leitor de 8 MB
   // fica na propria rota (corpoDeFoto, routes/qrcode.js).
   // Fotos e documentos da ocorrencia registrada pelo QR (ate 10 MB): leitor de 15 MB na rota.
@@ -211,9 +211,11 @@ async function iniciarServidor() {
   const ROTA_FOTO_SERVICO = /^\/api\/fiscalizacao\/servico-diario\/equipe\/\d+\/fotos\/?$/;
   // Foto do veiculo (26/10): leitor de 8 MB na rota (routes/frotas.js).
   const ROTA_FOTO_VEICULO = /^\/api\/frotas\/veiculos\/\d+\/foto\/?$/;
+  // Arquivo da CNH (29/10): leitor de 15 MB na rota (routes/detalhes.js).
+  const ROTA_ARQUIVO_CNH = /^\/api\/frotas\/servidores\/\d+\/cnh\/arquivos\/?$/;
   app.use((req, res, next) =>
     ROTA_ANEXO_DOCUMENTO.test(req.path) || ROTA_FOTO_QR.test(req.path) || ROTA_FOTO_SERVICO.test(req.path)
-      || ROTA_FOTO_VEICULO.test(req.path) ? next() : jsonPadrao(req, res, next)
+      || ROTA_FOTO_VEICULO.test(req.path) || ROTA_ARQUIVO_CNH.test(req.path) ? next() : jsonPadrao(req, res, next)
   );
 
   /*

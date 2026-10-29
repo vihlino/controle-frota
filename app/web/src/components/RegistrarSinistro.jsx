@@ -83,7 +83,8 @@ export function SimNao({ nome, rotulo: texto, valor, aoMudar }) {
 
 const texto = (v) => (v === null || v === undefined ? "" : String(v));
 
-export default function RegistrarSinistro({ sinistro, idVeiculo = "", aoFechar, aoSalvar }) {
+// idServidor (29/10): aberto pela ficha do condutor, ja vem com ele escolhido.
+export default function RegistrarSinistro({ sinistro, idVeiculo = "", idServidor = "", aoFechar, aoSalvar }) {
   const editando = Boolean(sinistro);
   const { usuario } = useSessao();
   const { pedirSenha, elemento: modalSenha } = useConfirmacaoSenha();
@@ -94,7 +95,7 @@ export default function RegistrarSinistro({ sinistro, idVeiculo = "", aoFechar, 
   const [anexos, setAnexos] = useState([]);
   const [formulario, setFormulario] = useState(() => ({
     id_veiculo: texto(sinistro?.id_veiculo ?? idVeiculo),
-    id_servidor: texto(sinistro?.id_servidor),
+    id_servidor: texto(sinistro?.id_servidor ?? idServidor),
     data: sinistro?.data ? String(sinistro.data).slice(0, 10) : "",
     hora: sinistro?.hora ? String(sinistro.hora).slice(0, 5) : "",
     tipo: sinistro?.tipo || "COLISAO",

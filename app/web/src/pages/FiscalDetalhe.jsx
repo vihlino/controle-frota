@@ -21,12 +21,14 @@ import { data, dataHora, hora, numero, rotulo } from "../lib/formato.js";
 import FiltroPeriodo, { dentroDoPeriodo } from "../components/FiltroPeriodo.jsx";
 import { cpf as mascaraCpf, telefone as mascaraTelefone } from "../lib/mascaras.js";
 import { useSessao } from "../lib/sessao.jsx";
-import { CartaoPessoa, HistoricoCnh, iniciais, situacaoCnh, Item, Linhas } from "./ServidorDetalhe.jsx";
+import { CartaoPessoa, iniciais, situacaoCnh, Item, Linhas } from "./ServidorDetalhe.jsx";
 import JanelaCadastro from "../components/JanelaCadastro.jsx";
 import MultasPessoa from "../components/MultasPessoa.jsx";
 import AtualizarCnh from "../components/AtualizarCnh.jsx";
+import AbaCnh from "../components/AbaCnh.jsx";
 import ListaResumo from "../components/ListaResumo.jsx";
-import { resumoSinistro } from "../components/ResumosLista.jsx";
+import AbaSinistros from "../components/AbaSinistros.jsx";
+import PainelChecklist from "../components/PainelChecklist.jsx";
 import { CONFIG_SERVIDOR } from "./admin/Servidores.jsx";
 
 const vazio = (v) => (v === null || v === undefined || v === "" ? "—" : v);
@@ -400,42 +402,16 @@ export default function FiscalDetalhe() {
 
       {/* Mesma aba CNH do Motorista (26/10): Informacoes, Historico de
           renovacao e Uso das viaturas. */}
+      {/* Aba CNH no desenho de 29/10 (componente AbaCnh, igual no Motorista). */}
       {aba === "cnh" && (
-        <div className="sd-cnh ficha-bloco">
-          <Cartao titulo={<><Icone nome="cnh" tamanho={18} /> Informações da CNH</>}
-                  acao={podeCnh && (
-                    <button className="botao botao--pequeno vd-cartao-acao" onClick={() => setAtualizandoCnh(true)}>
-                      <Icone nome="editar" tamanho={14} /> Atualizar CNH
-                    </button>
-                  )}>
-            {!f.condutor ? (
-              <p className="texto-corrido">Este fiscal não está cadastrado como condutor, por isso não tem CNH registrada.</p>
-            ) : (
-              <Linhas linhas={[
-                ["Nº da CNH / registro", f.cnh],
-                ["Categoria", f.categoria_cnh],
-                ["Data de emissão", f.cnh_data_emissao ? data(f.cnh_data_emissao) : null],
-                ["Data de validade", f.cnh_data_validade ? data(f.cnh_data_validade) : null],
-                ["Situação", <Selo texto={cnh.texto} tom={cnh.tom} />],
-              ]} />
-            )}
-          </Cartao>
-          <HistoricoCnh pessoa={f} />
-          <Cartao titulo={<><Icone nome="informacao" tamanho={18} /> Uso das viaturas</>}>
-            <Linhas linhas={[
+        <AbaCnh pessoa={f} podeEditar={podeCnh} aoAtualizar={() => setAtualizandoCnh(true)} recarga={recarga}
+                uso={{ titulo: "Uso das viaturas", linhas: [
               ["Condutor", f.condutor ? "Sim" : "Não"],
               ["Checklists de viatura", numero(r.checklists || 0)],
               ["Como Fiscal 1", numero((f.checklists || []).filter((c) => c.papel === "FISCAL_1").length)],
               ["Como Fiscal 2", numero((f.checklists || []).filter((c) => c.papel === "FISCAL_2").length)],
               ["Pontos de multas (12 meses)", numero(r.pontos_12m || 0)],
-            ]} />
-            {f.condutor && (
-              <p className="vd2-nota" style={{ marginTop: 10 }}>
-                O aviso de CNH vencendo aparece no sino 30 dias antes da validade.
-              </p>
-            )}
-          </Cartao>
-        </div>
+            ] }} />
       )}
 
       {aba === "ocorrencias" && (
@@ -445,11 +421,15 @@ export default function FiscalDetalhe() {
         </Cartao>
       )}
 
+      {/* 29/10: o checklist abre os "Detalhes do Checklist" ao lado, como no
+          Motorista, com a frase "Abrir conteúdo completo". */}
       {aba === "checklists" && (
-        <Cartao titulo={<><Icone nome="checklist" tamanho={18} /> Checklists {filtroDe("checklists")}</>}>
-          <Tabela linhas={noPeriodo("checklists", f.checklists, "data_abertura")} colunas={COL_CHECKLIST}
-                  aoAbrir={abrirChecklist} vazio="Nenhum checklist de viatura no período." />
-        </Cartao>
+        <ListaResumo
+          titulo={<><Icone nome="checklist" tamanho={18} /> Checklists {filtroDe("checklists")}</>}
+          linhas={noPeriodo("checklists", f.checklists, "data_abertura")} colunas={COL_CHECKLIST}
+          chave={(c) => c.id_checklist} unidade="checklists"
+          vazio="Nenhum checklist de viatura no período."
+          painel={(c, fechar) => <PainelChecklist linha={c} tipo="fiscal" aoFechar={fechar} />} />
       )}
 
       {aba === "pontuacao" && vePontos && (
@@ -470,16 +450,11 @@ export default function FiscalDetalhe() {
         </Cartao>
       )}
 
-      {/* Como a aba Sinistros do Motorista (26/10): lista e resumo ao lado.
-          "Abrir em Sinistros" so para quem ve o Frotas (a tela e de la). */}
+      {/* Desenho de 29/10, igual ao Motorista. Quem so ve a Fiscalizacao
+          recebe a lista que a ficha trouxe, sem fotos/documentos. */}
       {aba === "sinistros" && (
-        <ListaResumo
-          titulo={<><Icone nome="sinistro" tamanho={18} /> Lista de Sinistros do Condutor</>}
-          linhas={f.sinistros || []} colunas={COL_SINISTRO} chave={(x) => x.id_sinistro} unidade="sinistros"
-          vazio="Nenhum sinistro registrado."
-          resumo={(x) => resumoSinistro(x, { condutor: false })}
-          abrir={podeVer("FROTAS_VISUALIZAR")
-            ? { rotulo: "Abrir em Sinistros", destino: (x) => `/frotas/sinistros/${x.id_sinistro}` } : null} />
+        <AbaSinistros idServidor={f.id_servidor} linhas={f.sinistros || []}
+                      podeFrotas={podeVer("FROTAS_VISUALIZAR")} podeGerenciar={podeVer("FROTAS_GERENCIAR_SINISTROS")} />
       )}
 
       {aba === "multas" && <MultasPessoa servidor={f} aoMudar={() => setRecarga((n) => n + 1)} />}

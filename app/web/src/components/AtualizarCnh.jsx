@@ -21,6 +21,8 @@ const CATEGORIAS = ["A", "B", "AB", "C", "D", "E", "AC", "AD", "AE"].map((c) => 
 const MOTIVOS = ["Renovação", "Mudança de categoria", "Segunda via", "Correção de dados"]
   .map((m) => ({ valor: m, rotulo: m }));
 const dia = (v) => (v ? String(v).slice(0, 10) : "");
+const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR",
+  "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"].map((u) => ({ valor: u, rotulo: u }));
 
 export default function AtualizarCnh({ pessoa: p, aoFechar, aoSalvar }) {
   const temCnh = Boolean(p.condutor && (p.cnh || p.cnh_data_validade));
@@ -32,6 +34,11 @@ export default function AtualizarCnh({ pessoa: p, aoFechar, aoSalvar }) {
     categoria_cnh: p.categoria_cnh || "",
     cnh_data_emissao: temCnh ? "" : dia(p.cnh_data_emissao),
     cnh_data_validade: temCnh ? "" : dia(p.cnh_data_validade),
+    // Dados de 29/10: vem preenchidos com o que ja esta cadastrado.
+    cnh_orgao_emissor: p.cnh_orgao_emissor || "",
+    cnh_uf: p.cnh_uf || "GO",
+    cnh_renach: p.cnh_renach || "",
+    cnh_observacoes: p.cnh_observacoes || "",
   });
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -108,6 +115,10 @@ export default function AtualizarCnh({ pessoa: p, aoFechar, aoSalvar }) {
                    opcoes={CATEGORIAS} {...campo("categoria_cnh")} />
           <Data rotulo="Data de emissão *" id="cnh-emissao" required {...campo("cnh_data_emissao")} />
           <Data rotulo="Data de validade *" id="cnh-validade" required {...campo("cnh_data_validade")} />
+          <Texto rotulo="Órgão emissor" id="cnh-orgao" maxLength={60} {...campo("cnh_orgao_emissor")} placeholder="Ex.: DETRAN - GO" />
+          <Selecao rotulo="UF" id="cnh-uf" vazio="Selecione" opcoes={UFS} {...campo("cnh_uf")} />
+          <Texto rotulo="Registro RENACH" id="cnh-renach" maxLength={20} {...campo("cnh_renach")} placeholder="Ex.: GO123456789" />
+          <Texto rotulo="Observações" id="cnh-obs" maxLength={2000} {...campo("cnh_observacoes")} placeholder="Ex.: EAR (exerce atividade remunerada)" />
         </form>
       </Modal>
       {modalSenha}
